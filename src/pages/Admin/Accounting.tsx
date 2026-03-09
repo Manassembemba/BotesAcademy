@@ -2,7 +2,7 @@
 /**
  * Accounting page - Forced reload to fix Vite cache issues.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfToday, endOfToday, startOfYesterday, endOfYesterday, startOfWeek, startOfMonth, subDays, isWithinInterval } from "date-fns";
@@ -16,6 +16,18 @@ import { TrendingUp, Calendar, Filter, Download, ArrowUpRight, DollarSign, Users
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { 
+    AreaChart, 
+    Area, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    Cell
+} from 'recharts';
 
 type DateFilter = "today" | "yesterday" | "week" | "month" | "custom";
 
@@ -36,7 +48,7 @@ const Accounting = () => {
                     indicators (name)
                 `)
                 .eq('status', 'approved')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: true });
 
             const { data, error } = await query;
             if (error) throw error;
@@ -59,6 +71,19 @@ const Accounting = () => {
 
     const totalRevenue = payments?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
     const paymentCount = payments?.length || 0;
+
+    // Données pour le graphique de tendance (Revenus par jour)
+    const chartData = useMemo(() => {
+        if (!payments) return [];
+        const dailyMap: Record<string, number> = {};
+        
+        payments.forEach(p => {
+            const dateStr = format(new Date(p.created_at), 'dd MMM');
+            dailyMap[dateStr] = (dailyMap[dateStr] || 0) + p.amount;
+        });
+
+        return Object.entries(dailyMap).map(([name, total]) => ({ name, total }));
+    }, [payments]);
 
     // Calcul des statistiques par produit (Cours ou Outils)
     const productStats = payments?.reduce((acc: any, curr) => {
@@ -194,6 +219,62 @@ const Accounting = () => {
             </div>
 
             {renderSummaryCards()}
+
+            {/* Daily Trend Chart */}
+            <Card className="shadow-xl rounded-[2rem] border-border/40 overflow-hidden mb-8">
+                <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
+                    <CardTitle className="text-xl font-black uppercase tracking-tighter italic">Performance des Ventes</CardTitle>
+                    <CardDescription className="font-medium">Évolution du chiffre d'affaires sur la période.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="h-[350px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#88888820" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{fontSize: 10, fontWeight: 'bold'}} 
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{fontSize: 10, fontWeight: 'bold'}}
+                                    tickFormatter={(val) => `$${val}`}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        backgroundColor: 'hsl(var(--card))', 
+                                        borderRadius: '16px', 
+                                        border: '1px solid hsl(var(--border))',
+                                        fontWeight: 'bold',
+                                        fontSize: '12px'
+                                    }}
+                                    itemStyle={{ color: '#10b981' }}
+                                    cursor={{ stroke: '#10b981', strokeWidth: 2, strokeDasharray: '5 5' }}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="total" 
+                                    stroke="#10b981" 
+                                    strokeWidth={4}
+                                    fillOpacity={1} 
+                                    fill="url(#colorTotal)" 
+                                    animationDuration={1500}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-1 shadow-xl rounded-[2rem] overflow-hidden border-border/40">
