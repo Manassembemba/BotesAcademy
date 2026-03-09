@@ -52,7 +52,7 @@ const Attendance = () => {
         queryFn: async () => {
             if (!selectedCourse) return [];
             const { data } = await supabase
-                .from('course_vacations' as any)
+                .from('course_vacations')
                 .select('id, name, time_range')
                 .eq('course_id', selectedCourse);
             return data || [];
@@ -88,14 +88,14 @@ const Attendance = () => {
             if (!selectedSession || !selectedVacation) return {};
             const formattedDate = format(date, 'yyyy-MM-dd');
             const { data } = await supabase
-                .from('attendance' as any)
+                .from('attendance')
                 .select('*')
-                .eq('session_id' as any, selectedSession)
+                .eq('session_id', selectedSession)
                 .eq('vacation_id', selectedVacation)
                 .eq('date', formattedDate);
             
-            const map: any = {};
-            data?.forEach((a: any) => {
+            const map: Record<string, string> = {};
+            data?.forEach((a) => {
                 map[a.student_id] = a.status;
             });
             return map;
@@ -108,14 +108,14 @@ const Attendance = () => {
         mutationFn: async ({ studentId, status }: { studentId: string, status: string }) => {
             const formattedDate = format(date, 'yyyy-MM-dd');
             
-            const { error } = await supabase.from('attendance' as any).upsert({
+            const { error } = await supabase.from('attendance').upsert({
                 student_id: studentId,
                 course_id: selectedCourse,
                 session_id: selectedSession,
                 vacation_id: selectedVacation,
                 date: formattedDate,
                 status: status
-            }, { onConflict: 'student_id, course_id, date' });
+            }, { onConflict: 'student_id, course_id, session_id, date' });
 
             if (error) throw error;
         },
