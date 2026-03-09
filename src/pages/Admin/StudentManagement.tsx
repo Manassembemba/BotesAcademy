@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, BookOpen, Clock, Loader2, Search, TrendingUp, Download, Eye, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Users, BookOpen, Clock, Loader2, Search, TrendingUp, Download, Eye, Plus, Trash2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { 
     AlertDialog, 
@@ -96,32 +97,23 @@ const VacationOptions = ({ courseId }: { courseId: string }) => {
 };
 
 const StudentManagement = () => {
+    const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
     const [shouldNotify, setShouldNotify] = useState(true);
 
-    // Form states for new student
+    // Form states for new student (plus de champ password — Magic Link géré par Supabase Auth)
     const [newStudent, setNewStudent] = useState({
         full_name: "",
         email: "",
-        password: "",
         course_id: "",
         session_id: "",
         vacation_id: "",
         amount: 0,
         payment_method: "cash_deposit" as const
     });
-
-    const generatePassword = () => {
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        let password = "";
-        for (let i = 0; i < 8; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        setNewStudent(prev => ({ ...prev, password: `Botes_${password}` }));
-    };
 
     const { data: students, isLoading, error } = useQuery({
         queryKey: ['admin-students'],
@@ -181,24 +173,23 @@ const StudentManagement = () => {
 
     const addStudentMutation = useMutation({
         mutationFn: async (data: typeof newStudent) => {
-            // Call the Edge Function for atomic operation
+            // Appel atomique à la Edge Function (magic link + purchase + proof + audit)
             const { data: response, error } = await supabase.functions.invoke('admin-register-student', {
                 body: {
                     email: data.email,
-                    password: data.password,
                     fullName: data.full_name,
                     courseId: data.course_id,
-                    sessionId: data.session_id,
+                    sessionId: data.session_id || null,
                     vacationId: data.vacation_id && data.vacation_id !== "none" ? data.vacation_id : null,
                     amount: data.amount,
                     paymentMethod: data.payment_method,
-                    shouldNotify: shouldNotify
+                    adminId: user?.id  // Pour le log d'audit
                 }
             });
 
-            if (error || response.error) throw new Error(error?.message || response.error);
+            if (error || response?.error) throw new Error(error?.message || response?.error);
 
-            // 4. Notification Email (si demandée)
+            // Email de bienvenue avec le lien de reset — envoyé si shouldNotify est actif
             if (shouldNotify) {
                 const course = allCourses?.find(c => c.id === data.course_id);
                 try {
@@ -206,25 +197,26 @@ const StudentManagement = () => {
                         body: {
                             fullName: data.full_name,
                             email: data.email,
-                            password: data.password,
-                            courseTitle: course?.title
+                            courseTitle: course?.title,
+                            resetLink: response?.resetLink  // ← lien de définition du mot de passe
                         }
                     });
                 } catch (emailErr) {
-                    console.error("Erreur lors de l'envoi de l'email:", emailErr);
+                    console.error("Erreur lors de l'envoi du mail de bienvenue:", emailErr);
                 }
             }
-
-            return data.password;
         },
-        onSuccess: (generatedPassword) => {
-            toast.success(`Étudiant créé ! ${shouldNotify ? 'Email envoyé.' : ''} MDP : ${generatedPassword}`, {
-                duration: 10000,
-            });
+        onSuccess: () => {
+            toast.success(
+                shouldNotify
+                    ? "Étudiant inscrit ! Un lien d'invitation a été envoyé par email."
+                    : "Étudiant inscrit avec succès.",
+                { duration: 8000 }
+            );
             queryClient.invalidateQueries({ queryKey: ['admin-students'] });
             queryClient.invalidateQueries({ queryKey: ['admin-accounting'] });
             setIsAddStudentOpen(false);
-            setNewStudent({ full_name: "", email: "", password: "", course_id: "", session_id: "", vacation_id: "", amount: 0, payment_method: "cash_deposit" });
+            setNewStudent({ full_name: "", email: "", course_id: "", session_id: "", vacation_id: "", amount: 0, payment_method: "cash_deposit" });
         },
         onError: (err: any) => toast.error(err.message)
     });
@@ -328,10 +320,17 @@ const StudentManagement = () => {
                     <DialogHeader>
                         <DialogTitle>Inscrire un étudiant manuellement</DialogTitle>
                         <DialogDescription>
-                            Cette action inscrit l'étudiant et enregistre le paiement en comptabilité.
+                            Cette action inscrit l'étudiant, enregistre le paiement en comptabilité et lui envoie un lien d'invitation sécurisé.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
+                        {/* Bannière d'information sur le Magic Link */}
+                        <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800">
+                            <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs font-medium leading-relaxed">
+                                L'étudiant recevra un <strong>lien d'invitation sécurisé</strong> pour définir son propre mot de passe. Aucun mot de passe n'est généré par l'admin.
+                            </p>
+                        </div>
                         <div className="space-y-2">
                             <Label>Nom Complet de l'étudiant</Label>
                             <Input 
@@ -341,23 +340,13 @@ const StudentManagement = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Email (Sert d'identifiant)</Label>
+                            <Label>Email (Sert d'identifiant de connexion)</Label>
                             <Input 
+                                type="email"
                                 placeholder="exemple@email.com" 
                                 value={newStudent.email}
                                 onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Mot de passe par défaut</Label>
-                            <div className="flex gap-2">
-                                <Input 
-                                    placeholder="Mot de passe" 
-                                    value={newStudent.password}
-                                    onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
-                                />
-                                <Button variant="outline" size="sm" onClick={generatePassword} type="button">Générer</Button>
-                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Sélectionner la formation</Label>
@@ -443,8 +432,8 @@ const StudentManagement = () => {
 
                         <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
                             <div className="space-y-0.5">
-                                <Label className="text-sm font-bold">Notifier par email</Label>
-                                <p className="text-[10px] text-muted-foreground uppercase font-medium">Envoie les identifiants à l'étudiant</p>
+                                <Label className="text-sm font-bold">Envoyer un email de bienvenue</Label>
+                                <p className="text-[10px] text-muted-foreground uppercase font-medium">Informe l'étudiant de son inscription</p>
                             </div>
                             <Switch 
                                 checked={shouldNotify}
