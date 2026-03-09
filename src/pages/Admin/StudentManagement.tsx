@@ -347,7 +347,7 @@ const StudentManagement = () => {
                             <Label>Sélectionner la formation</Label>
                             <Select onValueChange={(val) => {
                                 const course = allCourses?.find(c => c.id === val);
-                                setNewStudent({...newStudent, course_id: val, amount: course?.price || 0, vacation_id: ""});
+                                setNewStudent({...newStudent, course_id: val, amount: course?.price || 0, session_id: "", vacation_id: ""});
                             }}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Choisir un cours" />
@@ -361,22 +361,41 @@ const StudentManagement = () => {
                         </div>
 
                         {newStudent.course_id && (
-                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <Label>Vacation (Optionnel)</Label>
-                                <Select 
-                                    value={newStudent.vacation_id} 
-                                    onValueChange={(val) => setNewStudent({...newStudent, vacation_id: val})}
-                                >
-                                    <SelectTrigger className="bg-primary/5 border-primary/20">
-                                        <SelectValue placeholder="Choisir une vacation" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Aucune (Par défaut)</SelectItem>
-                                        {allCourses?.find(c => c.id === newStudent.course_id) && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="space-y-2">
+                                    <Label>Session (Mois / Période)</Label>
+                                    <Select 
+                                        value={newStudent.session_id} 
+                                        onValueChange={(val) => setNewStudent({...newStudent, session_id: val})}
+                                    >
+                                        <SelectTrigger className="bg-primary/5 border-primary/20">
+                                            <SelectValue placeholder="Choisir une session" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {courseSessions?.map(s => (
+                                                <SelectItem key={s.id} value={s.id}>{s.session_name}</SelectItem>
+                                            ))}
+                                            {courseSessions?.length === 0 && <SelectItem value="none" disabled>Aucune session</SelectItem>}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Vacation (Créneau horaire)</Label>
+                                    <Select 
+                                        value={newStudent.vacation_id} 
+                                        onValueChange={(val) => setNewStudent({...newStudent, vacation_id: val})}
+                                        disabled={!newStudent.session_id}
+                                    >
+                                        <SelectTrigger className="bg-primary/5 border-primary/20">
+                                            <SelectValue placeholder="Choisir une vacation" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Aucune (Par défaut)</SelectItem>
                                             <VacationOptions courseId={newStudent.course_id} />
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         )}
                         <div className="grid grid-cols-2 gap-4">

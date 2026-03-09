@@ -18,7 +18,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { email, password, fullName, courseId, vacationId, amount, paymentMethod, shouldNotify } = await req.json()
+    const { email, password, fullName, courseId, sessionId, vacationId, amount, paymentMethod, shouldNotify } = await req.json()
 
     // 1. Create User in Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -35,6 +35,7 @@ serve(async (req) => {
     const { error: purchaseError } = await supabaseAdmin.from('purchases').insert({
       user_id: userId,
       course_id: courseId,
+      session_id: sessionId || null,
       vacation_id: vacationId || null,
       amount: amount,
       payment_status: 'completed',
@@ -52,6 +53,7 @@ serve(async (req) => {
     const { error: proofError } = await supabaseAdmin.from('payment_proofs').insert({
       user_id: userId,
       course_id: courseId,
+      session_id: sessionId || null,
       vacation_id: vacationId || null,
       amount: amount,
       payment_method: paymentMethod,
