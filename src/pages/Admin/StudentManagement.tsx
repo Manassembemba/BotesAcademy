@@ -108,6 +108,7 @@ const StudentManagement = () => {
         email: "",
         password: "",
         course_id: "",
+        session_id: "",
         vacation_id: "",
         amount: 0,
         payment_method: "cash_deposit" as const
@@ -162,6 +163,20 @@ const StudentManagement = () => {
         }
     });
 
+    // Fetch sessions for selected course in the form
+    const { data: courseSessions } = useQuery({
+        queryKey: ['admin-course-sessions', newStudent.course_id],
+        queryFn: async () => {
+            if (!newStudent.course_id) return [];
+            const { data } = await supabase
+                .from('course_sessions')
+                .select('id, session_name')
+                .eq('course_id', newStudent.course_id);
+            return data || [];
+        },
+        enabled: !!newStudent.course_id
+    });
+
     const queryClient = useQueryClient();
 
     const addStudentMutation = useMutation({
@@ -173,6 +188,7 @@ const StudentManagement = () => {
                     password: data.password,
                     fullName: data.full_name,
                     courseId: data.course_id,
+                    sessionId: data.session_id,
                     vacationId: data.vacation_id && data.vacation_id !== "none" ? data.vacation_id : null,
                     amount: data.amount,
                     paymentMethod: data.payment_method,
@@ -208,7 +224,7 @@ const StudentManagement = () => {
             queryClient.invalidateQueries({ queryKey: ['admin-students'] });
             queryClient.invalidateQueries({ queryKey: ['admin-accounting'] });
             setIsAddStudentOpen(false);
-            setNewStudent({ full_name: "", email: "", password: "", course_id: "", amount: 0, payment_method: "cash_deposit" });
+            setNewStudent({ full_name: "", email: "", password: "", course_id: "", session_id: "", vacation_id: "", amount: 0, payment_method: "cash_deposit" });
         },
         onError: (err: any) => toast.error(err.message)
     });
