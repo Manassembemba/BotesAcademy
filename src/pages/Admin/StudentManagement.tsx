@@ -17,8 +17,57 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
+
+interface Course {
+    id: string;
+    title: string;
+    price: number;
+}
+
+interface Strategy {
+    id: string;
+    title: string;
+    price: number;
+}
+
+interface Indicator {
+    id: string;
+    name: string;
+    price: number;
+}
+
+interface Vacation {
+    id: string;
+    name: string;
+    time_range: string;
+    course_id: string;
+}
+
 interface StudentData {
-    // ... existant ...
+    student_id: string;
+    full_name: string;
+    email: string;
+    avatar_url: string | null;
+    enrolled_courses_count: number;
+    purchased_strategies_count: number;
+    purchased_indicators_count: number;
+    course_titles: string[];
+    course_purchase_ids: string[];
+    strategy_titles: string[];
+    strategy_purchase_ids: string[];
+    indicator_titles: string[];
+    indicator_purchase_ids: string[];
     total_spent: number;
     last_enrollment_date: string | null;
 }
@@ -27,8 +76,8 @@ const VacationOptions = ({ courseId }: { courseId: string }) => {
     const { data: vacations } = useQuery({
         queryKey: ['course-vacations-list', courseId],
         queryFn: async () => {
-            const { data } = await supabase.from('course_vacations' as any).select('*').eq('course_id', courseId);
-            return data || [];
+            const { data } = await supabase.from('course_vacations').select('*').eq('course_id', courseId);
+            return (data as Vacation[]) || [];
         },
         enabled: !!courseId
     });
@@ -37,7 +86,7 @@ const VacationOptions = ({ courseId }: { courseId: string }) => {
 
     return (
         <>
-            {vacations.map((v: any) => (
+            {vacations.map((v) => (
                 <SelectItem key={v.id} value={v.id}>
                     {v.name} ({v.time_range})
                 </SelectItem>
@@ -117,46 +166,21 @@ const StudentManagement = () => {
 
     const addStudentMutation = useMutation({
         mutationFn: async (data: typeof newStudent) => {
-            // 1. Créer l'utilisateur dans Supabase Auth
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: data.email,
-                password: data.password,
-                options: {
-                    data: {
-                        full_name: data.full_name,
-                    }
+            // Call the Edge Function for atomic operation
+            const { data: response, error } = await supabase.functions.invoke('admin-register-student', {
+                body: {
+                    email: data.email,
+                    password: data.password,
+                    fullName: data.full_name,
+                    courseId: data.course_id,
+                    vacationId: data.vacation_id && data.vacation_id !== "none" ? data.vacation_id : null,
+                    amount: data.amount,
+                    paymentMethod: data.payment_method,
+                    shouldNotify: shouldNotify
                 }
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Erreur lors de la création de l'utilisateur.");
-
-            const targetUserId = authData.user.id;
-
-            // 2. Inscription à la formation
-            const { error: enrollError } = await supabase.from('purchases').insert({
-                user_id: targetUserId,
-                course_id: data.course_id,
-                vacation_id: data.vacation_id && data.vacation_id !== "none" ? data.vacation_id : null,
-                amount: data.amount,
-                payment_status: 'completed',
-                validation_status: 'approved',
-                validated_at: new Date().toISOString()
-            });
-            if (enrollError) throw enrollError;
-
-            // 3. Ajout à la comptabilité
-            const { error: proofError } = await supabase.from('payment_proofs').insert({
-                user_id: targetUserId,
-                course_id: data.course_id,
-                vacation_id: data.vacation_id && data.vacation_id !== "none" ? data.vacation_id : null,
-                amount: data.amount,
-                payment_method: data.payment_method,
-                status: 'approved',
-                validated_at: new Date().toISOString(),
-                admin_notes: `Enregistrement manuel par Réception. MDP: ${data.password}`
-            });
-            if (proofError) throw proofError;
+            if (error || response.error) throw new Error(error?.message || response.error);
 
             // 4. Notification Email (si demandée)
             if (shouldNotify) {
@@ -172,7 +196,6 @@ const StudentManagement = () => {
                     });
                 } catch (emailErr) {
                     console.error("Erreur lors de l'envoi de l'email:", emailErr);
-                    // On ne bloque pas la réussite de l'inscription si l'email échoue
                 }
             }
 
@@ -631,14 +654,35 @@ const StudentManagement = () => {
                                         return (
                                             <div key={purchaseId || i} className="flex items-center justify-between p-2 rounded-lg border bg-muted/30 group">
                                                 <span className="text-sm font-medium truncate">{title}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => purchaseId && deleteMutation.mutate({ type: 'course', id: purchaseId })}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Confirmer le retrait</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Êtes-vous sûr de vouloir retirer l'accès à la formation <span className="font-bold text-foreground">"{title}"</span> ? 
+                                                                L'étudiant ne pourra plus consulter le contenu.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                            <AlertDialogAction 
+                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                onClick={() => purchaseId && deleteMutation.mutate({ type: 'course', id: purchaseId })}
+                                                            >
+                                                                Retirer l'accès
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
                                             </div>
                                         );
                                     })
