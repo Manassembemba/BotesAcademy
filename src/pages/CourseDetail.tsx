@@ -116,7 +116,7 @@ const CourseDetail = () => {
     enabled: !!user && !!courseId,
   });
 
-  const hasAccess = course && (!course.is_paid || (!!purchase && purchase.validation_status === 'approved'));
+  const hasAccess = !!user && !!course && (!course.is_paid || (!!purchase && purchase.validation_status === 'approved'));
   const latestPaymentProof = paymentProofs?.[0];
 
   const { data: lessons, isLoading: isLoadingLessons, error: lessonsError } = useQuery({
@@ -358,10 +358,12 @@ const CourseDetail = () => {
 
           <div className="space-y-2">
             <h3 className="text-3xl font-black uppercase tracking-tighter italic leading-none text-white drop-shadow-lg">
-              {previewEnded ? "Aperçu terminé" : "Contenu Protégé"}
+              {previewEnded ? "Aperçu terminé" : !user ? "Connexion Requise" : "Contenu Protégé"}
             </h3>
             <p className="text-white/80 text-sm max-w-xs mx-auto font-medium drop-shadow-md">
-              Inscrivez-vous pour débloquer l'accès complet à cette formation.
+              {!user 
+                ? "Veuillez vous connecter pour accéder à cette formation." 
+                : "Inscrivez-vous pour débloquer l'accès complet à cette formation."}
             </p>
           </div>
         </div>
@@ -370,6 +372,22 @@ const CourseDetail = () => {
   };
 
   const renderEnrollmentForm = () => {
+    if (!user) {
+      return (
+        <Card className="mt-8 rounded-[2.5rem] border-primary/20 bg-card shadow-2xl p-8 animate-in fade-in slide-in-from-bottom-4 overflow-hidden relative">
+          <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center justify-between">
+            <div className="flex-1 space-y-2 w-full">
+              <h3 className="text-2xl font-black uppercase tracking-tighter italic">Rejoindre l'académie</h3>
+              <p className="text-muted-foreground text-sm font-medium">Connectez-vous pour accéder à nos programmes exclusifs.</p>
+            </div>
+            <Button onClick={() => navigate('/auth')} size="lg" className="w-full md:w-auto rounded-2xl px-12 h-16 font-black uppercase text-xs tracking-[0.2em] bg-primary hover:bg-primary/90">
+              Se connecter / S'inscrire
+            </Button>
+          </div>
+        </Card>
+      );
+    }
+
     const hasPendingProof = latestPaymentProof?.status === 'pending';
     const hasRejectedProof = latestPaymentProof?.status === 'rejected';
 
@@ -517,8 +535,8 @@ const CourseDetail = () => {
 
   const renderMainContent = () => {
     if (!hasAccess) {
-      if (selectedLesson?.lesson_type === 'video' && !previewEnded) {
-        return <VideoPlayer url={selectedLesson.video_url} title={selectedLesson.title} isPreview={true} />;
+      if (user && selectedLesson?.lesson_type === 'video' && !previewEnded) {
+        return <VideoPlayer url={selectedLesson.video_url} title={selectedLesson.title} isPreview={true} mode={course?.mode} />;
       }
       return (
         <div className="space-y-4">
