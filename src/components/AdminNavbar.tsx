@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Home, LogOut, GraduationCap, CreditCard, Users, Settings, TrendingUp, CheckCircle2 } from "lucide-react";
+import { LayoutDashboard, Home, LogOut, GraduationCap, CreditCard, Users, Settings, TrendingUp, CheckCircle2, FileText } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -15,12 +15,10 @@ const AdminNavbar = () => {
       className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-lg border-b border-border"
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/admin/dashboard" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-gradient-success rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 glow-success">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold">
-            Botes <span className="text-gradient-success">Admin</span>
+        <Link to="/admin/dashboard" className="flex items-center gap-3 group">
+          <img src="/logo.png" alt="Botes Academy Logo" className="h-[200px] w-auto object-contain" />
+          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+            Admin
           </span>
         </Link>
 
@@ -38,6 +36,13 @@ const AdminNavbar = () => {
           >
             <CreditCard className="w-4 h-4" />
             Paiements
+          </Link>
+          <Link
+            to="/admin/applications"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            Candidatures
           </Link>
           <Link
             to="/admin/students"

@@ -14,14 +14,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 // 1. Fonction pour récupérer les données depuis Supabase
 const fetchPublishedCourses = async () => {
+  console.log("Formations: Tentative de récupération des cours...");
   const { data, error } = await supabase
     .from('courses')
     .select('*')
     .eq('status', 'published');
 
   if (error) {
+    console.error("Formations Error:", error);
     throw new Error(error.message);
   }
+  
+  console.log(`Formations: ${data?.length || 0} cours publiés reçus.`);
   return data;
 };
 
@@ -196,7 +200,10 @@ const Formations = () => {
                     image={course.thumbnail_url || "/placeholder.svg"}
                     category={course.category || "N/A"}
                     mode={course.mode}
+                    level={course.level || "Débutant"}
+                    language={course.language || "Français"}
                     isSpecialSession={course.is_special_session}
+                    hasBrochure={!!course.brochure_url}
                   />
                 </motion.div>
               ))}

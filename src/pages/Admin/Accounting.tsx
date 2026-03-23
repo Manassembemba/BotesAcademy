@@ -26,10 +26,16 @@ import {
     ResponsiveContainer,
     BarChart,
     Bar,
-    Cell
+    Cell,
+    PieChart,
+    Pie,
+    Legend
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
 
-type DateFilter = "today" | "yesterday" | "week" | "month" | "custom";
+type DateFilter = "today" | "yesterday" | "week" | "month" | "custom" | "all";
 
 const Accounting = () => {
     const [filter, setFilter] = useState<DateFilter>("month");
@@ -50,22 +56,37 @@ const Accounting = () => {
                 .eq('status', 'approved')
                 .order('created_at', { ascending: true });
 
+            // Application du filtre de date CÔTÉ SERVEUR (Optimization)
+            if (filter !== "all") {
+                let startDate: Date | null = null;
+                let endDate: Date | null = null;
+                
+                if (filter === "today") {
+                    startDate = startOfToday();
+                    endDate = endOfToday();
+                } else if (filter === "yesterday") {
+                    startDate = startOfYesterday();
+                    endDate = endOfYesterday();
+                } else if (filter === "week") {
+                    startDate = startOfWeek(new Date(), { weekStartsOn: 1 });
+                } else if (filter === "month") {
+                    startDate = startOfMonth(new Date());
+                } else if (filter === "custom" && dateRange?.from) {
+                    startDate = dateRange.from;
+                    if (dateRange.to) endDate = dateRange.to;
+                }
+
+                if (startDate) {
+                    query = query.gte('created_at', startDate.toISOString());
+                }
+                if (endDate) {
+                    query = query.lte('created_at', endDate.toISOString());
+                }
+            }
+
             const { data, error } = await query;
             if (error) throw error;
-
-            const filteredData = data.filter(payment => {
-                const pDate = new Date(payment.created_at);
-                if (filter === "today") return isWithinInterval(pDate, { start: startOfToday(), end: endOfToday() });
-                if (filter === "yesterday") return isWithinInterval(pDate, { start: startOfYesterday(), end: endOfYesterday() });
-                if (filter === "week") return pDate >= startOfWeek(new Date(), { weekStartsOn: 1 });
-                if (filter === "month") return pDate >= startOfMonth(new Date());
-                if (filter === "custom" && dateRange?.from && dateRange?.to) {
-                    return isWithinInterval(pDate, { start: dateRange.from, end: dateRange.to });
-                }
-                return true;
-            });
-
-            return filteredData;
+            return data as any[]; // Cast pour éviter les erreurs TS sur les relations
         }
     });
 
@@ -88,13 +109,86 @@ const Accounting = () => {
     // Calcul des statistiques par produit (Cours ou Outils)
     const productStats = payments?.reduce((acc: any, curr) => {
         const title = curr.courses?.title || curr.strategies?.title || curr.indicators?.name || 'Produit Spécial';
-        if (!acc[title]) {
-            acc[title] = { count: 0, revenue: 0 };
-        }
+        if (!acc[title]) acc[title] = { count: 0, revenue: 0 };
         acc[title].count += 1;
         acc[title].revenue += curr.amount;
         return acc;
     }, {});
+
+    // Données pour le PieChart Méthodes de paiement (M-Pesa, Airtel, Bank, Crypto, etc)
+    const paymentMethodsStats = useMemo(() => {
+        if (!payments) return [];
+        const methodsMap: Record<string, number> = {};
+        payments.forEach(p => {
+            const method = p.payment_method || 'Autre';
+            methodsMap[method] = (methodsMap[method] || 0) + p.amount;
+        });
+        return Object.entries(methodsMap).map(([name, value]) => ({ name: name.replace('_', ' ').toUpperCase(), value }));
+    }, [payments]);
+    
+    const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+    const exportToCsv = () => {
+        if (!payments || payments.length === 0) return toast.error("Aucune donnée à exporter.");
+        
+        const headers = ["Date", "Heure", "Client", "Produit", "Moyen de Paiement", "Montant ($)"];
+        const rows = payments.map(p => {
+            const date = format(new Date(p.created_at), 'dd/MM/yyyy');
+            const time = format(new Date(p.created_at), 'HH:mm');
+            const client = p.profiles?.full_name || 'Inconnu';
+            const produit = p.courses?.title || p.strategies?.title || p.indicators?.name || 'Produit Spécial';
+            const method = p.payment_method?.replace('_', ' ') || 'Autre';
+            return [date, time, client, produit, method, p.amount];
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8," 
+            + headers.join(",") + "\n" 
+            + rows.map(e => e.join(",")).join("\n");
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `comptabilite_botes_${format(new Date(), 'yyyyMMdd')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Fichier CSV téléchargé avec succès !");
+    };
+
+    const exportToPdf = () => {
+        if (!payments || payments.length === 0) return toast.error("Aucune donnée à exporter.");
+        
+        const doc = new jsPDF();
+        doc.text(`Rapport Comptable Botes Academy - ${format(new Date(), 'dd/MM/yyyy')}`, 14, 15);
+        
+        const tableColumn = ["Date", "Client", "Produit", "Methode", "Montant"];
+        const tableRows: any[] = [];
+
+        payments.forEach(p => {
+            const dateStr = format(new Date(p.created_at), 'dd/MM/yy HH:mm');
+            const pName = p.courses?.title || p.strategies?.title || p.indicators?.name || 'Spécial';
+            tableRows.push([
+                dateStr,
+                p.profiles?.full_name || 'Inconnu',
+                pName,
+                p.payment_method?.replace('_',' ') || 'Autre',
+                `$${p.amount}`
+            ]);
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 25,
+        });
+
+        const totalStr = `TOTAL REVENUS SUR LA PERIODE : $${totalRevenue}`;
+        const finalY = (doc as any).lastAutoTable.finalY || 25;
+        doc.text(totalStr, 14, finalY + 10);
+
+        doc.save(`compta_botes_${format(new Date(), 'yyyyMMdd')}.pdf`);
+        toast.success("Fichier PDF exporté avec succès !");
+    };
 
     const renderSummaryCards = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -161,6 +255,12 @@ const Accounting = () => {
                     <p className="text-muted-foreground font-medium">Suivi des flux financiers (Cours & Marketplace).</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 bg-muted/30 p-1.5 rounded-2xl border border-border/50">
+                    <Button
+                        variant={filter === "all" ? "default" : "ghost"}
+                        size="sm"
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                        onClick={() => setFilter("all")}
+                    >Tout</Button>
                     <Button
                         variant={filter === "today" ? "default" : "ghost"}
                         size="sm"
@@ -276,31 +376,64 @@ const Accounting = () => {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <Card className="lg:col-span-1 shadow-xl rounded-[2rem] overflow-hidden border-border/40">
                     <CardHeader className="bg-muted/30 border-b border-border/50">
-                        <CardTitle className="text-lg font-black uppercase tracking-tighter">Répartition par Produit</CardTitle>
-                        <CardDescription className="font-medium">Volume de ventes et souscriptions.</CardDescription>
+                        <CardTitle className="text-lg font-black uppercase tracking-tighter">Répartition Produit</CardTitle>
+                        <CardDescription className="text-xs font-medium">Top des ventes.</CardDescription>
                     </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="space-y-4">
+                    <CardContent className="p-4">
+                        <div className="space-y-3">
                             {productStats && Object.entries(productStats).length > 0 ? (
                                 Object.entries(productStats).map(([title, data]: [string, any]) => (
-                                    <div key={title} className="p-4 rounded-2xl bg-muted/20 border border-border/20 flex items-center justify-between group hover:bg-primary/5 transition-colors">
-                                        <div className="min-w-0">
-                                            <p className="font-bold text-sm truncate uppercase tracking-tighter">{title}</p>
-                                            <p className="text-[10px] font-black text-muted-foreground uppercase">{data.count} Ventes</p>
+                                    <div key={title} className="p-3 rounded-2xl bg-muted/20 border border-border/20 flex items-center justify-between group hover:bg-primary/5 transition-colors">
+                                        <div className="min-w-0 max-w-[120px]">
+                                            <p className="font-bold text-xs truncate uppercase tracking-tighter" title={title}>{title}</p>
+                                            <p className="text-[9px] font-black text-muted-foreground uppercase">{data.count} Ventes</p>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-black text-emerald-600">${data.revenue.toLocaleString()}</p>
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Chiffre</p>
+                                        <div className="text-right shrink-0">
+                                            <p className="font-black text-sm text-emerald-600">${data.revenue.toLocaleString()}</p>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-center py-8 text-muted-foreground italic">Aucune donnée.</p>
+                                <p className="text-center py-8 text-xs text-muted-foreground italic">Aucune donnée.</p>
                             )}
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-1 shadow-xl rounded-[2rem] overflow-hidden border-border/40 flex flex-col">
+                    <CardHeader className="bg-muted/30 border-b border-border/50">
+                        <CardTitle className="text-lg font-black uppercase tracking-tighter">Sources Paiements</CardTitle>
+                        <CardDescription className="text-xs font-medium">Volume par canal.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 flex-1 flex items-center justify-center">
+                        {paymentMethodsStats && paymentMethodsStats.length > 0 ? (
+                            <div className="h-[200px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={paymentMethodsStats}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={45}
+                                            outerRadius={65}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {paymentMethodsStats.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip formatter={(val: any) => `$${val}`} />
+                                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }}/>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <p className="text-center py-8 text-xs text-muted-foreground italic">Aucune transaction.</p>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -311,9 +444,14 @@ const Accounting = () => {
                                 <CardTitle className="text-lg font-black uppercase tracking-tighter">Flux de Trésorerie</CardTitle>
                                 <CardDescription className="font-medium">Historique détaillé des entrées d'argent.</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm" className="rounded-xl border-primary/20 text-primary font-bold gap-2">
-                                <Download className="w-4 h-4" /> Export CSV
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button onClick={exportToCsv} variant="outline" size="sm" className="rounded-xl border-primary/20 text-primary font-bold gap-2">
+                                    <Download className="w-4 h-4" /> CSV
+                                </Button>
+                                <Button onClick={exportToPdf} variant="outline" size="sm" className="rounded-xl border-red-500/20 text-red-600 font-bold gap-2">
+                                    <Download className="w-4 h-4" /> PDF
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">

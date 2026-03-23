@@ -135,10 +135,10 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
                     </div>
 
                     {hasPurchased ? (
-                        <Button 
+                        <Button
                             onClick={handleAction}
-                            size="lg" 
-                            className="rounded-2xl bg-green-500 hover:bg-green-600 text-white font-black uppercase tracking-tighter px-8 h-12 shadow-lg shadow-green-500/20"
+                            size="lg"
+                            className="rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-tighter px-8 h-12 shadow-lg shadow-blue-500/20"
                         >
                             <Download className="w-4 h-4 mr-2" />
                             Accéder

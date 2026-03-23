@@ -31,12 +31,25 @@ const UpdatePassword = () => {
     try {
       passwordSchema.parse({ password, confirmPassword });
 
-      const { error } = await supabase.auth.updateUser({ password });
+      const { data: userData, error } = await supabase.auth.updateUser({ password });
 
       if (error) {
         toast.error("Le lien de réinitialisation est invalide ou a expiré.");
         return;
       }
+
+      // Notification de sécurité par email (Non bloquant)
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          supabase.functions.invoke('notification-service', {
+            body: {
+              type: 'PASSWORD_CHANGED',
+              email: user.email,
+              fullName: user.user_metadata?.full_name || 'Étudiant'
+            }
+          });
+        }
+      });
 
       toast.success("Votre mot de passe a été mis à jour avec succès !");
       navigate("/auth");

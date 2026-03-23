@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { z } from "zod";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 
 type AuthMode = "login" | "register" | "forgotPassword";
@@ -25,6 +25,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -166,8 +167,7 @@ const Auth = () => {
       <Card className="w-full max-w-md border-success/20 bg-card/95 backdrop-blur-sm">
         <CardHeader className="space-y-1">
           <Link to="/" className="flex items-center gap-2 mb-4 justify-center">
-            <TrendingUp className="h-6 w-6 text-success" />
-            <span className="text-xl font-bold">Botes Academy</span>
+            <img src="/logo.png" alt="Botes Academy Logo" className="h-32 w-auto object-contain" />
           </Link>
           <CardTitle className="text-2xl text-center">{getTitle()}</CardTitle>
           <CardDescription className="text-center">{getDescription()}</CardDescription>
@@ -179,7 +179,7 @@ const Auth = () => {
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" placeholder="vous@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
               </div>
-              <Button type="submit" className="w-full bg-gradient-success hover:opacity-90" disabled={loading}>
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
                 {loading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
               </Button>
             </form>
@@ -197,9 +197,19 @@ const Auth = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} minLength={6} maxLength={100} />
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} minLength={6} maxLength={100} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
-              <Button type="submit" className="w-full bg-gradient-success hover:opacity-90" disabled={loading}>
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
                 {loading ? "Chargement..." : mode === 'login' ? "Se connecter" : "S'inscrire"}
               </Button>
             </form>
@@ -207,11 +217,11 @@ const Auth = () => {
 
           <div className="mt-4 text-center text-sm space-y-2">
             {mode === 'login' && (
-              <button type="button" onClick={() => setMode('forgotPassword')} className="text-success hover:underline" disabled={loading}>
+              <button type="button" onClick={() => setMode('forgotPassword')} className="text-blue-600 hover:underline" disabled={loading}>
                 Mot de passe oublié ?
               </button>
             )}
-            <button type="button" onClick={() => setMode(mode === 'login' || mode === 'forgotPassword' ? 'register' : 'login')} className="text-success hover:underline block w-full" disabled={loading}>
+            <button type="button" onClick={() => setMode(mode === 'login' || mode === 'forgotPassword' ? 'register' : 'login')} className="text-blue-600 hover:underline block w-full" disabled={loading}>
               {mode === 'login' || mode === 'forgotPassword' ? "Pas encore de compte ? S'inscrire" : "Déjà un compte ? Se connecter"}
             </button>
           </div>

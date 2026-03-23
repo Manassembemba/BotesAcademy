@@ -14,7 +14,11 @@ import {
   TrendingUp, 
   AlertCircle, 
   Award,
-  Package
+  Package,
+  ArrowUpRight,
+  Mail,
+  Settings,
+  MessageSquare
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -61,7 +65,15 @@ const fetchStats = async () => {
     .select('id', { count: 'exact' })
     .eq('status', 'pending');
 
-  return { courseCount, userCount, totalRevenue, pendingPayments, toolCount };
+  // Nouveaux inscrits sur les 7 derniers jours
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const { count: recentUsers } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact' })
+    .gte('created_at', sevenDaysAgo.toISOString());
+
+  return { courseCount, userCount, totalRevenue, pendingPayments, toolCount, recentUsers };
 };
 
 const fetchPopularCourses = async () => {
@@ -192,13 +204,21 @@ const AdminDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
-          <div className="flex items-center gap-4">
+        <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20 relative overflow-hidden">
+          <div className="flex items-center gap-4 relative z-10">
             <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
               <Users className="w-6 h-6 text-blue-500" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{stats?.userCount || 0}</p>
+              <div className="flex items-end gap-2">
+                <p className="text-2xl font-bold">{stats?.userCount || 0}</p>
+                {stats?.recentUsers ? (
+                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-none mb-1 text-[10px] px-1.5 h-4">
+                    <ArrowUpRight className="w-3 h-3 mr-0.5" />
+                    {stats.recentUsers} cette semaine
+                  </Badge>
+                ) : null}
+              </div>
               <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Apprenants</p>
             </div>
           </div>
@@ -227,6 +247,37 @@ const AdminDashboard = () => {
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mb-8">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Actions Rapides</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/admin/payments" className="group">
+            <Card className="p-4 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all text-center">
+              <CreditCard className="w-6 h-6 mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+              <p className="text-sm font-medium">Valider Paiements</p>
+            </Card>
+          </Link>
+          <Link to="/admin/students" className="group">
+            <Card className="p-4 border-dashed hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-center">
+              <Mail className="w-6 h-6 mx-auto mb-2 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              <p className="text-sm font-medium">Contacter Étudiants</p>
+            </Card>
+          </Link>
+          <Link to="/admin/comments" className="group">
+            <Card className="p-4 border-dashed hover:border-purple-500/50 hover:bg-purple-500/5 transition-all text-center">
+              <MessageSquare className="w-6 h-6 mx-auto mb-2 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+              <p className="text-sm font-medium">Modérer les Avis</p>
+            </Card>
+          </Link>
+          <Link to="/admin/settings" className="group">
+            <Card className="p-4 border-dashed hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all text-center">
+              <Settings className="w-6 h-6 mx-auto mb-2 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+              <p className="text-sm font-medium">Paramètres Site</p>
+            </Card>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">

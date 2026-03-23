@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const Profile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -22,14 +24,24 @@ const Profile = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['userProfile', user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      console.log("Profile: Tentative de récupération du profil...");
+      if (!user) {
+        console.warn("Profile: Aucun utilisateur connecté.");
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Profile Error:", error);
+        throw error;
+      }
+      
+      console.log("Profile: Profil utilisateur reçu avec succès:", data);
       return data;
     },
     enabled: !!user,

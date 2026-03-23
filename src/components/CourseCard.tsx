@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Star, Users, ArrowRight, ShieldCheck } from "lucide-react";
+import { Clock, Star, Users, ArrowRight, ShieldCheck, Globe, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface CourseCardProps {
@@ -17,7 +17,9 @@ interface CourseCardProps {
   image: string;
   level?: string;
   mode?: string;
+  language?: string;
   isSpecialSession?: boolean;
+  hasBrochure?: boolean;
 }
 
 const CourseCard = ({
@@ -32,7 +34,9 @@ const CourseCard = ({
   image,
   level = "Débutant",
   mode,
+  language,
   isSpecialSession,
+  hasBrochure,
 }: CourseCardProps) => {
   return (
     <Card className="group h-full flex flex-col overflow-hidden border-border/50 bg-card hover:border-primary/50 hover:shadow-xl transition-all duration-300">
@@ -75,18 +79,30 @@ const CourseCard = ({
         <h3 className="text-xl font-bold line-clamp-2 leading-tight group-hover:text-primary transition-colors duration-200">
           {title}
         </h3>
-        
+
         <p className="text-muted-foreground text-sm line-clamp-3 leading-relaxed">
           {description}
         </p>
 
-        <div className="flex flex-wrap items-center gap-4 pt-2">
+        <div className="flex flex-wrap items-center gap-2 pt-2">
           <Badge variant="outline" className="text-xs uppercase tracking-wider font-semibold">
             {level}
           </Badge>
           {mode && (
             <Badge variant="outline" className="text-[10px] uppercase bg-secondary/30">
-              {mode}
+              {mode === 'online' ? '💻 VOD' : mode === 'presentiel' ? '🏫 Présentiel' : '🌓 Hybride'}
+            </Badge>
+          )}
+          {language && (
+            <Badge variant="outline" className="text-[10px] uppercase bg-secondary/30">
+              <Globe className="w-3 h-3 mr-1" />
+              {language}
+            </Badge>
+          )}
+          {hasBrochure && (
+            <Badge variant="outline" className="text-[10px] uppercase bg-primary/10 text-primary border-primary/20">
+              <FileText className="w-3 h-3 mr-1" />
+              Brochure
             </Badge>
           )}
         </div>

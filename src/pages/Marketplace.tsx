@@ -7,16 +7,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ProductCard, Product } from "@/components/ProductCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 const fetchMarketplaceProducts = async (): Promise<Product[]> => {
+  console.log("Marketplace: Tentative de récupération des produits...");
+  
   const [strategiesRes, indicatorsRes] = await Promise.all([
     supabase.from('strategies').select('*'),
     supabase.from('indicators').select('*')
   ]);
 
-  if (strategiesRes.error) throw new Error(strategiesRes.error.message);
-  if (indicatorsRes.error) throw new Error(indicatorsRes.error.message);
+  if (strategiesRes.error) {
+    console.error("Marketplace Error (Strategies):", strategiesRes.error);
+    throw new Error(strategiesRes.error.message);
+  }
+  
+  if (indicatorsRes.error) {
+    console.error("Marketplace Error (Indicators):", indicatorsRes.error);
+    throw new Error(indicatorsRes.error.message);
+  }
+
+  console.log(`Marketplace: ${strategiesRes.data.length} stratégies et ${indicatorsRes.data.length} indicateurs reçus.`);
 
   const strategies: Product[] = strategiesRes.data.map(item => ({
     id: item.id,
@@ -25,8 +37,8 @@ const fetchMarketplaceProducts = async (): Promise<Product[]> => {
     description: item.description,
     price: item.price,
     content: item.content,
-    compatibility: ['TradingView'], 
-    image: item.image_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80",
+    compatibility: ['TradingView'],
+    image: (item as any).image_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80",
   }));
 
   const indicators: Product[] = indicatorsRes.data.map(item => ({
@@ -35,9 +47,9 @@ const fetchMarketplaceProducts = async (): Promise<Product[]> => {
     name: item.name,
     description: item.description,
     price: item.price,
-    file_url: item.file_url,
-    compatibility: item.compatibility || ['MT4', 'MT5'],
-    image: item.image_url || "https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=800&q=80",
+    file_url: (item as any).file_url,
+    compatibility: (item as any).compatibility || ['MT4', 'MT5'],
+    image: (item as any).image_url || "https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=800&q=80",
   }));
 
   return [...strategies, ...indicators].sort((a, b) => (a.name > b.name ? 1 : -1));
@@ -45,11 +57,18 @@ const fetchMarketplaceProducts = async (): Promise<Product[]> => {
 
 const Marketplace = () => {
   const { user } = useAuth();
+  const [activeFilter, setActiveFilter] = useState<'all' | 'indicator' | 'strategy'>('all');
 
   const { data: products, isLoading: isLoadingProducts, error: productsError } = useQuery({
     queryKey: ['marketplaceProducts'],
     queryFn: fetchMarketplaceProducts,
   });
+
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    if (activeFilter === 'all') return products;
+    return products.filter(p => p.type === activeFilter);
+  }, [products, activeFilter]);
 
   const { data: purchases } = useQuery({
     queryKey: ['productPurchases', user?.id],
@@ -89,13 +108,13 @@ const Marketplace = () => {
       );
     }
 
-    if (!products || products.length === 0) {
-      return <p className="text-center text-muted-foreground">Aucun produit disponible pour le moment.</p>;
+    if (!filteredProducts || filteredProducts.length === 0) {
+      return <p className="text-center text-muted-foreground py-20">Aucun produit trouvé dans cette catégorie.</p>;
     }
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {products.map((product, index) => (
+        {filteredProducts.map((product, index) => (
           <ProductCard
             key={product.id}
             product={product}
@@ -149,9 +168,35 @@ const Marketplace = () => {
             <div className="text-muted-foreground font-medium italic">
                Filtrer par type de ressource : 
                <span className="ml-3 inline-flex gap-2">
-                  <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white transition-colors cursor-pointer">Tout</Badge>
-                  <Badge variant="outline" className="hover:bg-primary/10 cursor-pointer">Outils</Badge>
-                  <Badge variant="outline" className="hover:bg-primary/10 cursor-pointer">Stratégies</Badge>
+                  <Badge 
+                    onClick={() => setActiveFilter('all')}
+                    className={cn(
+                      "transition-colors cursor-pointer",
+                      activeFilter === 'all' ? "bg-primary text-white" : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                    )}
+                  >
+                    Tout
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    onClick={() => setActiveFilter('indicator')}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      activeFilter === 'indicator' ? "bg-primary text-white border-primary" : "hover:bg-primary/10"
+                    )}
+                  >
+                    Outils
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    onClick={() => setActiveFilter('strategy')}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      activeFilter === 'strategy' ? "bg-primary text-white border-primary" : "hover:bg-primary/10"
+                    )}
+                  >
+                    Stratégies
+                  </Badge>
                </span>
             </div>
           </div>

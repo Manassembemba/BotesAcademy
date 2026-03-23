@@ -138,8 +138,27 @@ serve(async (req) => {
       throw new Error(`[PROOF] ${proofError.message}`)
     }
     log('INSERT_PROOF', 'OK')
+    
+    // -- ETAPE 5 : Incrémentation de la capacité de la session (Présentiel uniquement)
+    if (sessionId) {
+      log('INCREMENT_SESSION', 'START', { sessionId })
+      const { error: incError } = await supabaseAdmin.rpc('increment_session_students', { 
+        session_id: sessionId 
+      })
+      
+      if (incError) {
+        log('INCREMENT_SESSION', 'ERROR', { code: incError.code, message: incError.message })
+        log('ROLLBACK', 'INFO', { action: 'delete_purchase_and_proof_and_user', userId })
+        await supabaseAdmin.from('payment_proofs').delete().eq('user_id', userId)
+        await supabaseAdmin.from('purchases').delete().eq('user_id', userId)
+        await supabaseAdmin.auth.admin.deleteUser(userId)
+        userId = null
+        throw new Error(`[CAPACITY] La session est probablement complète ou introuvable : ${incError.message}`)
+      }
+      log('INCREMENT_SESSION', 'OK')
+    }
 
-    // -- ETAPE 5 : Audit log (non bloquant)
+    // -- ETAPE 6 : Audit log (non bloquant)
     if (adminId) {
       log('AUDIT_LOG', 'INFO', { adminId, action: 'manual_enrollment' })
       supabaseAdmin.from('admin_audit_logs').insert({

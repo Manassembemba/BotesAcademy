@@ -19,14 +19,16 @@ interface Lesson {
   video_url?: string;
   pdf_url?: string;
   order_index: number;
-  lesson_type: 'video' | 'pdf';
+  lesson_type: 'video' | 'pdf' | 'quiz';
+  module_name?: string | null;
 }
 
 const lessonSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères."),
   order_index: z.coerce.number().min(0, "L'ordre doit être positif."),
-  lesson_type: z.enum(['video', 'pdf']),
+  lesson_type: z.enum(['video', 'pdf', 'quiz']),
   video_url: z.string().url("URL de vidéo invalide").optional().or(z.literal('')),
+  module_name: z.string().optional().nullable(),
 });
 
 type LessonFormValues = z.infer<typeof lessonSchema>;
@@ -48,6 +50,7 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
     order_index: 0,
     lesson_type: "video" as const,
     video_url: "",
+    module_name: "",
   };
 
   const form = useForm<LessonFormValues>({
@@ -90,6 +93,7 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
         order_index: data.order_index,
         video_url: data.video_url || null,
         pdf_url: pdf_url,
+        module_name: data.module_name || null,
       };
 
       if (isEditMode && lesson) {
@@ -123,7 +127,7 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Titre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="order_index" render={({ field }) => (<FormItem><FormLabel>Ordre</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <FormField control={form.control} name="lesson_type" render={({ field }) => (<FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="video">Vidéo</SelectItem><SelectItem value="pdf">PDF</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+            <FormField control={form.control} name="lesson_type" render={({ field }) => (<FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="video">Vidéo</SelectItem><SelectItem value="pdf">PDF</SelectItem><SelectItem value="quiz">Quiz</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
 
             {form.watch('lesson_type') === 'video' && (
               <FormField control={form.control} name="video_url" render={({ field }) => (<FormItem><FormLabel>URL de la vidéo</FormLabel><FormControl><Input placeholder="https://youtube.com/embed/..." {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -138,6 +142,16 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
                 <FormMessage />
               </FormItem>
             )}
+
+            <FormField control={form.control} name="module_name" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Module / Chapitre</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Développement front-end" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>

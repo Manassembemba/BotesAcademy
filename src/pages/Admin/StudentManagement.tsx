@@ -60,6 +60,7 @@ interface StudentData {
     full_name: string;
     email: string;
     avatar_url: string | null;
+    banned_until: string | null;
     enrolled_courses_count: number;
     purchased_strategies_count: number;
     purchased_indicators_count: number;
@@ -283,12 +284,95 @@ const StudentManagement = () => {
         }
     });
 
+    // Mutations relatives aux actions d'utilisateurs
+    const userActionMutation = useMutation({
+        mutationFn: async ({ action, targetUserId, data }: { action: 'UPDATE_PROFILE' | 'SUSPEND_USER' | 'RESTORE_USER' | 'DELETE_USER' | 'SEND_RECOVERY', targetUserId: string, data?: any }) => {
+            const { data: response, error } = await supabase.functions.invoke('admin-user-actions', {
+                body: { action, targetUserId, data }
+            });
+            if (error || response?.error) throw new Error(error?.message || response?.error);
+            return { action, response };
+        },
+        onSuccess: ({ action }) => {
+            if (action === 'DELETE_USER') {
+                toast.success("Hallelujah ! Utilisateur supprimé définitivement.");
+                setIsDetailsOpen(false);
+                setSelectedStudentId(null);
+            } else if (action === 'SUSPEND_USER') {
+                toast.warning("L'accès de l'utilisateur est maintenant suspendu.");
+            } else if (action === 'RESTORE_USER') {
+                toast.success("Accès restauré : l'utilisateur peut à nouveau se connecter !");
+            } else if (action === 'SEND_RECOVERY') {
+                toast.success("Email de réinitialisation de mot de passe envoyé avec succès !");
+            } else if (action === 'UPDATE_PROFILE') {
+                toast.success("Profil mis à jour.");
+            }
+            queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+        },
+        onError: (err: any) => toast.error(`Opération échouée : ${err.message}`)
+    });
+
     const filteredStudents = students?.filter(student =>
         student.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         student.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const selectedStudent = students?.find(s => s.student_id === selectedStudentId);
+
+    const { data: studentCoursesDetails, isLoading: isLoadingCourses } = useQuery({
+        queryKey: ['student-courses', selectedStudentId],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('purchases')
+                .select(`
+                    id, 
+                    created_at, 
+                    amount, 
+                    payment_status,
+                    validation_status,
+                    courses (title),
+                    course_sessions (session_name),
+                    course_vacations (name, time_range)
+                `)
+                .eq('user_id', selectedStudentId);
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedStudentId && isDetailsOpen
+    });
+
+    const { data: studentStrategiesDetails, isLoading: isLoadingStrategies } = useQuery({
+        queryKey: ['student-strategies', selectedStudentId],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('strategy_purchases')
+                .select(`id, created_at, strategies (title, price)`)
+                .eq('user_id', selectedStudentId);
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedStudentId && isDetailsOpen
+    });
+
+    const { data: studentIndicatorsDetails, isLoading: isLoadingIndicators } = useQuery({
+        queryKey: ['student-indicators', selectedStudentId],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('indicator_purchases')
+                .select(`id, created_at, indicators (name, price)`)
+                .eq('user_id', selectedStudentId);
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedStudentId && isDetailsOpen
+    });
+
+    const [editForm, setEditForm] = useState({ fullName: '', email: '' });
+    // Effect pour populer l'edit form
+    if (selectedStudentId && isDetailsOpen && selectedStudent && editForm.email === '' && editForm.fullName === '') {
+        setEditForm({ fullName: selectedStudent.full_name || '', email: selectedStudent.email || '' });
+    }
+
 
     return (
         <div className="container mx-auto p-4 md:p-8 space-y-6">
@@ -623,12 +707,17 @@ const StudentManagement = () => {
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <div className="flex items-center gap-4">
-                            <Avatar className="h-12 w-12 border-2 border-primary/20">
+                            <Avatar className="h-12 w-12 border-2 border-primary/20 relative">
                                 <AvatarImage src={selectedStudent?.avatar_url || ''} />
                                 <AvatarFallback>{selectedStudent?.full_name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <DialogTitle className="text-2xl font-bold">{selectedStudent?.full_name}</DialogTitle>
+                                <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                    {selectedStudent?.full_name}
+                                    {selectedStudent?.banned_until && new Date(selectedStudent.banned_until) > new Date() && (
+                                        <Badge variant="destructive" className="text-[10px] uppercase">Banni</Badge>
+                                    )}
+                                </DialogTitle>
                                 <DialogDescription className="flex items-center gap-2">
                                     {selectedStudent?.email}
                                     <span className="text-xs py-0.5 px-2 bg-primary/10 text-primary rounded-full font-bold">
@@ -640,15 +729,18 @@ const StudentManagement = () => {
                     </DialogHeader>
 
                     <Tabs defaultValue="courses" className="mt-6">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="courses" className="gap-2">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="courses" className="gap-2 text-xs">
                                 <BookOpen className="w-4 h-4" /> Formations
                             </TabsTrigger>
-                            <TabsTrigger value="strategies" className="gap-2">
+                            <TabsTrigger value="strategies" className="gap-2 text-xs">
                                 <TrendingUp className="w-4 h-4" /> Stratégies
                             </TabsTrigger>
-                            <TabsTrigger value="indicators" className="gap-2">
+                            <TabsTrigger value="indicators" className="gap-2 text-xs">
                                 <Download className="w-4 h-4" /> Indicateurs
+                            </TabsTrigger>
+                            <TabsTrigger value="settings" className="gap-2 text-xs text-red-500 hover:text-red-600 font-bold data-[state=active]:bg-red-50">
+                                <Trash2 className="w-4 h-4" /> Compte
                             </TabsTrigger>
                         </TabsList>
 
@@ -671,49 +763,80 @@ const StudentManagement = () => {
                                     </Select>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {selectedStudent?.course_titles?.filter(Boolean).length ? (
-                                    selectedStudent.course_titles.filter(Boolean).map((title, i) => {
-                                        const purchaseId = selectedStudent.course_purchase_ids?.[i];
-                                        return (
-                                            <div key={purchaseId || i} className="flex items-center justify-between p-2 rounded-lg border bg-muted/30 group">
-                                                <span className="text-sm font-medium truncate">{title}</span>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Confirmer le retrait</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                Êtes-vous sûr de vouloir retirer l'accès à la formation <span className="font-bold text-foreground">"{title}"</span> ? 
-                                                                L'étudiant ne pourra plus consulter le contenu.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                            <AlertDialogAction 
-                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                                onClick={() => purchaseId && deleteMutation.mutate({ type: 'course', id: purchaseId })}
+                            {isLoadingCourses ? (
+                                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {studentCoursesDetails?.length ? (
+                                        studentCoursesDetails.map((purchase: any) => (
+                                            <div key={purchase.id} className="flex flex-col p-4 rounded-xl border bg-muted/10 group relative hover:border-primary/30 transition-all">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="pr-8">
+                                                        <span className="text-sm font-bold block">{purchase.courses?.title || 'Cours Inconnu'}</span>
+                                                        <span className="text-xs text-muted-foreground block">
+                                                            Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}
+                                                        </span>
+                                                    </div>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity absolute top-3 right-3"
                                                             >
-                                                                Retirer l'accès
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Confirmer le retrait</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Êtes-vous sûr de vouloir retirer l'accès à la formation <span className="font-bold text-foreground">"{purchase.courses?.title}"</span> ? 
+                                                                    L'étudiant ne pourra plus consulter le contenu.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                                <AlertDialogAction 
+                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                    onClick={() => deleteMutation.mutate({ type: 'course', id: purchase.id })}
+                                                                >
+                                                                    Retirer l'accès
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                                    <div className="bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Montant</span>
+                                                        <span className="text-sm font-black text-emerald-600">${purchase.amount || 0}</span>
+                                                    </div>
+                                                    <div className="bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Statut Validation</span>
+                                                        {purchase.validation_status === 'approved' ? (
+                                                            <Badge variant="outline" className="text-[10px] py-0 bg-emerald-50 text-emerald-600 border-emerald-200 w-fit">Approuvé</Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-[10px] py-0 bg-amber-50 text-amber-600 border-amber-200 w-fit">En attente</Badge>
+                                                        )}
+                                                    </div>
+                                                    <div className="col-span-2 bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Session / Horaires</span>
+                                                        <span className="text-xs font-semibold text-slate-700 truncate">
+                                                            {purchase.course_sessions?.session_name || 'Aucune Session Info'} 
+                                                            {purchase.course_vacations ? ` • ${purchase.course_vacations.name} (${purchase.course_vacations.time_range})` : ''}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <p className="text-sm text-muted-foreground italic col-span-2 py-4 text-center">Aucune formation active.</p>
-                                )}
-                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-2 py-8 flex items-center justify-center border border-dashed rounded-xl bg-muted/5">
+                                            <p className="text-sm text-muted-foreground italic font-medium">Aucune formation active pour cet étudiant.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </TabsContent>
 
                         <TabsContent value="strategies" className="space-y-4 py-4">
@@ -735,28 +858,38 @@ const StudentManagement = () => {
                                     </Select>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {selectedStudent?.strategy_titles?.filter(Boolean).length ? (
-                                    selectedStudent.strategy_titles.filter(Boolean).map((title, i) => {
-                                        const purchaseId = selectedStudent.strategy_purchase_ids?.[i];
-                                        return (
-                                            <div key={purchaseId || i} className="flex items-center justify-between p-2 rounded-lg border bg-muted/30 group">
-                                                <span className="text-sm font-medium truncate">{title}</span>
+                            {isLoadingStrategies ? (
+                                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {studentStrategiesDetails?.length ? (
+                                        studentStrategiesDetails.map((purchase: any) => (
+                                            <div key={purchase.id} className="flex items-center justify-between p-4 rounded-xl border bg-accent/5 group hover:border-accent/30 hover:bg-accent/10 transition-all">
+                                                <div>
+                                                    <span className="text-sm font-extrabold text-accent-foreground block mb-1">{purchase.strategies?.title || 'Stratégie Inconnue'}</span>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <span>Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                        <span className="text-emerald-600 font-black">${purchase.strategies?.price || 0}</span>
+                                                    </div>
+                                                </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => purchaseId && deleteMutation.mutate({ type: 'strategy', id: purchaseId })}
+                                                    onClick={() => deleteMutation.mutate({ type: 'strategy', id: purchase.id })}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <p className="text-sm text-muted-foreground italic col-span-2 py-4 text-center">Aucune stratégie active.</p>
-                                )}
-                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="col-span-2 py-8 flex items-center justify-center border border-dashed rounded-xl bg-muted/5">
+                                            <p className="text-sm text-muted-foreground italic font-medium">Aucune stratégie active pour cet étudiant.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </TabsContent>
 
                         <TabsContent value="indicators" className="space-y-4 py-4">
@@ -778,29 +911,144 @@ const StudentManagement = () => {
                                     </Select>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {selectedStudent?.indicator_titles?.filter(Boolean).length ? (
-                                    selectedStudent.indicator_titles.filter(Boolean).map((title, i) => {
-                                        const purchaseId = selectedStudent.indicator_purchase_ids?.[i];
-                                        return (
-                                            <div key={purchaseId || i} className="flex items-center justify-between p-2 rounded-lg border bg-muted/30 group">
-                                                <span className="text-sm font-medium truncate">{title}</span>
+                            {isLoadingIndicators ? (
+                                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {studentIndicatorsDetails?.length ? (
+                                        studentIndicatorsDetails.map((purchase: any) => (
+                                            <div key={purchase.id} className="flex items-center justify-between p-4 rounded-xl border bg-primary/5 group hover:border-primary/30 hover:bg-primary/10 transition-all">
+                                                <div>
+                                                    <span className="text-sm font-extrabold text-foreground block mb-1">{purchase.indicators?.name || 'Indicateur Inconnu'}</span>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <span>Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                        <span className="text-emerald-600 font-black">${purchase.indicators?.price || 0}</span>
+                                                    </div>
+                                                </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => purchaseId && deleteMutation.mutate({ type: 'indicator', id: purchaseId })}
+                                                    onClick={() => deleteMutation.mutate({ type: 'indicator', id: purchase.id })}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <p className="text-sm text-muted-foreground italic col-span-2 py-4 text-center">Aucun indicateur actif.</p>
-                                )}
+                                        ))
+                                    ) : (
+                                        <div className="col-span-2 py-8 flex items-center justify-center border border-dashed rounded-xl bg-muted/5">
+                                            <p className="text-sm text-muted-foreground italic font-medium">Aucun indicateur actif pour cet étudiant.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {/* Onglet Paramètres du compte - Gère l'édition du profil, ban et suppression */}
+                        <TabsContent value="settings" className="space-y-6 py-4 px-2">
+                            <div className="space-y-4">
+                                <h3 className="text-md font-bold text-slate-800 border-b pb-2">Modifier le profil</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Nom Complet</Label>
+                                        <Input 
+                                            value={editForm.fullName} 
+                                            onChange={e => setEditForm({...editForm, fullName: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Email</Label>
+                                        <Input 
+                                            value={editForm.email} 
+                                            onChange={e => setEditForm({...editForm, email: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end">
+                                    <Button 
+                                        size="sm" 
+                                        onClick={() => userActionMutation.mutate({ action: 'UPDATE_PROFILE', targetUserId: selectedStudentId!, data: editForm })}
+                                        disabled={userActionMutation.isPending}
+                                    >
+                                        Enregistrer les modifications
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 mt-6 border-t border-slate-100">
+                                <h3 className="text-md font-bold text-slate-800">Assistance / Dépannage</h3>
+                                <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                                    <div className="space-y-1">
+                                        <h4 className="font-medium text-blue-900 text-sm">Force Password Reset</h4>
+                                        <p className="text-xs text-blue-700">Envoie un lien magique de réinitialisation si l'étudiant ne parvient plus à se connecter.</p>
+                                    </div>
+                                    <Button 
+                                        variant="outline" size="sm" className="bg-white"
+                                        onClick={() => userActionMutation.mutate({ action: 'SEND_RECOVERY', targetUserId: selectedStudentId! })}
+                                        disabled={userActionMutation.isPending}
+                                    >
+                                        Renvoyer l'Email
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 mt-6 border-t border-red-100 bg-red-50/30 rounded-xl p-4">
+                                <h3 className="text-md font-bold text-red-600 flex items-center gap-2"><Trash2 className="w-4 h-4"/> Danger Zone</h3>
+                                
+                                <div className="flex items-center justify-between py-2 border-b border-red-100">
+                                    <div className="space-y-1">
+                                        <h4 className="font-medium text-sm text-slate-900">Bannir temporairement</h4>
+                                        <p className="text-xs text-slate-500">L'étudiant ne pourra pas se connecter. Ses données d'achat sont conservées.</p>
+                                    </div>
+                                    <Switch 
+                                        checked={selectedStudent?.banned_until ? new Date(selectedStudent.banned_until) > new Date() : false}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                userActionMutation.mutate({ action: 'SUSPEND_USER', targetUserId: selectedStudentId!, data: { durationHours: 87600 }}); // Banni pour 10 ans
+                                            } else {
+                                                userActionMutation.mutate({ action: 'RESTORE_USER', targetUserId: selectedStudentId! });
+                                            }
+                                        }}
+                                        disabled={userActionMutation.isPending}
+                                        className="data-[state=checked]:bg-red-600"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2 pt-2">
+                                    <h4 className="font-medium text-sm text-slate-900">Supprimer le compte</h4>
+                                    <p className="text-xs text-slate-500 mb-2">Purger définitivement ce compte de la base de données. Irréversible.</p>
+                                    
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" className="w-full sm:w-auto self-start">
+                                                Suprimer Définitivement
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="border-red-500 border-2">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle className="text-red-500">Êtes-vous absolument sûr ?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Ceci entraînera la <strong className="text-black">perte totale des données</strong> de l'étudiant 
+                                                    ({selectedStudent?.full_name}), y lit ses accès, paiements, et son identification Auth. 
+                                                    L'action est instantanée et <strong className="text-red-500">irréversible</strong>.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                <AlertDialogAction 
+                                                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-8"
+                                                    onClick={() => userActionMutation.mutate({ action: 'DELETE_USER', targetUserId: selectedStudentId! })}
+                                                >
+                                                    OUI, SUPPRIMER L'ÉTUDIANT
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
                             </div>
                         </TabsContent>
+
                     </Tabs>
 
                     <DialogFooter className="mt-8 border-t pt-4">

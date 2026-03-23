@@ -7,8 +7,8 @@ SET value = '{
     {"name": "Airtel Money", "number": "+243 970 000 000", "operator": "airtel"}
   ],
   "bank_transfer": [
-    {"name": "Equity BCDC", "details": "RIB: 00000-00000-12345678901-00", "account_name": "Nguma Academy"},
-    {"name": "Rawbank", "details": "Compte: 12345-67890", "account_name": "Nguma Academy"}
+    {"name": "Equity BCDC", "details": "RIB: 00000-00000-12345678901-00", "account_name": "Botes Academy"},
+    {"name": "Rawbank", "details": "Compte: 12345-67890", "account_name": "Botes Academy"}
   ],
   "cash_deposit": [
     {"name": "Bureau Kinshasa", "details": "Gombe, Avenue de l''Equateur n°12"}
