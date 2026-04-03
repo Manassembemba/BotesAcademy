@@ -34,6 +34,7 @@ const Accounting = lazy(() => import("./pages/Admin/Accounting"));
 const Attendance = lazy(() => import("./pages/Admin/Attendance"));
 const ToolManagement = lazy(() => import("./pages/Admin/ToolManagement"));
 const Applications = lazy(() => import("./pages/Admin/Applications"));
+const IndicatorDelivery = lazy(() => import("./pages/Admin/IndicatorDelivery"));
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="/admin/accounting" element={<Accounting />} />
                   <Route path="/admin/attendance" element={<Attendance />} />
                   <Route path="/admin/tools" element={<ToolManagement />} />
+                  <Route path="/admin/delivery" element={<IndicatorDelivery />} />
                   <Route path="/admin/applications" element={<Applications />} />
                 </Route>
 

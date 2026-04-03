@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import Navbar from "@/components/Navbar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,46 @@ const CourseDetail = () => {
     enabled: !!course && (course.mode === 'presentiel' || course.mode === 'hybrid'),
   });
 
+  const { data: enrollment } = useQuery({
+    queryKey: ['userEnrollment', courseId, user?.id],
+    queryFn: async () => {
+      if (!user || !courseId) return null;
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('validation_status')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!courseId,
+  });
+
+  const isEnrolled = enrollment?.validation_status === 'approved';
+
+  const enrollMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !courseId) throw new Error("Veuillez vous connecter");
+      
+      const { error } = await supabase.from('purchases').insert({
+        user_id: user.id,
+        course_id: courseId,
+        amount: 0,
+        payment_status: 'completed',
+        validation_status: 'approved',
+        validated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Accès débloqué ! Bonne formation.");
+      queryClient.invalidateQueries({ queryKey: ['userEnrollment', courseId] });
+      // Ici on pourrait rediriger vers le player de la première leçon
+    },
+    onError: (error: any) => toast.error(`Erreur: ${error.message}`),
+  });
+
   const handleEnroll = () => {
     if (!user) {
       toast.info("Veuillez vous connecter pour vous inscrire.", {
@@ -88,8 +128,26 @@ const CourseDetail = () => {
       });
       return;
     }
-    // Rediriger directement vers la page de paiement
+
+    if (isEnrolled) {
+      // Rediriger vers la première leçon ou le dashboard
+      navigate(`/dashboard`);
+      return;
+    }
+
+    if (course.price === 0) {
+      enrollMutation.mutate();
+      return;
+    }
+
     navigate(`/checkout/${courseId}`);
+  };
+
+  const getButtonLabel = () => {
+    if (enrollMutation.isPending) return "Inscription...";
+    if (isEnrolled) return "Continuer l'apprentissage";
+    if (course.price === 0) return "Accéder gratuitement";
+    return course.mode === 'online' ? "Débloquer l'accès" : "Réserver ma place";
   };
 
   const learningObjectives = useMemo(() => course?.learning_objectives?.filter(o => o) || [], [course]);
@@ -285,7 +343,10 @@ const CourseDetail = () => {
                   </div>
                   <p className="text-[10px] text-center text-muted-foreground italic font-medium pt-2">Bénéficiez de -10% de réduction pour tout paiement complet à l'inscription.</p>
                 </div>
-                <Button onClick={handleEnroll} className="w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest shadow-glow-primary">S'inscrire maintenant</Button>
+                <Button onClick={handleEnroll} className="w-full h-16 rounded-2xl font-black uppercase text-xs tracking-widest shadow-glow-primary" disabled={enrollMutation.isPending}>
+                    {enrollMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {getButtonLabel()}
+                </Button>
               </CardContent>
             </Card>
 

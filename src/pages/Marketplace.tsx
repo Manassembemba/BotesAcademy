@@ -46,8 +46,11 @@ const fetchMarketplaceProducts = async (): Promise<Product[]> => {
     type: 'indicator',
     name: item.name,
     description: item.description,
-    price: item.price,
-    file_url: (item as any).file_url,
+    category: item.category || 'Indicateur',
+    price: item.price_1m || item.price, // Utiliser price_1m comme prix de départ
+    price_1m: item.price_1m,
+    price_3m: item.price_3m,
+    price_lifetime: item.price_lifetime,
     compatibility: (item as any).compatibility || ['MT4', 'MT5'],
     image: (item as any).image_url || "https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=800&q=80",
   }));

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Upload, CheckCircle, ShoppingCart, ArrowLeft, Phone, Building2, Landmark, Wallet, CreditCard, Calendar, Timer } from "lucide-react";
+import { Loader2, Upload, CheckCircle, ShoppingCart, ArrowLeft, Wallet, Landmark, CreditCard, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -27,6 +27,8 @@ const paymentSchema = z.object({
     amount: z.coerce.number().positive("Le montant doit être positif"),
     session_id: z.string().optional(),
     vacation_id: z.string().optional(),
+    mt5_id: z.string().optional(),
+    subscription_duration: z.enum(['1m', '3m', 'lifetime']).optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
@@ -46,8 +48,8 @@ const Checkout = () => {
         queryKey: ['checkoutProduct', productId, productType],
         queryFn: async () => {
             if (!productId) return null;
-            let table = productType === 'course' ? 'courses' : 'marketplace_products';
-            const { data, error } = await supabase.from(table).select('*').eq('id', productId).single();
+            let table = productType === 'course' ? 'courses' : (productType === 'indicator' ? 'indicators' : 'strategies');
+            const { data, error } = await supabase.from(table as any).select('*').eq('id', productId).single();
             if (error) throw new Error(error.message);
             return data as any;
         },
@@ -77,20 +79,17 @@ const Checkout = () => {
 
     const form = useForm<PaymentFormValues>({
         resolver: zodResolver(paymentSchema),
-        defaultValues: { payment_method: 'mobile_money', amount: 0 },
+        defaultValues: { payment_method: 'mobile_money', amount: 0, subscription_duration: '1m' },
     });
 
     useEffect(() => {
-        if (product?.price) form.setValue('amount', product.price);
-    }, [product, form]);
+        if (product?.price && productType !== 'indicator') form.setValue('amount', product.price);
+        else if (productType === 'indicator' && product?.price_1m) form.setValue('amount', product.price_1m);
+    }, [product, form, productType]);
 
     const uploadMutation = useMutation({
         mutationFn: async (data: PaymentFormValues) => {
             if (!user || !productId || !proofFile) throw new Error("Informations manquantes.");
-
-            if (productType === 'course' && (product?.mode === 'presentiel' || product?.mode === 'hybrid')) {
-                if (!data.session_id || !data.vacation_id) throw new Error("Pour les formations en présentiel/hybride, le choix d'une session et d'un créneau est obligatoire.");
-            }
 
             const fileExt = proofFile.name.split('.').pop();
             const fileName = `${user.id}_${productId}_${Date.now()}.${fileExt}`;
@@ -109,9 +108,13 @@ const Checkout = () => {
                 amount: data.amount,
                 transaction_reference: data.transaction_reference || null,
                 status: 'pending',
-                [productType === 'course' ? 'course_id' : 'product_id']: productId,
-                vacation_id: (product?.mode !== 'online' && data.vacation_id) ? data.vacation_id : null,
-                session_id: (product?.mode !== 'online' && data.session_id) ? data.session_id : null,
+                course_id: productType === 'course' ? productId : null,
+                indicator_id: productType === 'indicator' ? productId : null,
+                strategy_id: productType === 'strategy' ? productId : null,
+                vacation_id: (productType === 'course' && product?.mode !== 'online' && data.vacation_id) ? data.vacation_id : null,
+                session_id: (productType === 'course' && product?.mode !== 'online' && data.session_id) ? data.session_id : null,
+                mt5_id: data.mt5_id || null,
+                subscription_duration: data.subscription_duration || (productType === 'indicator' ? '1m' : null),
             };
             
             const { data: proofData, error: insertError } = await supabase.from('payment_proofs').insert(insertData).select().single();
@@ -119,9 +122,16 @@ const Checkout = () => {
             return proofData;
         },
         onSuccess: (proofData) => {
-            toast.success("Preuve de paiement envoyée !");
+            if (productType === 'course') {
+                toast.success("Preuve de paiement envoyée !");
+                navigate(`/payment-status/${proofData.id}`);
+            } else {
+                toast.success("Achat enregistré ! Nos experts configurent votre outil. Vous recevrez un mail dès qu'il sera prêt.", {
+                    duration: 6000,
+                });
+                navigate(`/marketplace`);
+            }
             queryClient.invalidateQueries({ queryKey: ['pendingProof', productId, user?.id] });
-            navigate(`/payment-status/${proofData.id}`);
         },
         onError: (error: Error) => toast.error(`Erreur: ${error.message}`),
     });
@@ -143,7 +153,7 @@ const Checkout = () => {
                                 <div><h3 className="font-black text-lg mb-2">{product.title || product.name}</h3><p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p></div>
                                 <Badge variant="outline" className="uppercase font-bold text-[10px]">{productType}</Badge>
                                 <Separator />
-                                <div className="flex justify-between text-xl font-black"><span>TOTAL</span><span className="text-primary">{product.price} USD</span></div>
+                                <div className="flex justify-between text-xl font-black"><span>TOTAL</span><span className="text-primary">{form.watch('amount')} USD</span></div>
                             </CardContent>
                         </Card>
                     </div>
@@ -173,6 +183,61 @@ const Checkout = () => {
                                                 <div className="grid md:grid-cols-2 gap-6">
                                                     <FormField control={form.control} name="session_id" render={({ field }) => (<FormItem><FormLabel className="font-black uppercase text-xs">Session (Date)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Choisir..." /></SelectTrigger></FormControl><SelectContent>{sessions?.map((s: any) => (<SelectItem key={s.id} value={s.id}>{s.session_name} ({format(new Date(s.start_date), 'dd MMM', { locale: fr })})</SelectItem>))}</SelectContent></Select></FormItem>)} />
                                                     <FormField control={form.control} name="vacation_id" render={({ field }) => (<FormItem><FormLabel className="font-black uppercase text-xs">Créneau (Heure)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Choisir..." /></SelectTrigger></FormControl><SelectContent>{vacations?.map((v: any) => (<SelectItem key={v.id} value={v.id}>{v.name} ({v.time_range})</SelectItem>))}</SelectContent></Select></FormItem>)} />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {productType === 'indicator' && (
+                                            <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10 space-y-6">
+                                                <div>
+                                                    <h3 className="font-black text-lg mb-4 uppercase flex items-center gap-2">
+                                                        <Clock className="w-5 h-5 text-primary" /> Durée de l'Abonnement
+                                                    </h3>
+                                                    <FormField control={form.control} name="subscription_duration" render={({ field }) => (
+                                                        <FormItem>
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                {[
+                                                                    { id: '1m', label: '1 MOIS', price: product.price_1m },
+                                                                    { id: '3m', label: '3 MOIS', price: product.price_3m },
+                                                                    { id: 'lifetime', label: 'À VIE', price: product.price_lifetime }
+                                                                ].map(opt => (
+                                                                    <button
+                                                                        key={opt.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            field.onChange(opt.id);
+                                                                            if (opt.price) form.setValue('amount', opt.price);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all",
+                                                                            field.value === opt.id ? "border-primary bg-primary/10 shadow-glow-primary-sm" : "border-border bg-card hover:border-primary/30"
+                                                                        )}
+                                                                    >
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{opt.label}</span>
+                                                                        <span className="text-2xl font-black italic">{opt.price} USD</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+
+                                                <div className="pt-4 border-t border-primary/10">
+                                                    <h3 className="font-black text-lg mb-4 uppercase flex items-center gap-2">
+                                                        <CreditCard className="w-5 h-5 text-primary" /> Configuration Sécurité
+                                                    </h3>
+                                                    <FormField control={form.control} name="mt5_id" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="font-black uppercase text-xs">ID de compte MT5 (Obligatoire)</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="Ex: 12345678" className="h-12 rounded-xl border-primary/20" {...field} required />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                            <p className="text-[10px] text-muted-foreground italic mt-2">
+                                                                Note : Votre indicateur sera verrouillé sur cet ID spécifique pour garantir votre exclusivité.
+                                                            </p>
+                                                        </FormItem>
+                                                    )} />
                                                 </div>
                                             </div>
                                         )}
@@ -216,7 +281,19 @@ const Checkout = () => {
                                             </FormControl>
                                         </FormItem>
 
-                                        <Button type="submit" className="w-full h-16 rounded-2xl text-xl font-black uppercase" disabled={uploadMutation.isPending || !proofFile}>
+                                        {productType === 'indicator' && (
+                                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
+                                                <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Délai de Configuration</p>
+                                                    <p className="text-xs font-medium text-amber-700 leading-relaxed italic">
+                                                        Note : Cet outil est sécurisé manuellement avec votre ID MT5. Livraison estimée sous <strong>24h à 48h ouvrées</strong> après validation du paiement.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <Button type="submit" className="w-full h-16 rounded-2xl text-xl font-black uppercase shadow-glow-primary" disabled={uploadMutation.isPending || !proofFile}>
                                             {uploadMutation.isPending ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "Confirmer mon achat"}
                                         </Button>
                                     </form>

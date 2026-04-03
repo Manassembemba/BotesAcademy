@@ -35,27 +35,76 @@ const ToolManagement = () => {
   // Create/Update mutation
   const saveToolMutation = useMutation({
     mutationFn: async (data: any) => {
-      const table = data.type === 'strategy' ? 'strategies' : 'indicators';
+      // Mapping table according to platform type
+      const isStrategy = data.type === 'TradingView';
+      const table = isStrategy ? 'strategies' : 'indicators';
       
+      let imageUrl = selectedTool?.image_url;
+      let fileUrl = null;
+
+      // 1. Upload Image if provided
+      if (data.imageFile) {
+        const fileExt = data.imageFile.name.split('.').pop();
+        const fileName = `products/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('marketplace').upload(fileName, data.imageFile);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('marketplace').getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
+
+      // 2. Prepare Payload
       const payload: any = {
         description: data.description,
         price: data.price,
-        image_url: data.image_url,
+        image_url: imageUrl,
+        compatibility: data.compatibility, // Derived from type in ToolEditorDialog
       };
 
-      if (data.type === 'strategy') {
+      if (isStrategy) {
         payload.title = data.title;
-        payload.content = data.content;
       } else {
-        payload.name = data.title; // Map title back to name for indicators
-        payload.file_url = data.file_url;
+        payload.name = data.title;
+        payload.category = data.category;
+        payload.price_1m = data.price_1m;
+        payload.price_3m = data.price_3m;
+        payload.price_lifetime = data.price_lifetime;
       }
 
+      let toolId = selectedTool?.id;
+
+      // 3. Save to main table
       if (selectedTool) {
         const { error } = await supabase.from(table as any).update(payload).eq('id', selectedTool.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from(table as any).insert(payload);
+        const { data: newTool, error } = await supabase.from(table as any).insert(payload).select().single();
+        if (error) throw error;
+        toolId = newTool.id;
+      }
+
+      // 4. Handle Secrets
+      if (!isStrategy) {
+        if (data.indicatorFile) {
+          const fileExt = data.indicatorFile.name.split('.').pop();
+          const fileName = `secrets/${toolId}_${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage.from('marketplace').upload(fileName, data.indicatorFile);
+          if (uploadError) throw uploadError;
+          const { data: urlData } = supabase.storage.from('marketplace').getPublicUrl(fileName);
+          fileUrl = urlData.publicUrl;
+        }
+
+        if (fileUrl) {
+          const { error } = await supabase.from('indicator_secrets').upsert({
+            indicator_id: toolId,
+            file_url: fileUrl
+          }, { onConflict: 'indicator_id' });
+          if (error) throw error;
+        }
+      } else if (isStrategy && data.content) {
+        const { error } = await supabase.from('strategy_secrets').upsert({
+          strategy_id: toolId,
+          content: data.content
+        }, { onConflict: 'strategy_id' });
         if (error) throw error;
       }
     },
@@ -128,7 +177,7 @@ const ToolManagement = () => {
                 <TableRow>
                   <TableHead>Type</TableHead>
                   <TableHead>Nom</TableHead>
-                  <TableHead>Prix</TableHead>
+                  <TableHead>Prix (1m/3m/Vie)</TableHead>
                   <TableHead>Image</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -136,7 +185,7 @@ const ToolManagement = () => {
               <TableBody>
                 {tools?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucun outil disponible.</TableCell>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Aucun outil disponible.</TableCell>
                   </TableRow>
                 ) : (
                   tools?.map((tool: any) => (
@@ -147,7 +196,15 @@ const ToolManagement = () => {
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">{tool.title || tool.name}</TableCell>
-                      <TableCell>{tool.price > 0 ? `${tool.price} USD` : 'Gratuit'}</TableCell>
+                      <TableCell>
+                        {tool.type === 'indicator' ? (
+                          <div className="text-[10px] font-bold">
+                            {tool.price_1m}$ / {tool.price_3m}$ / {tool.price_lifetime}$
+                          </div>
+                        ) : (
+                          `${tool.price} USD`
+                        )}
+                      </TableCell>
                       <TableCell>
                         {tool.image_url ? (
                           <img src={tool.image_url} alt="" className="w-8 h-8 rounded object-cover" />

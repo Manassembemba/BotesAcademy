@@ -328,6 +328,9 @@ const StudentManagement = () => {
                     id, 
                     created_at, 
                     amount, 
+                    total_amount,
+                    paid_amount,
+                    due_date,
                     payment_status,
                     validation_status,
                     courses (title),
@@ -809,16 +812,33 @@ const StudentManagement = () => {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2 mt-2">
                                                     <div className="bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Montant</span>
-                                                        <span className="text-sm font-black text-emerald-600">${purchase.amount || 0}</span>
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Finances</span>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-xs font-bold text-slate-700">Total: ${purchase.total_amount || purchase.amount}</span>
+                                                            <span className="text-xs font-bold text-emerald-600">Payé: ${purchase.paid_amount || 0}</span>
+                                                            {(purchase.total_amount - (purchase.paid_amount || 0)) > 0 && (
+                                                                <span className="text-xs font-black text-red-600">Reste: ${purchase.total_amount - (purchase.paid_amount || 0)}</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className="bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Statut Validation</span>
-                                                        {purchase.validation_status === 'approved' ? (
-                                                            <Badge variant="outline" className="text-[10px] py-0 bg-emerald-50 text-emerald-600 border-emerald-200 w-fit">Approuvé</Badge>
-                                                        ) : (
-                                                            <Badge variant="outline" className="text-[10px] py-0 bg-amber-50 text-amber-600 border-amber-200 w-fit">En attente</Badge>
-                                                        )}
+                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Statut Paiement</span>
+                                                        <div className="flex flex-col gap-1">
+                                                            {purchase.payment_status === 'completed' ? (
+                                                                <Badge variant="outline" className="text-[10px] py-0 bg-emerald-50 text-emerald-600 border-emerald-200 w-fit">Complet</Badge>
+                                                            ) : purchase.payment_status === 'partial' ? (
+                                                                <Badge variant="outline" className="text-[10px] py-0 bg-amber-50 text-amber-600 border-amber-200 w-fit">Partiel</Badge>
+                                                            ) : purchase.payment_status === 'overdue' ? (
+                                                                <Badge variant="outline" className="text-[10px] py-0 bg-red-50 text-red-600 border-red-200 w-fit">Retard</Badge>
+                                                            ) : (
+                                                                <Badge variant="outline" className="text-[10px] py-0 bg-slate-50 text-slate-600 border-slate-200 w-fit">En attente</Badge>
+                                                            )}
+                                                            {purchase.due_date && purchase.payment_status !== 'completed' && (
+                                                                <span className="text-[9px] text-muted-foreground italic">
+                                                                    Échéance: {format(new Date(purchase.due_date), 'dd/MM/yyyy')}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className="col-span-2 bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
                                                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Session / Horaires</span>

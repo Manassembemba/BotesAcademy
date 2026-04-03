@@ -446,20 +446,35 @@ export type Database = {
       indicator_purchases: {
         Row: {
           created_at: string | null
+          delivered_file_url: string | null
+          expires_at: string | null
           id: string
           indicator_id: string
+          mt5_id: string | null
+          payment_proof_id: string | null
+          subscription_duration: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          delivered_file_url?: string | null
+          expires_at?: string | null
           id?: string
           indicator_id: string
+          mt5_id?: string | null
+          payment_proof_id?: string | null
+          subscription_duration?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          delivered_file_url?: string | null
+          expires_at?: string | null
           id?: string
           indicator_id?: string
+          mt5_id?: string | null
+          payment_proof_id?: string | null
+          subscription_duration?: string | null
           user_id?: string
         }
         Relationships: [
@@ -469,6 +484,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "indicators"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicator_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "indicator_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "student_management_view"
+            referencedColumns: ["student_id"]
           },
         ]
       }
@@ -642,11 +671,13 @@ export type Database = {
           created_at: string | null
           id: string
           indicator_id: string | null
+          mt5_id: string | null
           payment_method: string
           proof_url: string | null
           session_id: string | null
           status: string | null
           strategy_id: string | null
+          subscription_duration: string | null
           transaction_reference: string | null
           user_id: string
           vacation_id: string | null
@@ -660,11 +691,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           indicator_id?: string | null
+          mt5_id?: string | null
           payment_method: string
           proof_url?: string | null
           session_id?: string | null
           status?: string | null
           strategy_id?: string | null
+          subscription_duration?: string | null
           transaction_reference?: string | null
           user_id: string
           vacation_id?: string | null
@@ -678,11 +711,13 @@ export type Database = {
           created_at?: string | null
           id?: string
           indicator_id?: string | null
+          mt5_id?: string | null
           payment_method?: string
           proof_url?: string | null
           session_id?: string | null
           status?: string | null
           strategy_id?: string | null
+          subscription_duration?: string | null
           transaction_reference?: string | null
           user_id?: string
           vacation_id?: string | null
@@ -822,11 +857,14 @@ export type Database = {
           amount: number
           course_id: string
           created_at: string | null
+          due_date: string | null
           group_id: string | null
           id: string
+          paid_amount: number | null
           payment_proof_id: string | null
           payment_status: string | null
           session_id: string | null
+          total_amount: number | null
           user_id: string
           vacation_id: string | null
           validated_at: string | null
@@ -837,11 +875,14 @@ export type Database = {
           amount: number
           course_id: string
           created_at?: string | null
+          due_date?: string | null
           group_id?: string | null
           id?: string
+          paid_amount?: number | null
           payment_proof_id?: string | null
           payment_status?: string | null
           session_id?: string | null
+          total_amount?: number | null
           user_id: string
           vacation_id?: string | null
           validated_at?: string | null
@@ -852,11 +893,14 @@ export type Database = {
           amount?: number
           course_id?: string
           created_at?: string | null
+          due_date?: string | null
           group_id?: string | null
           id?: string
+          paid_amount?: number | null
           payment_proof_id?: string | null
           payment_status?: string | null
           session_id?: string | null
+          total_amount?: number | null
           user_id?: string
           vacation_id?: string | null
           validated_at?: string | null
@@ -982,18 +1026,21 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          payment_proof_id: string | null
           strategy_id: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
+          payment_proof_id?: string | null
           strategy_id: string
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
+          payment_proof_id?: string | null
           strategy_id?: string
           user_id?: string
         }
@@ -1004,6 +1051,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "strategies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "strategy_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "student_management_view"
+            referencedColumns: ["student_id"]
           },
         ]
       }
@@ -1040,6 +1101,8 @@ export type Database = {
           enrolled_courses_count: number | null
           full_name: string | null
           last_enrollment_date: string | null
+          purchased_indicators_count: number | null
+          purchased_strategies_count: number | null
           student_id: string | null
           total_spent: number | null
           vacation_names: string[] | null
@@ -1085,7 +1148,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "student"
+      app_role: "admin" | "student" | "receptionist"
       application_status: "pending" | "accepted" | "rejected" | "cancelled"
       course_level: "beginner" | "intermediate" | "expert"
       course_status: "draft" | "published"

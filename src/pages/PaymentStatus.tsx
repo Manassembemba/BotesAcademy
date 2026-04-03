@@ -258,7 +258,7 @@ const PaymentStatus = () => {
                             </div>
 
                             {/* Rejection Note */}
-                            {paymentProof.status === 'rejected' && paymentProof.admin_notes && (
+                            {payment_proof_status === 'rejected' && paymentProof.admin_notes && (
                                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="p-6 bg-destructive/10 border-2 border-destructive/20 rounded-3xl relative overflow-hidden">
                                     <div className="absolute top-[-20px] left-[-20px] w-16 h-16 bg-destructive/10 rounded-full blur-xl" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-2 flex items-center gap-2">
@@ -268,6 +268,35 @@ const PaymentStatus = () => {
                                         "{paymentProof.admin_notes}"
                                     </p>
                                 </motion.div>
+                            )}
+
+                            {/* Welcome Section for Pending Status */}
+                            {payment_proof_status === 'pending' && (
+                                <div className="space-y-6">
+                                    <div className="p-8 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 space-y-4">
+                                        <h4 className="text-lg font-black uppercase italic tracking-tighter">🚀 Rejoignez l'élite en attendant</h4>
+                                        <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                                            Votre accès sera activé sous peu. Profitez de ce temps pour rejoindre notre communauté exclusive et commencer à networker avec d'autres traders.
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                                            <Button variant="outline" className="h-12 rounded-xl border-primary/20 gap-2 font-bold uppercase text-[10px] tracking-widest" onClick={() => window.open('https://t.me/botesacademy', '_blank')}>
+                                                <MessageSquare className="w-4 h-4 text-blue-500" /> Canal Telegram
+                                            </Button>
+                                            <Button variant="outline" className="h-12 rounded-xl border-primary/20 gap-2 font-bold uppercase text-[10px] tracking-widest" onClick={() => window.open('https://instagram.com/botesacademy', '_blank')}>
+                                                <Instagram className="w-4 h-4 text-pink-500" /> Instagram
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4 p-6 bg-muted/20 rounded-2xl border border-dashed border-border">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                            <ShieldCheck className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm">Garantie Botes Academy</p>
+                                            <p className="text-xs text-muted-foreground italic">Votre transaction est sécurisée. Une notification vous sera envoyée dès validation.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
 
                             {/* Actions */}

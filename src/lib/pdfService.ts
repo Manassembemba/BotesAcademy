@@ -82,3 +82,62 @@ export const generateInvoice = (data: InvoiceData) => {
     doc.save(`Facture_Botes_${data.invoiceNumber}.pdf`);
 };
 
+export const generateBadge = (data: { studentName: string; courseTitle: string; photoUrl?: string }) => {
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [85, 120] // Format badge standard
+    });
+
+    const width = doc.internal.pageSize.getWidth();
+    const height = doc.internal.pageSize.getHeight();
+
+    // Fond Gold/Bleu Premium
+    doc.setFillColor(2, 8, 23); // Background dark
+    doc.rect(0, 0, width, height, 'F');
+    
+    // Bordure Gold
+    doc.setDrawColor(234, 179, 8);
+    doc.setLineWidth(1);
+    doc.rect(2, 2, width - 4, height - 4, 'D');
+
+    // Header Botes Academy
+    doc.setFontSize(14);
+    doc.setTextColor(255);
+    doc.text('BOTES ACADEMY', width / 2, 15, { align: 'center' });
+    
+    doc.setFontSize(6);
+    doc.setTextColor(234, 179, 8);
+    doc.text("L'ÉLITE DU TRADING", width / 2, 19, { align: 'center' });
+
+    // Photo Placeholder (Cercle)
+    doc.setDrawColor(234, 179, 8);
+    doc.setFillColor(30, 41, 59);
+    doc.circle(width / 2, 45, 15, 'FD');
+    doc.setTextColor(255);
+    doc.setFontSize(8);
+    doc.text('PHOTO', width / 2, 46, { align: 'center' });
+
+    // Student Name
+    doc.setFontSize(12);
+    doc.setTextColor(255);
+    doc.text(data.studentName.toUpperCase(), width / 2, 70, { align: 'center' });
+
+    // Course Name
+    doc.setFontSize(8);
+    doc.setTextColor(200);
+    doc.text('Formation :', width / 2, 78, { align: 'center' });
+    doc.setTextColor(234, 179, 8);
+    doc.setFontSize(9);
+    doc.text(data.courseTitle, width / 2, 83, { align: 'center' });
+
+    // QR Code Placeholder
+    doc.setFillColor(255);
+    doc.rect(width / 2 - 10, 95, 20, 20, 'F');
+    doc.setTextColor(0);
+    doc.setFontSize(5);
+    doc.text('VÉRIFIÉ', width / 2, 106, { align: 'center' });
+
+    doc.save(`Badge_Botes_${data.studentName.replace(' ', '_')}.pdf`);
+};
+

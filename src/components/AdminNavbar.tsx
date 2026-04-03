@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Home, LogOut, GraduationCap, CreditCard, Users, Settings, TrendingUp, CheckCircle2, FileText } from "lucide-react";
+import { LayoutDashboard, Home, LogOut, CreditCard, Users, Settings, TrendingUp, CheckCircle2, FileText, Upload } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AdminNavbar = () => {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
+  const isAdmin = role === 'admin';
 
   return (
     <motion.nav
@@ -18,7 +19,7 @@ const AdminNavbar = () => {
         <Link to="/admin/dashboard" className="flex items-center gap-3 group">
           <img src="/logo.png" alt="Botes Academy Logo" className="h-[200px] w-auto object-contain" />
           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            Admin
+            {role === 'receptionist' ? 'Réception' : 'Admin'}
           </span>
         </Link>
 
@@ -36,6 +37,13 @@ const AdminNavbar = () => {
           >
             <CreditCard className="w-4 h-4" />
             Paiements
+          </Link>
+          <Link
+            to="/admin/delivery"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Livraisons
           </Link>
           <Link
             to="/admin/applications"
@@ -58,20 +66,26 @@ const AdminNavbar = () => {
             <CheckCircle2 className="w-4 h-4" />
             Émargement
           </Link>
-          <Link
-            to="/admin/accounting"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Comptabilité
-          </Link>
-          <Link
-            to="/admin/settings"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Paramètres
-          </Link>
+          
+          {isAdmin && (
+            <>
+              <Link
+                to="/admin/accounting"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <TrendingUp className="w-4 h-4" />
+                Comptabilité
+              </Link>
+              <Link
+                to="/admin/settings"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                Paramètres
+              </Link>
+            </>
+          )}
+
           <Link
             to="/"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

@@ -276,6 +276,13 @@ const PaymentValidation = () => {
                                         <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">Date</p>
                                         <p className="font-bold">{format(new Date(selectedProof.created_at), 'dd/MM/yyyy')}</p>
                                     </div>
+                                    {selectedProof.mt5_id && (
+                                        <div className="col-span-2 p-4 bg-primary/10 rounded-2xl border border-primary/20 animate-pulse">
+                                            <p className="text-[10px] font-black uppercase text-primary mb-1 tracking-widest">Compte MT5 à Configurer</p>
+                                            <p className="text-2xl font-black font-mono tracking-widest text-primary">{selectedProof.mt5_id}</p>
+                                            <p className="text-[10px] text-primary/70 italic mt-1 font-bold">L'indicateur doit être verrouillé sur cet ID.</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {selectedProof.status === 'pending' && (

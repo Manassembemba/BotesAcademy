@@ -1,69 +1,50 @@
-# Welcome to your Lovable project
+# Botes Academy
 
-## Project info
+Plateforme de gestion de formation et marketplace de trading d'élite.
 
+## Technologies
 
+Ce projet est construit avec :
 
-## How can I edit this code?
+- **Vite**
+- **TypeScript**
+- **React**
+- **shadcn-ui**
+- **Tailwind CSS**
+- **Supabase** (Backend-as-a-Service)
 
-There are several ways of editing your application.
+## Développement Local
 
+### Prérequis
 
+- Node.js & npm (ou Bun) installés.
 
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Installer les dépendances
+npm install
+# ou
+bun install
 ```
 
-**Edit a file directly in GitHub**
+### Lancement
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+# Lancer le serveur de développement
+npm run dev
+# ou
+bun run dev
+```
 
-**Use GitHub Codespaces**
+## Structure du Projet
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `src/components/` : Composants UI réutilisables.
+- `src/pages/` : Pages de l'application (Routes).
+- `src/contexts/` : Contextes React (Authentification, Paramètres du site).
+- `src/integrations/supabase/` : Configuration du client Supabase.
+- `supabase/migrations/` : Schéma de la base de données et politiques RLS.
 
-## What technologies are used for this project?
+## Déploiement
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-"# BotesGroup" 
+Le projet est optimisé pour être déployé sur Vercel ou Netlify. Assurez-vous de configurer les variables d'environnement Supabase.
