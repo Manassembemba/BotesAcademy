@@ -48,3 +48,6 @@ bun run dev
 ## Déploiement
 
 Le projet est optimisé pour être déployé sur Vercel ou Netlify. Assurez-vous de configurer les variables d'environnement Supabase.
+
+## Manasse Mbemba 
+## +243854783211
