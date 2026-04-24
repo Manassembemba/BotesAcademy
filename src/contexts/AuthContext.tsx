@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const fetchUserRole = async (user: User) => {
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Timeout Supabase (5s)")), 5000);
+        setTimeout(() => reject(new Error("Timeout Supabase (15s)")), 15000);
       });
 
       try {
@@ -60,17 +60,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-
-        fetchUserRole(session.user).then(userRole => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+          const userRole = await fetchUserRole(session.user);
           setRole(userRole);
-        });
+        }
+      } catch (error) {
+        console.error("Auth init error:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {

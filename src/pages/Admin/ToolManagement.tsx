@@ -35,12 +35,10 @@ const ToolManagement = () => {
   // Create/Update mutation
   const saveToolMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Mapping table according to platform type
       const isStrategy = data.type === 'TradingView';
       const table = isStrategy ? 'strategies' : 'indicators';
       
       let imageUrl = selectedTool?.image_url;
-      let fileUrl = null;
 
       // 1. Upload Image if provided
       if (data.imageFile) {
@@ -57,7 +55,7 @@ const ToolManagement = () => {
         description: data.description,
         price: data.price,
         image_url: imageUrl,
-        compatibility: data.compatibility, // Derived from type in ToolEditorDialog
+        compatibility: data.compatibility,
       };
 
       if (isStrategy) {
@@ -72,7 +70,7 @@ const ToolManagement = () => {
 
       let toolId = selectedTool?.id;
 
-      // 3. Save to main table
+      // 3. Save to main table (strategies or indicators)
       if (selectedTool) {
         const { error } = await supabase.from(table as any).update(payload).eq('id', selectedTool.id);
         if (error) throw error;
@@ -82,40 +80,39 @@ const ToolManagement = () => {
         toolId = newTool.id;
       }
 
-      // 4. Handle Secrets
-      if (!isStrategy) {
+      // 4. Handle Secrets (Files for Indicators, PineScript for Strategies)
+      if (isStrategy) {
+        if (data.content) {
+          const { error } = await supabase.from('strategy_secrets').upsert({
+            strategy_id: toolId,
+            content: data.content
+          }, { onConflict: 'strategy_id' });
+          if (error) throw error;
+        }
+      } else {
         if (data.indicatorFile) {
           const fileExt = data.indicatorFile.name.split('.').pop();
           const fileName = `secrets/${toolId}_${Date.now()}.${fileExt}`;
           const { error: uploadError } = await supabase.storage.from('marketplace').upload(fileName, data.indicatorFile);
           if (uploadError) throw uploadError;
           const { data: urlData } = supabase.storage.from('marketplace').getPublicUrl(fileName);
-          fileUrl = urlData.publicUrl;
-        }
-
-        if (fileUrl) {
-          const { error } = await supabase.from('indicator_secrets').upsert({
+          
+          const { error: secretError } = await supabase.from('indicator_secrets').upsert({
             indicator_id: toolId,
-            file_url: fileUrl
+            file_url: urlData.publicUrl
           }, { onConflict: 'indicator_id' });
-          if (error) throw error;
+          if (secretError) throw secretError;
         }
-      } else if (isStrategy && data.content) {
-        const { error } = await supabase.from('strategy_secrets').upsert({
-          strategy_id: toolId,
-          content: data.content
-        }, { onConflict: 'strategy_id' });
-        if (error) throw error;
       }
     },
     onSuccess: () => {
-      toast.success(selectedTool ? "Outil modifié" : "Outil créé");
+      toast.success(selectedTool ? "Configuration mise à jour" : "Produit propulsé avec succès");
       queryClient.invalidateQueries({ queryKey: ['adminTools'] });
       setIsDialogOpen(false);
       setSelectedTool(null);
     },
     onError: (error: any) => {
-      toast.error(`Erreur: ${error.message}`);
+      toast.error(`Échec de l'opération: ${error.message}`);
     },
   });
 

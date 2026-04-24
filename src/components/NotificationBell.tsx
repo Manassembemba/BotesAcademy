@@ -130,17 +130,17 @@ export const NotificationBell = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden rounded-2xl bg-card border-border/50 shadow-2xl backdrop-blur-xl">
-        <div className="flex items-center justify-between p-4 border-b border-border/50 bg-muted/30">
+      <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden rounded-3xl bg-card/60 backdrop-blur-3xl border-white/10 shadow-premium">
+        <div className="flex items-center justify-between p-5 border-b border-border/10 bg-muted/40 backdrop-blur-md">
           <h3 className="font-black uppercase tracking-tighter italic text-sm">Notifications</h3>
           {unreadCount > 0 && (
             <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-7 text-[10px] font-bold uppercase tracking-tight hover:text-primary"
+                className="h-7 text-[9px] font-black uppercase tracking-widest hover:text-primary hover:bg-primary/5 px-3 rounded-lg"
                 onClick={() => markAllAsReadMutation.mutate()}
             >
-              Tout lire
+              Tout marquer lu
             </Button>
           )}
         </div>
@@ -202,8 +202,8 @@ export const NotificationBell = () => {
             </div>
           )}
         </ScrollArea>
-        <div className="p-2 border-t border-border/50 bg-muted/20 text-center">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Centre de Notifications Botes</p>
+        <div className="p-3 border-t border-border/5 bg-muted/20 text-center">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50">Intelligence Botes Academy</p>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

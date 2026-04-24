@@ -118,58 +118,61 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
     const isExpired = purchaseDetails?.expires_at && new Date(purchaseDetails.expires_at) < new Date();
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="h-full"
-        >
-            <Card className="h-full flex flex-col overflow-hidden border-border/40 bg-card/50 backdrop-blur-xl hover:border-primary/50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] transition-all duration-500 rounded-[2.5rem] group relative">
-                <CardHeader className="p-0 relative aspect-[16/10] overflow-hidden">
+        <div className="h-full perspective-2000">
+            <Card className="h-full flex flex-col overflow-hidden border-border/40 bg-card/60 backdrop-blur-2xl hover:border-primary/50 hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] transition-all duration-700 rounded-[3rem] group relative preserve-3d">
+                {/* Patterns and Glints */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+
+                <CardHeader className="p-0 relative aspect-[16/11] overflow-hidden">
                     <img
                         src={product.image || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80"}
                         alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110 group-hover:rotate-1"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-90" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-90" />
                     
-                    <div className="absolute top-6 left-6 flex flex-wrap gap-2 z-10">
-                        <Badge className="bg-white/10 backdrop-blur-md text-white border-white/20 shadow-xl uppercase font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full">
-                            {product.type === 'strategy' ? '📚 Ressource' : '⚡ Outil Gold'}
+                    <div className="absolute top-8 left-8 flex flex-wrap gap-3 z-10">
+                        <Badge className="bg-primary/20 backdrop-blur-xl text-primary border-primary/30 shadow-2xl uppercase font-black text-[10px] tracking-[0.3em] px-5 py-2 rounded-full relative overflow-hidden group/badge">
+                            <span className="relative z-10 flex items-center gap-2">
+                                <Zap className="w-3 h-3 fill-current" />
+                                {product.type === 'strategy' ? 'Ressource' : 'Outil Gold'}
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/badge:translate-x-full transition-transform duration-1000 ease-in-out" />
                         </Badge>
                         {hasPurchased && (
                             <Badge className={cn(
-                                "text-white border-none shadow-xl font-black text-[10px] uppercase px-4 py-1.5 rounded-full",
-                                isExpired ? "bg-destructive animate-pulse" : "bg-green-500"
+                                "text-white border-none shadow-2xl font-black text-[10px] uppercase px-5 py-2 rounded-full",
+                                isExpired ? "bg-destructive animate-pulse" : "bg-emerald-500"
                             )}>
                                 {isExpired ? <AlertCircle className="w-3 h-3 mr-2" /> : <CheckCircle2 className="w-3 h-3 mr-2" />}
-                                {isExpired ? 'Abonnement Expiré' : 'Licence Active'}
+                                {isExpired ? 'Expiré' : 'Actif'}
                             </Badge>
                         )}
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-8 flex-1 space-y-6">
+                <CardContent className="p-10 flex-1 space-y-8 relative z-10">
                     <div>
-                        <h3 className="text-2xl font-black italic tracking-tighter uppercase mb-3 group-hover:text-primary transition-colors">
+                        <h3 className="text-3xl font-black italic tracking-tighter uppercase mb-4 group-hover:text-primary transition-colors leading-none">
                             {product.name}
                         </h3>
-                        <p className="text-muted-foreground text-sm line-clamp-2 font-medium">
+                        <p className="text-muted-foreground text-sm line-clamp-2 font-medium leading-relaxed">
                             {product.description}
                         </p>
                     </div>
 
                     {hasPurchased && purchaseDetails && (
-                        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-2">
-                            <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">ID MT5</span>
-                                <span className="font-mono font-black text-primary text-xs">{purchaseDetails.mt5_id}</span>
+                        <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/20 space-y-3 relative overflow-hidden group/details">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl rounded-full" />
+                            <div className="flex justify-between items-center relative z-10">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[0.3em]">Identifiant MT5</span>
+                                <span className="font-mono font-black text-primary text-sm bg-primary/10 px-3 py-1 rounded-lg">{purchaseDetails.mt5_id}</span>
                             </div>
                             {purchaseDetails.expires_at && (
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Expire le</span>
-                                    <span className={cn("text-[10px] font-bold", isExpired ? "text-destructive" : "text-primary")}>
+                                <div className="flex justify-between items-center relative z-10">
+                                    <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[0.3em]">Fin de licence</span>
+                                    <span className={cn("text-xs font-black italic", isExpired ? "text-destructive" : "text-foreground")}>
                                         {format(new Date(purchaseDetails.expires_at), 'dd MMM yyyy', { locale: fr })}
                                     </span>
                                 </div>
@@ -177,11 +180,11 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
                         </div>
                     )}
 
-                    <div className="space-y-2">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/60">Compatible :</p>
-                        <div className="flex flex-wrap gap-2">
+                    <div className="space-y-3">
+                        <p className="text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground/40 ml-1">Ecosystème :</p>
+                        <div className="flex flex-wrap gap-3">
                             {product.compatibility?.map((item) => (
-                                <Badge key={item} variant="outline" className="text-[10px] uppercase font-black tracking-tighter bg-primary/5 border-primary/10 px-3 py-1 rounded-lg">
+                                <Badge key={item} variant="outline" className="text-[10px] uppercase font-black tracking-widest bg-muted/30 border-border/40 px-4 py-1.5 rounded-xl hover:bg-primary/10 hover:border-primary/20 transition-colors">
                                     {item}
                                 </Badge>
                             ))}
@@ -189,16 +192,16 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
                     </div>
                 </CardContent>
 
-                <CardFooter className="p-8 pt-0 flex items-center justify-between border-t border-border/20 bg-muted/10 mt-auto">
+                <CardFooter className="p-10 pt-0 flex items-center justify-between border-t border-border/10 bg-muted/5 mt-auto relative z-10">
                     <div className="flex flex-col">
-                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">
-                            {product.type === 'indicator' ? 'Dès' : 'Prix unique'}
+                        <span className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-[0.4em] mb-2">
+                            {product.type === 'indicator' ? 'Abonnement' : 'Acquisition'}
                         </span>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-primary italic leading-none">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-4xl font-black text-primary italic leading-none tracking-tighter">
                                 {product.type === 'indicator' ? product.price_1m : product.price}
                             </span>
-                            <span className="text-xs font-black text-primary/70">USD</span>
+                            <span className="text-sm font-black text-primary/40 uppercase">USD</span>
                         </div>
                     </div>
 
@@ -208,30 +211,31 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
                             size="lg"
                             disabled={isFetchingSecret}
                             className={cn(
-                                "rounded-2xl font-black uppercase tracking-tighter px-8 h-12 shadow-lg transition-all",
+                                "rounded-3xl font-black uppercase tracking-widest px-10 h-14 shadow-2xl transition-all hover:scale-105 active:scale-95",
                                 purchaseDetails?.delivered_file_url 
                                     ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" 
                                     : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
                             )}
                         >
-                            {isFetchingSecret ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : (purchaseDetails?.delivered_file_url ? <Download className="w-4 h-4 mr-2" /> : <Clock className="w-4 h-4 mr-2" />)}
-                            {purchaseDetails?.delivered_file_url ? 'Télécharger' : 'Configuration...'}
+                            {isFetchingSecret ? <Loader2 className="w-5 h-5 mr-3 animate-spin" /> : (purchaseDetails?.delivered_file_url ? <Download className="w-5 h-5 mr-3" /> : <Clock className="w-5 h-5 mr-3" />)}
+                            {purchaseDetails?.delivered_file_url ? 'Télécharger' : 'En attente...'}
                         </Button>
                     ) : (
                         <Button 
                             onClick={handleBuyClick}
                             size="lg" 
-                            className="rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-tighter px-8 h-12 shadow-glow-primary-sm group/btn relative overflow-hidden"
+                            className="rounded-3xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest px-10 h-14 shadow-glow-primary group/btn relative overflow-hidden transition-all hover:scale-110 active:scale-95 border-2 border-white/10"
                         >
                             <span className="relative z-10 flex items-center">
-                                <ShoppingCart className="w-4 h-4 mr-3" />
-                                {isExpired ? 'Renouveler' : 'Acquérir'}
-                                <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
+                                <ShoppingCart className="w-5 h-5 mr-4" />
+                                {isExpired ? 'Renouveler' : 'Acheter'}
+                                <ArrowRight className="w-5 h-5 ml-3 transition-transform group-hover/btn:translate-x-2" />
                             </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         </Button>
                     )}
                 </CardFooter>
             </Card>
-        </motion.div>
+        </div>
     );
 };

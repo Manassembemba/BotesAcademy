@@ -9,13 +9,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { TrendingUp, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 type AuthMode = "login" | "register" | "forgotPassword";
 
 const authSchema = z.object({
   email: z.string().trim().email("Email invalide").max(255, "Email trop long"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères").max(100, "Mot de passe trop long").optional(),
-  fullName: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(100, "Nom trop long").optional(),
+  firstName: z.string().trim().min(2, "Le prénom doit contenir au moins 2 caractères").max(50, "Prénom trop long").optional(),
+  lastName: z.string().trim().min(2, "Le nom doit contenir au moins 2 caractères").max(50, "Nom trop long").optional(),
 });
 
 const Auth = () => {
@@ -24,7 +27,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -51,12 +55,8 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const validationData = mode === 'login'
-        ? { email, password }
-        : { email, password, fullName };
-
-      authSchema.pick(mode === 'login' ? { email: true, password: true } : { email: true, password: true, fullName: true }).parse(validationData);
-
+      const fullName = `${firstName} ${lastName}`.trim();
+      
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -96,6 +96,8 @@ const Auth = () => {
             emailRedirectTo: redirectUrl,
             data: {
               full_name: fullName,
+              first_name: firstName,
+              last_name: lastName,
             },
           },
         });
@@ -113,11 +115,7 @@ const Auth = () => {
         setMode("login");
       }
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        toast.error("Une erreur est survenue");
-      }
+      toast.error("Une erreur est survenue");
     } finally {
       setLoading(false);
     }
@@ -163,70 +161,105 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
-      <Card className="w-full max-w-md border-success/20 bg-card/95 backdrop-blur-sm">
-        <CardHeader className="space-y-1">
-          <Link to="/" className="flex items-center gap-2 mb-4 justify-center">
-            <img src="/logo.png" alt="Botes Academy Logo" className="h-32 w-auto object-contain" />
-          </Link>
-          <CardTitle className="text-2xl text-center">{getTitle()}</CardTitle>
-          <CardDescription className="text-center">{getDescription()}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {mode === 'forgotPassword' ? (
-            <form onSubmit={handlePasswordReset} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="vous@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
-              </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                {loading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleAuth} className="space-y-4">
-              {mode === 'register' && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nom complet</Label>
-                  <Input id="fullName" type="text" placeholder="John Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} required disabled={loading} maxLength={100} />
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="vous@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} maxLength={255} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} minLength={6} maxLength={100} />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={loading}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                {loading ? "Chargement..." : mode === 'login' ? "Se connecter" : "S'inscrire"}
-              </Button>
-            </form>
-          )}
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/10 blur-[120px] rounded-full animate-pulse delay-700" />
+      </div>
 
-          <div className="mt-4 text-center text-sm space-y-2">
-            {mode === 'login' && (
-              <button type="button" onClick={() => setMode('forgotPassword')} className="text-blue-600 hover:underline" disabled={loading}>
-                Mot de passe oublié ?
-              </button>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md z-10"
+      >
+        <Card className="border-none bg-card/60 backdrop-blur-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] rounded-[2.5rem] overflow-hidden">
+          <CardHeader className="space-y-4 pt-12 pb-8">
+            <Link to="/" className="flex flex-col items-center gap-4 mb-4 justify-center group">
+              <div className="p-2 bg-primary/5 rounded-[2rem] group-hover:scale-105 transition-transform duration-500 shadow-inner flex flex-col items-center">
+                <img 
+                  src="/logo.png?v=2" 
+                  alt="Botes Academy Logo" 
+                  className="h-24 w-auto object-contain"
+                />
+              </div>
+              <div className="flex flex-col items-center -mt-2">
+                <span className="text-2xl font-black uppercase tracking-tighter leading-none">
+                  Botes <span className="text-primary">Academy</span>
+                </span>
+                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1 italic">On ne forme pas, on transforme</span>
+              </div>
+            </Link>
+            <div className="text-center space-y-2">
+              <CardTitle className="text-4xl font-black uppercase italic tracking-tighter leading-none">{getTitle()}</CardTitle>
+              <CardDescription className="text-muted-foreground font-medium italic text-sm px-6">{getDescription()}</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="px-8 pb-12">
+            {mode === 'forgotPassword' ? (
+              <form onSubmit={handlePasswordReset} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email académique</Label>
+                  <Input id="email" type="email" placeholder="votre@excellence.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} className="h-14 rounded-2xl border-2 border-border/50 bg-background/50 font-bold italic px-6 focus:border-primary/50 transition-all" />
+                </div>
+                <Button type="submit" className="w-full h-14 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs shadow-glow-primary active:scale-95 transition-all italic" disabled={loading}>
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Envoyer le lien d'accès"}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleAuth} className="space-y-6">
+                {mode === 'register' && (
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="firstName" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Prénom</Label>
+                        <Input id="firstName" type="text" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} required disabled={loading} className="h-14 rounded-2xl border-2 border-border/50 bg-background/50 font-bold italic px-6 focus:border-primary/50 transition-all" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lastName" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nom</Label>
+                        <Input id="lastName" type="text" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required disabled={loading} className="h-14 rounded-2xl border-2 border-border/50 bg-background/50 font-bold italic px-6 focus:border-primary/50 transition-all" />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">{mode === 'login' ? "Identifiant Académique (Email)" : "Email de contact"}</Label>
+                  <Input id="email" type="email" placeholder="votre@excellence.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} className="h-14 rounded-2xl border-2 border-border/50 bg-background/50 font-bold italic px-6 focus:border-primary/50 transition-all" maxLength={255} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Mot de passe sécurisé</Label>
+                  <div className="relative">
+                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} className="h-14 rounded-2xl border-2 border-border/50 bg-background/50 font-bold italic px-6 focus:border-primary/50 transition-all" minLength={6} maxLength={100} />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      disabled={loading}
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full h-16 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all italic" disabled={loading}>
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : mode === 'login' ? "Se connecter à son espace" : "Rejoindre l'académie"}
+                </Button>
+              </form>
             )}
-            <button type="button" onClick={() => setMode(mode === 'login' || mode === 'forgotPassword' ? 'register' : 'login')} className="text-blue-600 hover:underline block w-full" disabled={loading}>
-              {mode === 'login' || mode === 'forgotPassword' ? "Pas encore de compte ? S'inscrire" : "Déjà un compte ? Se connecter"}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="mt-8 flex flex-col gap-3 text-center">
+              {mode === 'login' && (
+                <button type="button" onClick={() => setMode('forgotPassword')} className="text-[10px] font-black uppercase tracking-widest text-primary/70 hover:text-primary transition-colors italic" disabled={loading}>
+                  Accès perdu ? Récupérer le mot de passe
+                </button>
+              )}
+              <button type="button" onClick={() => setMode(mode === 'login' || mode === 'forgotPassword' ? 'register' : 'login')} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors italic" disabled={loading}>
+                {mode === 'login' || mode === 'forgotPassword' ? "Pas encore membre ? Devenir étudiant" : "Déjà un compte ? S'identifier ici"}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };

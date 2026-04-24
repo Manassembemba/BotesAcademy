@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Document, Page } from 'react-pdf';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { cn } from "@/lib/utils";
 

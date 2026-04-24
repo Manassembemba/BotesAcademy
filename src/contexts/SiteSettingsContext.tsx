@@ -45,6 +45,9 @@ interface SiteSettings {
   categories: string[];
   appearance: {
     hero_image_url: string;
+    hero_image_url_2?: string;
+    hero_image_url_3?: string;
+    hero_image_url_4?: string;
     hero_title: string;
     hero_description: string;
     primary_color: string;

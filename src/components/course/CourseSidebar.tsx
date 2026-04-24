@@ -25,6 +25,7 @@ interface CourseSidebarProps {
   onToggleCompletion: (lessonId: string, isCompleted: boolean) => void;
   isToggling: boolean;
   mode?: 'online' | 'presentiel' | 'hybrid';
+  isCinemaMode?: boolean;
 }
 
 export const CourseSidebar = ({
@@ -37,7 +38,8 @@ export const CourseSidebar = ({
   completedLessons,
   onToggleCompletion,
   isToggling,
-  mode = 'online'
+  mode = 'online',
+  isCinemaMode = false
 }: CourseSidebarProps) => {
   const isOnline = mode === 'online';
   const progress = lessons ? Math.round((completedLessons?.size || 0) / lessons.length * 100) : 0;
@@ -56,89 +58,152 @@ export const CourseSidebar = ({
   const moduleNames = Object.keys(lessonsByModule);
 
   return (
-    <div className="sticky top-24 space-y-6 animate-in slide-in-from-right-4 duration-700">
-      <Card className="border-primary/10 shadow-xl overflow-hidden rounded-[2rem] bg-card/50 backdrop-blur-sm">
-        <CardHeader className="bg-primary/5 border-b border-primary/10 py-6 px-8">
-          <CardTitle className="text-xl font-black uppercase italic tracking-tighter flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl"><BookOpen className="w-5 h-5 text-primary" /></div>
-              {isOnline ? "Progression" : "Sommaire"}
-            </div>
-            {hasAccess && lessons && isOnline && (
-              <span className="text-[10px] font-black text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                {progress}%
-              </span>
-            )}
-          </CardTitle>
+    <div className={cn(
+      "sticky top-28 space-y-6 animate-in slide-in-from-right-4 duration-700 transition-all",
+      isCinemaMode && "top-8 scale-95 origin-top-right opacity-80 hover:opacity-100"
+    )}>
+      <div className={cn(
+        "bento-card p-0 border-none shadow-2xl overflow-hidden transition-all duration-700",
+        isCinemaMode ? "bg-white/5 backdrop-blur-3xl border-white/10" : "bg-card shadow-glow-primary/5"
+      )}>
+        <div className={cn(
+          "border-b py-8 px-8 transition-all duration-700",
+          isCinemaMode ? "bg-white/5 border-white/10" : "bg-primary/5 border-border/50"
+        )}>
+          <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-3 rounded-2xl shadow-glow-primary-sm transition-all",
+                  isCinemaMode ? "bg-white/10 text-white" : "bg-primary/10 text-primary"
+                )}>
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className={cn(
+                  "text-xl font-black uppercase italic tracking-tighter leading-none transition-all",
+                  isCinemaMode ? "text-white" : "text-foreground"
+                )}>
+                  {isOnline ? "Progression" : "Sommaire"}
+                </h3>
+             </div>
+             {hasAccess && lessons && isOnline && (
+               <Badge className={cn(
+                 "font-black uppercase text-[10px] tracking-widest px-4 py-1 rounded-full shadow-glow-primary-sm animate-pulse transition-all",
+                 isCinemaMode ? "bg-white/20 text-white" : "bg-primary text-white"
+               )}>
+                 {progress}%
+               </Badge>
+             )}
+          </div>
           {hasAccess && lessons && isOnline && (
-            <Progress value={progress} className="h-1.5 mt-4" />
+            <div className="space-y-2">
+               <Progress value={progress} className={cn(
+                 "h-2 rounded-full overflow-hidden shadow-inner transition-all",
+                 isCinemaMode ? "bg-white/10 [&>div]:bg-white" : "bg-primary/10 [&>div]:bg-primary"
+               )} />
+               <p className={cn(
+                 "text-[9px] font-black uppercase tracking-[0.2em] italic text-right transition-all",
+                 isCinemaMode ? "text-white/40" : "text-muted-foreground/60"
+               )}>
+                 {completedLessons?.size || 0} / {lessons.length} Modules acquis
+               </p>
+            </div>
           )}
-        </CardHeader>
+        </div>
         
-        <CardContent className="p-3 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
+        <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
           {isLoadingLessons ? (
-            <div className="p-4 space-y-3">
-               <Skeleton className="h-14 w-full rounded-2xl" />
-               <Skeleton className="h-14 w-full rounded-2xl" />
-               <Skeleton className="h-14 w-full rounded-2xl" />
+            <div className="space-y-3 p-2">
+               <Skeleton className="h-16 w-full rounded-2xl" />
+               <Skeleton className="h-16 w-full rounded-2xl" />
+               <Skeleton className="h-16 w-full rounded-2xl" />
             </div>
           ) : lessonsError ? (
-            <p className="text-destructive p-4 text-xs font-bold italic">Erreur: {lessonsError.message}</p>
+            <div className="p-8 text-center space-y-2">
+               <HelpCircle className="w-10 h-10 text-destructive mx-auto opacity-20" />
+               <p className="text-destructive text-[10px] font-black uppercase italic tracking-widest">Échec du chargement</p>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-4">
               {moduleNames.map((moduleName, modIdx) => {
                 const moduleLessons = lessonsByModule[moduleName];
                 const completedInModule = moduleLessons.filter((l: Lesson) => completedLessons?.has(l.id)).length;
                 const isModuleComplete = completedInModule === moduleLessons.length;
 
                 return (
-                  <Collapsible key={moduleName} defaultOpen={true} className="space-y-2">
+                  <Collapsible key={moduleName} defaultOpen={modIdx === 0} className="space-y-2">
                     <CollapsibleTrigger asChild>
-                      <button className="w-full flex items-center justify-between p-3 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors group">
-                        <div className="flex items-center gap-3">
+                      <button className={cn(
+                        "w-full flex items-center justify-between p-4 rounded-2xl transition-all group",
+                        isCinemaMode ? "bg-white/5 hover:bg-white/10" : "bg-muted/30 hover:bg-muted/50"
+                      )}>
+                        <div className="flex items-center gap-4">
                           <div className={cn(
-                            "w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black",
-                            isModuleComplete ? "bg-emerald-500 text-white" : "bg-primary/20 text-primary"
+                            "w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all",
+                            isModuleComplete ? "bg-emerald-500 text-white shadow-glow-emerald" : 
+                            isCinemaMode ? "bg-white/10 border border-white/10 text-white/40 group-hover:text-white" :
+                            "bg-card border border-border/50 text-muted-foreground group-hover:text-primary group-hover:border-primary/30"
                           )}>
-                            {isModuleComplete ? <CheckCircle className="w-3 h-3" /> : modIdx + 1}
+                            {isModuleComplete ? <CheckCircle className="w-4 h-4" /> : modIdx + 1}
                           </div>
-                          <span className="font-black uppercase text-xs tracking-tighter">{moduleName}</span>
-                          <Badge variant="outline" className="text-[8px] h-4 py-0">
-                            {completedInModule}/{moduleLessons.length}
-                          </Badge>
+                          <div className="text-left">
+                             <span className={cn(
+                               "font-black uppercase text-[10px] tracking-widest leading-none block mb-1 opacity-50 italic transition-all",
+                               isCinemaMode ? "text-white/40" : "text-muted-foreground"
+                             )}>Module {modIdx + 1}</span>
+                             <span className={cn(
+                               "font-black uppercase text-xs tracking-tighter block transition-all",
+                               isCinemaMode ? "text-white/80" : "text-foreground"
+                             )}>{moduleName}</span>
+                          </div>
                         </div>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                        <div className="flex items-center gap-3">
+                           <Badge variant="outline" className={cn(
+                             "text-[9px] font-black px-2 transition-all",
+                             isCinemaMode ? "border-white/20 bg-white/5 text-white/60" : "border-primary/20 bg-primary/5 text-primary"
+                           )}>
+                             {completedInModule}/{moduleLessons.length}
+                           </Badge>
+                           <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                        </div>
                       </button>
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-1 pl-4">
+                    <CollapsibleContent className="space-y-1 pl-4 pt-1">
                       {moduleLessons.map((lesson: Lesson, index: number) => {
                         const isCompleted = completedLessons?.has(lesson.id) || false;
                         const isSelected = selectedLesson?.id === lesson.id;
 
                         return (
-                          <div key={lesson.id} className="flex items-center gap-1 group px-2">
+                          <div key={lesson.id} className="flex items-center gap-2 group px-1">
                             <button
                               onClick={() => isOnline && setSelectedLesson(lesson)}
                               disabled={!hasAccess || !isOnline}
                               className={cn(
-                                "flex-1 text-left p-3 rounded-xl transition-all duration-300 flex items-center gap-3",
-                                isSelected && isOnline ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]" : "hover:bg-primary/5",
-                                !hasAccess && "opacity-50 cursor-not-allowed",
-                                isCompleted && !isSelected && isOnline && "opacity-70",
-                                !isOnline && "cursor-default"
+                                "flex-1 text-left p-4 rounded-2xl transition-all duration-300 flex items-center gap-4 border-2 border-transparent",
+                                isSelected && isOnline ? (isCinemaMode ? "bg-white/20 text-white border-white/20" : "bg-primary text-white shadow-2xl scale-[1.02] border-primary/20") : 
+                                isCinemaMode ? "hover:bg-white/5" : "hover:bg-primary/5 hover:border-primary/10",
+                                !hasAccess && "opacity-40 cursor-not-allowed",
+                                isCompleted && !isSelected && isOnline && "opacity-80"
                               )}>
                               <div className={cn(
-                                "text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border",
-                                isSelected && isOnline ? "bg-white/20 border-white/20 text-white" : "bg-muted border-border group-hover:border-primary/30",
-                                isCompleted && !isSelected && isOnline && "bg-green-500/10 border-green-500/20 text-green-600",
-                                !isOnline && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600"
+                                "text-[10px] font-black w-7 h-7 rounded-lg flex items-center justify-center border transition-all shadow-inner shrink-0",
+                                isSelected && isOnline ? "bg-white/20 border-white/20 text-white" : 
+                                isCinemaMode ? "bg-black/20 border-white/10 text-white/40" :
+                                "bg-background border-border group-hover:border-primary/30",
+                                isCompleted && !isSelected && isOnline && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600",
                               )}>
-                                {isCompleted && isOnline ? <CheckCircle className="w-3 h-3" /> : index + 1}
+                                {isCompleted && isOnline ? <CheckCircle className="w-4 h-4" /> : index + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className={cn("font-bold text-xs truncate uppercase tracking-tighter", isCompleted && !isSelected && isOnline && "text-muted-foreground")}>{lesson.title}</p>
+                                <p className={cn(
+                                   "font-black text-[11px] uppercase tracking-tighter leading-tight italic truncate transition-all",
+                                   isSelected && isOnline ? "text-white" : isCompleted ? (isCinemaMode ? "text-emerald-400" : "text-emerald-700/80") : 
+                                   isCinemaMode ? "text-white/60" : "text-foreground/80"
+                                )}>{lesson.title}</p>
                               </div>
-                              {hasAccess && isSelected && isOnline && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                              {hasAccess && isSelected && isOnline && <div className={cn(
+                                "w-2 h-2 rounded-full animate-pulse",
+                                isCinemaMode ? "bg-white" : "bg-white"
+                              )} />}
                             </button>
 
                             {hasAccess && isOnline && (
@@ -146,11 +211,13 @@ export const CourseSidebar = ({
                                 onClick={() => onToggleCompletion(lesson.id, isCompleted)}
                                 disabled={isToggling}
                                 className={cn(
-                                  "p-1.5 rounded-lg transition-all active:scale-125",
-                                  isCompleted ? "text-green-500 hover:bg-green-50" : "text-muted-foreground hover:bg-muted"
+                                  "p-2 rounded-xl transition-all active:scale-150 shrink-0",
+                                  isCompleted ? "text-emerald-500 hover:bg-emerald-50" : 
+                                  isCinemaMode ? "text-white/20 hover:text-white hover:bg-white/5" :
+                                  "text-muted-foreground/30 hover:text-primary hover:bg-primary/5"
                                 )}
                               >
-                                {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                                {isCompleted ? <CheckCircle2 className="w-5 h-5 shadow-glow-emerald" /> : <Circle className="w-5 h-5" />}
                               </button>
                             )}
                           </div>
@@ -162,8 +229,8 @@ export const CourseSidebar = ({
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

@@ -18,8 +18,9 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ['favicon.ico', 'logo.png', 'robots.txt', 'pdf.worker.min.mjs'],
       manifest: {
         name: 'Botes Academy',
-        short_name: 'Botes',
+        short_name: 'Botes Academy',
         description: 'Apprends. Trade. Réussis. La plateforme éducative d\'élite.',
+        version: '1.1.0',
         theme_color: '#3b82f6',
         icons: [
           {

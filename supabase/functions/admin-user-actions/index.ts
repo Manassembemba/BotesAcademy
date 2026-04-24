@@ -26,14 +26,14 @@ async function verifyJWT(token: string) {
     }
 }
 
-async function isAdmin(userId: string) {
+async function isStaff(userId: string) {
     const { data: roleData, error } = await supabaseAdmin
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .single();
-    if (error || !roleData || roleData.role !== "admin") return false;
-    return true;
+        .eq("user_id", userId);
+    if (error || !roleData) return false;
+    const roles = roleData.map(r => r.role);
+    return roles.includes("admin") || roles.includes("receptionist");
 }
 
 serve(async (req) => {
@@ -42,7 +42,7 @@ serve(async (req) => {
     }
 
     try {
-        // Validation Admin
+        // Validation Staff (Admin ou Réceptionniste)
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) throw new Error("Missing Authorization header");
 
@@ -51,10 +51,10 @@ serve(async (req) => {
         if (!jwtPayload || !jwtPayload.sub) {
             throw new Error("Invalid JWT");
         }
-        
-        const callerAdminId = jwtPayload.sub;
-        if (!(await isAdmin(callerAdminId))) {
-            throw new Error("Unauthorized: Not an admin");
+
+        const callerStaffId = jwtPayload.sub;
+        if (!(await isStaff(callerStaffId))) {
+            throw new Error("Unauthorized: Not a staff member (admin or receptionist)");
         }
 
         const payload = await req.json();
@@ -71,9 +71,9 @@ serve(async (req) => {
                 // Supabase Auth Admin delete (Will cascade to profiles because of FK added earlier)
                 const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(targetUserId);
                 if (deleteErr) throw deleteErr;
-                
+
                 await supabaseAdmin.from("admin_audit_logs").insert({
-                    admin_id: callerAdminId,
+                    admin_id: callerStaffId,
                     action: "user_deleted",
                     target_id: targetUserId,
                     target_type: "user",
@@ -87,7 +87,7 @@ serve(async (req) => {
                     ban_duration: banDurationStr
                 });
                 if (banErr) throw banErr;
-                
+
                 // Mettre à jour profiles avec la date calculée
                 const banDate = new Date();
                 banDate.setHours(banDate.getHours() + (data?.durationHours || 87600));
@@ -95,7 +95,7 @@ serve(async (req) => {
                 await supabaseAdmin.from("profiles").update({ banned_until: banDate.toISOString() }).eq("id", targetUserId);
 
                 await supabaseAdmin.from("admin_audit_logs").insert({
-                    admin_id: callerAdminId,
+                    admin_id: callerStaffId,
                     action: "user_suspended",
                     target_id: targetUserId,
                     target_type: "user",
@@ -112,7 +112,7 @@ serve(async (req) => {
                 await supabaseAdmin.from("profiles").update({ banned_until: null }).eq("id", targetUserId);
 
                 await supabaseAdmin.from("admin_audit_logs").insert({
-                    admin_id: callerAdminId,
+                    admin_id: callerStaffId,
                     action: "user_restored",
                     target_id: targetUserId,
                     target_type: "user",
@@ -124,7 +124,7 @@ serve(async (req) => {
                 // Récupérer l'email de l'user
                 const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
                 if (userErr || !userData.user.email) throw new Error("Can't find user email for recovery " + userErr?.message);
-                
+
                 const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
                     type: "recovery",
                     email: userData.user.email,
@@ -135,7 +135,7 @@ serve(async (req) => {
                 responsePayload.recoveryLink = linkData.properties.action_link;
 
                 await supabaseAdmin.from("admin_audit_logs").insert({
-                    admin_id: callerAdminId,
+                    admin_id: callerStaffId,
                     action: "password_reset_sent",
                     target_id: targetUserId,
                     target_type: "user",
@@ -160,7 +160,7 @@ serve(async (req) => {
                 // Update profiles
                 const profileUpdates: any = {};
                 if (data.fullName) profileUpdates.full_name = data.fullName;
-                
+
                 if (Object.keys(profileUpdates).length > 0) {
                     const { error: profileErr } = await supabaseAdmin.from("profiles").update(profileUpdates).eq("id", targetUserId);
                     if (profileErr) throw profileErr;
@@ -169,7 +169,7 @@ serve(async (req) => {
                 responsePayload.updated = data;
 
                 await supabaseAdmin.from("admin_audit_logs").insert({
-                    admin_id: callerAdminId,
+                    admin_id: callerStaffId,
                     action: "profile_updated",
                     target_id: targetUserId,
                     target_type: "user",

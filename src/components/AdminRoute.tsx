@@ -14,7 +14,7 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Si l'utilisateur n'est pas connecté, redirige vers la page de connexion.
   // Si l'utilisateur est connecté mais n'est pas un admin, redirige vers la page d'accueil.
-  const isStaff = role === 'admin' || role === 'receptionist';
+  const isStaff = role === 'admin' || role === 'receptionist' || role === 'teacher';
 
   if (!user || !isStaff) {
     return <Navigate to={!user ? "/auth" : "/"} replace />;

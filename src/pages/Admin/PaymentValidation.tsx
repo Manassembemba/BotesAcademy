@@ -67,16 +67,29 @@ const PaymentValidation = () => {
     });
 
     const validateMutation = useMutation({
-        mutationFn: async ({ proofId, notes }: { proofId: string; admin_notes_text?: string; notes?: string }) => {
+        mutationFn: async ({ proofId, notes }: { proofId: string; notes?: string }) => {
+            // 1. Validation en base
             const { data, error } = await supabase.rpc('validate_payment', {
                 proof_id: proofId,
                 admin_notes_text: notes || ""
             });
             if (error) throw error;
+
+            // 2. Envoi de l'email de notification
+            if (selectedProof) {
+                await supabase.functions.invoke('payment-validation-email', {
+                    body: {
+                        userId: selectedProof.user_id,
+                        courseTitle: getProductName(selectedProof),
+                        status: 'approved',
+                        adminNote: notes
+                    }
+                });
+            }
             return data;
         },
         onSuccess: () => {
-            toast.success("Paiement approuvé et accès débloqué !");
+            toast.success("Paiement approuvé et élève notifié !");
             queryClient.invalidateQueries({ queryKey: ['adminPaymentProofs'] });
             setIsDialogOpen(false);
             setSelectedProof(null);
@@ -88,16 +101,29 @@ const PaymentValidation = () => {
     });
 
     const rejectMutation = useMutation({
-        mutationFn: async ({ proofId, notes }: { proofId: string; admin_notes_text: string; notes: string }) => {
+        mutationFn: async ({ proofId, notes }: { proofId: string; notes: string }) => {
+            // 1. Rejet en base
             const { data, error } = await supabase.rpc('reject_payment', {
                 proof_id: proofId,
                 admin_notes_text: notes
             });
             if (error) throw error;
+
+            // 2. Envoi de l'email de notification
+            if (selectedProof) {
+                await supabase.functions.invoke('payment-validation-email', {
+                    body: {
+                        userId: selectedProof.user_id,
+                        courseTitle: getProductName(selectedProof),
+                        status: 'rejected',
+                        adminNote: notes
+                    }
+                });
+            }
             return data;
         },
         onSuccess: () => {
-            toast.success("Paiement rejeté.");
+            toast.success("Paiement rejeté et élève notifié.");
             queryClient.invalidateQueries({ queryKey: ['adminPaymentProofs'] });
             setIsDialogOpen(false);
             setSelectedProof(null);
@@ -198,18 +224,23 @@ const PaymentValidation = () => {
     );
 
     return (
-        <div className="container mx-auto p-6 space-y-8 pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-black italic tracking-tighter uppercase text-primary">Validation</h1>
-                    <p className="text-muted-foreground font-medium">Contrôle financier des inscriptions et achats.</p>
+        <div className="min-h-screen bg-mesh-gradient relative overflow-hidden flex flex-col pb-20">
+            <div className="container mx-auto p-4 md:p-8 space-y-12 relative z-10 pt-32">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+                <div className="space-y-2">
+                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic leading-[0.85]">
+                        Payment <span className="text-gradient-primary">Validation</span>
+                    </h1>
+                    <p className="text-muted-foreground font-medium italic text-lg ml-1">Contrôle financier des inscriptions et achats.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Card className="px-4 py-2 bg-amber-50 border-amber-200 flex items-center gap-3">
-                        <Clock className="w-5 h-5 text-amber-600" />
+                    <Card className="px-6 py-4 bg-card/40 backdrop-blur-xl border-amber-500/20 shadow-premium rounded-[2rem] flex items-center gap-4">
+                        <div className="p-3 bg-amber-500/20 rounded-xl">
+                            <Clock className="w-6 h-6 text-amber-600" />
+                        </div>
                         <div>
-                            <div className="text-xl font-black text-amber-700">{paymentProofs?.filter(p => p.status === 'pending').length || 0}</div>
-                            <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none">À Traiter</div>
+                            <div className="text-3xl font-black text-amber-600 leading-none mb-1">{paymentProofs?.filter(p => p.status === 'pending').length || 0}</div>
+                            <div className="text-[10px] font-black text-amber-600/70 uppercase tracking-[0.2em] leading-none">À Traiter</div>
                         </div>
                     </Card>
                 </div>
@@ -337,7 +368,8 @@ const PaymentValidation = () => {
                 </DialogContent>
             </Dialog>
         </div>
-    );
+    </div>
+  );
 };
 
 export default PaymentValidation;

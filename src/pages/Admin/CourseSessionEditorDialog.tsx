@@ -10,6 +10,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Calendar, MapPin, Users, Save, Loader2, BadgeCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const sessionSchema = z.object({
     session_name: z.string().min(3, "Le nom doit faire au moins 3 caractères."),
@@ -69,10 +71,12 @@ export const CourseSessionEditorDialog = ({ isOpen, onClose, courseId, session }
     useEffect(() => {
         if (isOpen) {
             if (session) {
-                // Convert dates to local format for datetime-local input
                 const formatDate = (dateStr: string) => {
                     const date = new Date(dateStr);
-                    return date.toISOString().slice(0, 16);
+                    // Handle offset to get local string for datetime-local
+                    const offset = date.getTimezoneOffset() * 60000;
+                    const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+                    return localISOTime;
                 };
                 form.reset({
                     ...session,
@@ -103,7 +107,7 @@ export const CourseSessionEditorDialog = ({ isOpen, onClose, courseId, session }
             }
         },
         onSuccess: () => {
-            toast.success(`Session ${isEditMode ? 'mise à jour' : 'créée'} !`);
+            toast.success(`Cohorte ${isEditMode ? 'mise à jour' : 'planifiée'} avec succès.`);
             queryClient.invalidateQueries({ queryKey: ['courseSessions', courseId] });
             onClose();
         },
@@ -116,44 +120,82 @@ export const CourseSessionEditorDialog = ({ isOpen, onClose, courseId, session }
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{isEditMode ? "Modifier la session" : "Ajouter une session"}</DialogTitle>
-                    <DialogDescription>Définissez les dates et le lieu pour cette session présentielle.</DialogDescription>
-                </DialogHeader>
+            <DialogContent className="sm:max-w-[500px] p-0 rounded-[3rem] overflow-hidden border-amber-500/20 bg-card/95 backdrop-blur-2xl shadow-2xl">
+                <div className="bg-amber-500/10 p-8 border-b border-white/10 relative">
+                    <div className="absolute top-0 right-0 p-6 opacity-5"><Calendar className="w-24 h-24" /></div>
+                    <DialogHeader className="relative z-10">
+                        <Badge className="bg-amber-500 text-white border-none w-fit px-4 py-1 rounded-full font-black uppercase text-[9px] tracking-widest mb-3">Logistics Terminal</Badge>
+                        <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter leading-none text-white">
+                            {isEditMode ? "MODIFIER" : "PLANIFIER"} <span className="text-amber-500">SESSION</span>
+                        </DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-2">Gestion temporelle et logistique de la cohorte</DialogDescription>
+                    </DialogHeader>
+                </div>
+
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8">
                         <FormField control={form.control} name="session_name" render={({ field }) => (
-                            <FormItem><FormLabel>Nom de la session</FormLabel><FormControl><Input placeholder="Session de Mars 2026" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="location" render={({ field }) => (
-                            <FormItem><FormLabel>Lieu</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="start_date" render={({ field }) => (
-                                <FormItem><FormLabel>Début</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="end_date" render={({ field }) => (
-                                <FormItem><FormLabel>Fin</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-
-                        <FormField control={form.control} name="max_students" render={({ field }) => (
-                            <FormItem><FormLabel>Capacité (Max étudiants)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="is_active" render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                                <FormLabel className="text-sm font-medium">Session Active</FormLabel>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormItem>
+                                <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60">Intitulé de la session</FormLabel>
+                                <FormControl><Input placeholder="Ex: Promotion Elite - Mars 2026" {...field} className="rounded-xl h-12 border-white/10 font-bold bg-white/5" /></FormControl>
+                                <FormMessage />
                             </FormItem>
                         )} />
 
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-                            <Button type="submit" disabled={isPending}>{isPending ? 'Sauvegarde...' : 'Sauvegarder'}</Button>
+                        <FormField control={form.control} name="location" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60 flex items-center gap-2"><MapPin className="w-3 h-3" /> Lieu / Campus</FormLabel>
+                                <FormControl><Input {...field} className="rounded-xl h-12 border-white/10 font-bold bg-white/5" /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
+                        <div className="grid grid-cols-2 gap-6">
+                            <FormField control={form.control} name="start_date" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60">Ouverture</FormLabel>
+                                    <FormControl><Input type="datetime-local" {...field} className="rounded-xl h-12 border-white/10 font-bold bg-white/5" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="end_date" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60">Clôture</FormLabel>
+                                    <FormControl><Input type="datetime-local" {...field} className="rounded-xl h-12 border-white/10 font-bold bg-white/5" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6 items-center">
+                            <FormField control={form.control} name="max_students" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60 flex items-center gap-2"><Users className="w-3 h-3" /> Capacité Max.</FormLabel>
+                                    <FormControl><Input type="number" {...field} className="rounded-xl h-12 border-white/10 font-black text-xl bg-white/5" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="is_active" render={({ field }) => (
+                                <FormItem className="flex items-center justify-between p-4 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 mt-4">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Statut Actif</FormLabel>
+                                        <p className="text-[8px] text-muted-foreground uppercase font-bold italic">Visible par les élèves</p>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )} />
+                        </div>
+
+                        <DialogFooter className="gap-4 pt-4">
+                            <Button type="button" variant="ghost" onClick={onClose} className="rounded-xl font-black uppercase text-[10px] tracking-widest h-12">Annuler</Button>
+                            <Button type="submit" disabled={isPending} className="flex-1 rounded-[1.5rem] h-14 font-black uppercase text-[10px] tracking-[0.2em] shadow-glow-amber group overflow-hidden relative border-2 border-white/10">
+                                <span className="relative z-10 flex items-center justify-center gap-3 text-white">
+                                    {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <BadgeCheck className="w-4 h-4" />}
+                                    {isEditMode ? 'Actualiser' : 'Planifier la Cohorte'}
+                                </span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </Button>
                         </DialogFooter>
                     </form>
                 </Form>

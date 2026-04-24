@@ -10,6 +10,7 @@ import CourseCard from "@/components/CourseCard";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { 
   ArrowRight, 
@@ -100,46 +101,56 @@ const Index = () => {
       <PromoOverlay />
       <Navbar />
       <HeroSection />
-      <TrustBar />
+      {/* Trust bar removed as requested */}
       
       <StatsSection />
 
-      {/* Philosophy Section - Intellectual enrichment */}
-      <section className="py-24 bg-background relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10" />
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent mb-4"
-            >
-              <Lightbulb className="w-4 h-4" />
-              <span className="text-xs font-black uppercase tracking-widest">Notre Vision</span>
-            </motion.div>
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight leading-tight">
-              On ne forme pas, <br /> <span className="text-gradient-primary italic">on transforme votre avenir.</span>
-            </h2>
-            <p className="text-xl text-muted-foreground leading-relaxed font-medium italic">
-              "Dans un monde en mutation constante, le savoir statique est obsolète. Botes Academy a été fondée sur l'idée que l'éducation doit être un moteur de transformation radicale, alliant la rigueur académique à l'agilité du terrain."
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-12">
-              <div className="text-left space-y-3">
-                <CheckCircle2 className="text-primary w-6 h-6" />
-                <h4 className="font-bold text-lg">Éducation Agile</h4>
-                <p className="text-sm text-muted-foreground">Des programmes mis à jour en temps réel selon les besoins du marché mondial.</p>
-              </div>
-              <div className="text-left space-y-3">
-                <CheckCircle2 className="text-primary w-6 h-6" />
-                <h4 className="font-bold text-lg">Savoir-Être</h4>
-                <p className="text-sm text-muted-foreground">Nous développons l'esprit critique et la discipline, piliers de la réussite professionnelle.</p>
-              </div>
-              <div className="text-left space-y-3">
-                <CheckCircle2 className="text-primary w-6 h-6" />
-                <h4 className="font-bold text-lg">Impact Social</h4>
-                <p className="text-sm text-muted-foreground">Démocratiser l'excellence technique pour les talents de demain en RDC.</p>
-              </div>
+      {/* Philosophy Section - Intellectual enrichment [ELITE REDESIGN] */}
+      <section className="py-fluid-xl bg-mesh-gradient relative overflow-hidden">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col lg:flex-row items-start gap-fluid-lg">
+            <div className="lg:w-1/2 space-y-fluid-xs">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-accent/5 border border-accent/10 text-accent text-[10px] font-black uppercase tracking-[0.3em]"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                Manifeste Elite
+              </motion.div>
+              <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.95]">
+                On ne forme pas, <br />
+                <span className="text-gradient-accent italic">On Transforme.</span>
+              </h2>
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium italic border-l-4 border-accent/30 pl-8 py-2">
+                "Dans un monde en mutation constante, le savoir statique est obsolète. Botes Academy a été fondée sur l'idée que l'éducation doit être un moteur de transformation radicale."
+              </p>
+            </div>
+
+            <div className="lg:w-1/2 grid grid-cols-1 gap-8 pt-12">
+              {[
+                { title: "Éducation Agile", desc: "Programmes synchronisés avec les exigences des marchés mondiaux en temps réel.", icon: <Zap /> },
+                { title: "Discipline d'Élite", desc: "Nous forgeons l'esprit critique et la rigueur, socles de toute réussite pérenne.", icon: <Shield /> },
+                { title: "Impact Radical", desc: "Démocratiser l'excellence technique pour propulser les leaders de demain.", icon: <TrendingUp /> }
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex gap-6 group"
+                >
+                  <div className="w-14 h-14 shrink-0 rounded-2xl bg-card border border-border/50 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/5 transition-all duration-500 shadow-sm">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xl uppercase tracking-tight mb-1">{item.title}</h4>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>
@@ -147,23 +158,33 @@ const Index = () => {
 
       <MethodologySection />
 
-      {/* Popular Courses Section */}
-      <section className="py-24 bg-muted/30 border-y border-border/50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl font-black mb-4 uppercase">
-              Des programmes <span className="text-gradient-primary">pour tout le monde</span>
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Explorez nos formations phares conçues pour propulser votre carrière au niveau supérieur.
-            </p>
-          </motion.div>
+      {/* Popular Courses Section [BENTO 2.0] */}
+      <section className="py-fluid-xl bg-background border-y border-border/40 relative">
+        <div className="absolute top-0 left-0 w-full h-full opacity-[0.02] pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:40px_40px]" />
+        
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-8">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="max-w-2xl space-y-4"
+            >
+              <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none">
+                Pôles <span className="text-gradient-primary italic">d'Excellence</span>
+              </h2>
+              <p className="text-lg text-muted-foreground font-medium max-w-xl">
+                Une sélection rigoureuse de cursus conçus pour les bâtisseurs du futur. Choisissez votre voie vers l'élite.
+              </p>
+            </motion.div>
+
+            <Link to="/formations" className="group">
+              <div className="flex items-center gap-4 px-8 py-4 bg-muted/30 hover:bg-primary/10 border border-border/50 rounded-2xl transition-all duration-500">
+                <span className="text-xs font-black uppercase tracking-widest group-hover:text-primary">Tout le catalogue</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-2" />
+              </div>
+            </Link>
+          </div>
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -173,81 +194,58 @@ const Index = () => {
             <div className="space-y-12">
               <div className="flex justify-center">
                 <Tabs defaultValue="all" className="w-full" onValueChange={setSelectedCategory}>
-                  <div className="flex items-center justify-center mb-12 overflow-x-auto pb-4 scrollbar-hide">
-                     <div className="flex items-center gap-2 mr-6 text-muted-foreground hidden lg:flex">
-                        <Filter className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Filtrer par :</span>
-                     </div>
-                     <TabsList className="bg-background/50 border border-border p-1.5 rounded-2xl h-auto flex-nowrap md:flex-wrap justify-start md:justify-center gap-1.5">
+                  <div className="flex items-center justify-center mb-16 overflow-x-auto pb-4 scrollbar-hide">
+                     <TabsList className="bg-muted/20 border border-border/40 p-1.5 rounded-2xl h-auto flex-nowrap gap-2 w-max mx-auto">
                        {categories.map((cat) => (
                          <TabsTrigger 
                            key={cat} 
                            value={cat}
-                           className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+                           className="rounded-xl px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-glow-primary transition-all duration-500"
                          >
-                           {cat === "all" ? "Tous les pôles" : cat}
+                           {cat === "all" ? "Toutes les Disciplines" : cat}
                          </TabsTrigger>
                        ))}
                      </TabsList>
                   </div>
 
                   <AnimatePresence mode="wait">
-                    <motion.div
-                      key={selectedCategory}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                    >
-                      {filteredCourses.length > 0 ? (
-                        filteredCourses.map((course, index) => (
-                          <motion.div
-                            key={course.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: index * 0.1 }}
-                          >
-                            <CourseCard 
-                              id={course.id}
-                              title={course.title}
-                              description={course.description || ""}
-                              duration={course.estimated_duration || "N/A"}
-                              rating={4.9}
-                              isPremium={course.is_paid || false}
-                              price={course.is_paid ? (course.price || 0) : undefined}
-                              category={course.category || "Général"}
-                              image={course.thumbnail_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80"}
-                              mode={course.mode || "En ligne"}
-                              isSpecialSession={course.is_special_session || false}
-                            />
-                          </motion.div>
-                        ))
-                      ) : (
-                        <div className="col-span-full py-20 text-center">
-                           <p className="text-muted-foreground italic">Aucun cours disponible dans ce pôle pour le moment.</p>
-                        </div>
-                      )}
-                    </motion.div>
+                      <div className="bento-grid">
+                        {filteredCourses.length > 0 ? (
+                          filteredCourses.map((course, index) => (
+                            <motion.div
+                              key={course.id}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              whileInView={{ opacity: 1, scale: 1 }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.6, delay: index * 0.1 }}
+                              className={index === 0 ? "md:col-span-2 md:row-span-2 lg:col-span-2" : ""}
+                            >
+                              <CourseCard 
+                                id={course.id}
+                                title={course.title}
+                                description={course.description || ""}
+                                duration={course.estimated_duration || "N/A"}
+                                rating={4.9}
+                                isPremium={course.is_paid || false}
+                                price={course.is_paid ? (course.price || 0) : undefined}
+                                category={course.category || "Général"}
+                                image={course.thumbnail_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80"}
+                                mode={course.mode || "En ligne"}
+                                isSpecialSession={course.is_special_session || false}
+                              />
+                            </motion.div>
+                          ))
+                        ) : (
+                          <div className="col-span-full py-32 text-center bg-muted/10 rounded-4xl border-2 border-dashed border-border/40">
+                             <p className="text-muted-foreground font-black italic uppercase tracking-widest text-sm">Contenu en cours de synchronisation...</p>
+                          </div>
+                        )}
+                      </div>
                   </AnimatePresence>
                 </Tabs>
               </div>
             </div>
           )}
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mt-16"
-          >
-            <Link to="/formations">
-              <Button variant="hero" size="xl" className="rounded-full px-10">
-                Explorer tout le catalogue
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-          </motion.div>
         </div>
       </section>
 
@@ -292,32 +290,36 @@ const Index = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4"
+              className="lg:w-1/2 bento-grid !grid-cols-2"
             >
-              <div className="space-y-4 pt-12">
-                <div className="bg-card p-6 rounded-3xl border border-border shadow-xl transform hover:-translate-y-2 transition-transform">
-                   <div className="w-12 h-12 bg-primary/10 rounded-xl mb-4 flex items-center justify-center text-primary"><BookOpen className="w-6 h-6" /></div>
-                   <h4 className="font-black mb-1 italic text-sm">E-book : Trading Master</h4>
-                   <p className="text-[10px] text-muted-foreground uppercase font-bold">Guide Complet PDF</p>
-                </div>
-                <div className="bg-card p-6 rounded-3xl border border-border shadow-xl transform hover:-translate-y-2 transition-transform">
-                   <div className="w-12 h-12 bg-accent/10 rounded-xl mb-4 flex items-center justify-center text-accent"><Code className="w-6 h-6" /></div>
-                   <h4 className="font-black mb-1 italic text-sm">Scripts Python</h4>
-                   <p className="text-[10px] text-muted-foreground uppercase font-bold">Automatisation Web</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="bg-card p-6 rounded-3xl border border-border shadow-xl transform hover:-translate-y-2 transition-transform">
-                   <div className="w-12 h-12 bg-emerald-500/10 rounded-xl mb-4 flex items-center justify-center text-emerald-500"><Shield className="w-6 h-6" /></div>
-                   <h4 className="font-black mb-1 italic text-sm">Pack RH & Admin</h4>
-                   <p className="text-[10px] text-muted-foreground uppercase font-bold">Modèles de Documents</p>
-                </div>
-                <div className="bg-card p-6 rounded-3xl border border-border shadow-xl transform hover:-translate-y-2 transition-transform">
-                   <div className="w-12 h-12 bg-amber-500/10 rounded-xl mb-4 flex items-center justify-center text-amber-500"><Laptop className="w-6 h-6" /></div>
-                   <h4 className="font-black mb-1 italic text-sm">Logiciels Pro</h4>
-                   <p className="text-[10px] text-muted-foreground uppercase font-bold">Installateurs & Licences</p>
-                </div>
-              </div>
+                <Card className="bento-card bg-primary/5 border-none p-8 flex flex-col justify-between group">
+                   <div className="w-14 h-14 bg-primary/20 rounded-2xl mb-6 flex items-center justify-center text-primary group-hover:scale-110 transition-transform"><BookOpen className="w-7 h-7" /></div>
+                   <div>
+                    <h4 className="font-black mb-1 italic text-lg uppercase tracking-tight">Trading Master</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Guide Complet PDF</p>
+                   </div>
+                </Card>
+                <Card className="bento-card bg-accent/5 border-none p-8 flex flex-col justify-between group">
+                   <div className="w-14 h-14 bg-accent/20 rounded-2xl mb-6 flex items-center justify-center text-accent group-hover:rotate-12 transition-transform"><Code className="w-7 h-7" /></div>
+                   <div>
+                    <h4 className="font-black mb-1 italic text-lg uppercase tracking-tight">Scripts Python</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Automatisation Web</p>
+                   </div>
+                </Card>
+                <Card className="bento-card bg-emerald-500/5 border-none p-8 flex flex-col justify-between group">
+                   <div className="w-14 h-14 bg-emerald-500/20 rounded-2xl mb-6 flex items-center justify-center text-emerald-500 group-hover:-rotate-12 transition-transform"><Shield className="w-7 h-7" /></div>
+                   <div>
+                    <h4 className="font-black mb-1 italic text-lg uppercase tracking-tight">Pack RH & Admin</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Modèles de Documents</p>
+                   </div>
+                </Card>
+                <Card className="bento-card bg-amber-500/5 border-none p-8 flex flex-col justify-between group">
+                   <div className="w-14 h-14 bg-amber-500/20 rounded-2xl mb-6 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform"><Laptop className="w-7 h-7" /></div>
+                   <div>
+                    <h4 className="font-black mb-1 italic text-lg uppercase tracking-tight">Logiciels Pro</h4>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Installateurs & Licences</p>
+                   </div>
+                </Card>
             </motion.div>
           </div>
         </div>
@@ -370,8 +372,10 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10 opacity-10" />
+      <section className="py-24 relative overflow-hidden bg-gradient-to-br from-primary via-primary to-blue-700">
+        <div className="absolute inset-0 opacity-[0.08] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-black/20 rounded-full blur-[100px]" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

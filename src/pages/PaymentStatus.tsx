@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Clock, CheckCircle, XCircle, ArrowRight, Home, FileDown, Award, Calendar, Timer, ShieldCheck } from "lucide-react";
+import { Loader2, Clock, CheckCircle, XCircle, ArrowRight, Home, FileDown, Award, Calendar, Timer, ShieldCheck, AlertCircle, MessageSquare, Instagram } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { generateInvoice, generateBadge } from "@/lib/pdfService";
@@ -258,7 +258,7 @@ const PaymentStatus = () => {
                             </div>
 
                             {/* Rejection Note */}
-                            {payment_proof_status === 'rejected' && paymentProof.admin_notes && (
+                            {paymentProof.status === 'rejected' && paymentProof.admin_notes && (
                                 <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="p-6 bg-destructive/10 border-2 border-destructive/20 rounded-3xl relative overflow-hidden">
                                     <div className="absolute top-[-20px] left-[-20px] w-16 h-16 bg-destructive/10 rounded-full blur-xl" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-2 flex items-center gap-2">
@@ -271,7 +271,7 @@ const PaymentStatus = () => {
                             )}
 
                             {/* Welcome Section for Pending Status */}
-                            {payment_proof_status === 'pending' && (
+                            {paymentProof.status === 'pending' && (
                                 <div className="space-y-6">
                                     <div className="p-8 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 space-y-4">
                                         <h4 className="text-lg font-black uppercase italic tracking-tighter">🚀 Rejoignez l'élite en attendant</h4>

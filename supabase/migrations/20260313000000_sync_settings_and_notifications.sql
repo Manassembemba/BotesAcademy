@@ -38,7 +38,7 @@ VALUES (
     '{
         "hero_image_url": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80",
         "hero_title": "L''Excellence dans chaque [Discipline]",
-        "hero_description": "Informatique, Business, Langues et Trading. Apprenez avec des experts passionnés et obtenez les compétences concrètes pour réussir votre carrière.",
+        "hero_description": "Choisis la formation idéale pour accélérer ta carrière, développer ton business ou décrocher un emploi rapidement.",
         "primary_color": "#3b82f6"
     }'::jsonb
 )

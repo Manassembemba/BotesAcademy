@@ -14,16 +14,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Upload, CheckCircle, ShoppingCart, ArrowLeft, Wallet, Landmark, CreditCard, Clock } from "lucide-react";
+import { Loader2, Upload, CheckCircle, ShoppingCart, ArrowLeft, Wallet, Landmark, CreditCard, Clock, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info, HelpCircle } from "lucide-react";
 
 const paymentSchema = z.object({
     payment_method: z.enum(['mobile_money', 'bank_transfer', 'cash_deposit', 'other']),
-    transaction_reference: z.string().optional(),
     amount: z.coerce.number().positive("Le montant doit être positif"),
     session_id: z.string().optional(),
     vacation_id: z.string().optional(),
@@ -43,6 +45,7 @@ const Checkout = () => {
 
     const searchParams = new URLSearchParams(window.location.search);
     const productType = searchParams.get('type') || 'course';
+    const selectedPlan = searchParams.get('plan') || 'total';
 
     const { data: product, isLoading: isLoadingProduct } = useQuery({
         queryKey: ['checkoutProduct', productId, productType],
@@ -83,9 +86,16 @@ const Checkout = () => {
     });
 
     useEffect(() => {
-        if (product?.price && productType !== 'indicator') form.setValue('amount', product.price);
+        if (product && productType !== 'indicator') {
+            const regFee = product.registration_fee || 0;
+            if (selectedPlan === 'installments' && product.allow_installments) {
+                form.setValue('amount', regFee + (product.min_installment_amount || 0));
+            } else {
+                form.setValue('amount', regFee + (product.price || 0));
+            }
+        }
         else if (productType === 'indicator' && product?.price_1m) form.setValue('amount', product.price_1m);
-    }, [product, form, productType]);
+    }, [product, form, productType, selectedPlan]);
 
     const uploadMutation = useMutation({
         mutationFn: async (data: PaymentFormValues) => {
@@ -106,7 +116,6 @@ const Checkout = () => {
                 proof_url,
                 payment_method: data.payment_method,
                 amount: data.amount,
-                transaction_reference: data.transaction_reference || null,
                 status: 'pending',
                 course_id: productType === 'course' ? productId : null,
                 indicator_id: productType === 'indicator' ? productId : null,
@@ -140,170 +149,297 @@ const Checkout = () => {
     if (!product) return <div>Produit introuvable</div>;
 
     return (
-        <div className="min-h-screen bg-background">
-            <Navbar />
-            <div className="container mx-auto px-4 py-8">
-                <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6"><ArrowLeft className="w-4 h-4 mr-2" />Retour</Button>
-                <div className="grid lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-1">
-                        <Card className="sticky top-8 rounded-3xl overflow-hidden shadow-xl border-primary/5">
-                            <CardHeader className="bg-primary/5"><CardTitle className="flex items-center gap-2"><ShoppingCart className="w-5 h-5 text-primary" />Récapitulatif</CardTitle></CardHeader>
-                            <CardContent className="space-y-4 pt-6">
-                                <div className="aspect-video rounded-2xl overflow-hidden bg-muted"><img src={product.thumbnail_url || product.image_url || "/placeholder.svg"} alt={product.title || product.name} className="w-full h-full object-cover" /></div>
-                                <div><h3 className="font-black text-lg mb-2">{product.title || product.name}</h3><p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p></div>
-                                <Badge variant="outline" className="uppercase font-bold text-[10px]">{productType}</Badge>
-                                <Separator />
-                                <div className="flex justify-between text-xl font-black"><span>TOTAL</span><span className="text-primary">{form.watch('amount')} USD</span></div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                    <div className="lg:col-span-2">
-                        <Card className="border-primary/20 shadow-xl overflow-hidden rounded-3xl">
-                            <CardHeader className="bg-muted/30 border-b border-primary/10"><CardTitle className="text-xl font-black uppercase">Informations de paiement</CardTitle><CardDescription>Suivez les instructions ci-dessous.</CardDescription></CardHeader>
-                            <CardContent className="pt-6">
-                                <Form {...form}>
-                                    <form onSubmit={form.handleSubmit(uploadMutation.mutate)} className="space-y-8">
-                                        <FormField control={form.control} name="payment_method" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-base font-black uppercase text-primary/70">1. Méthode de paiement</FormLabel>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                                                    {[{ id: 'mobile_money', label: 'Mobile Money', icon: Wallet }, { id: 'bank_transfer', label: 'Virement', icon: Landmark }].map(item => (
-                                                        <button key={item.id} type="button" onClick={() => field.onChange(item.id)} className={cn("flex flex-col items-center p-4 rounded-2xl border-2", field.value === item.id ? "border-primary bg-primary/10" : "border-border bg-card")}>
-                                                            <item.icon className="w-6 h-6 mb-2" />
-                                                            <span className="text-[10px] font-black uppercase">{item.label}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </FormItem>
-                                        )} />
-                                        
-                                        {productType === 'course' && product?.mode !== 'online' && (
-                                            <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10">
-                                                <h3 className="font-black text-lg mb-4 uppercase">2. Préférences de cours</h3>
-                                                <div className="grid md:grid-cols-2 gap-6">
-                                                    <FormField control={form.control} name="session_id" render={({ field }) => (<FormItem><FormLabel className="font-black uppercase text-xs">Session (Date)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Choisir..." /></SelectTrigger></FormControl><SelectContent>{sessions?.map((s: any) => (<SelectItem key={s.id} value={s.id}>{s.session_name} ({format(new Date(s.start_date), 'dd MMM', { locale: fr })})</SelectItem>))}</SelectContent></Select></FormItem>)} />
-                                                    <FormField control={form.control} name="vacation_id" render={({ field }) => (<FormItem><FormLabel className="font-black uppercase text-xs">Créneau (Heure)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Choisir..." /></SelectTrigger></FormControl><SelectContent>{vacations?.map((v: any) => (<SelectItem key={v.id} value={v.id}>{v.name} ({v.time_range})</SelectItem>))}</SelectContent></Select></FormItem>)} />
-                                                </div>
-                                            </div>
-                                        )}
+    <div className="min-h-screen bg-background pb-20">
+      <Navbar />
+      <div className="container mx-auto px-4 pt-28">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-xl hover:bg-primary/10 text-primary font-black uppercase text-[10px] tracking-widest italic group">
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Retour à la sélection
+          </Button>
+        </motion.div>
 
-                                        {productType === 'indicator' && (
-                                            <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10 space-y-6">
-                                                <div>
-                                                    <h3 className="font-black text-lg mb-4 uppercase flex items-center gap-2">
-                                                        <Clock className="w-5 h-5 text-primary" /> Durée de l'Abonnement
-                                                    </h3>
-                                                    <FormField control={form.control} name="subscription_duration" render={({ field }) => (
-                                                        <FormItem>
-                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                                {[
-                                                                    { id: '1m', label: '1 MOIS', price: product.price_1m },
-                                                                    { id: '3m', label: '3 MOIS', price: product.price_3m },
-                                                                    { id: 'lifetime', label: 'À VIE', price: product.price_lifetime }
-                                                                ].map(opt => (
-                                                                    <button
-                                                                        key={opt.id}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            field.onChange(opt.id);
-                                                                            if (opt.price) form.setValue('amount', opt.price);
-                                                                        }}
-                                                                        className={cn(
-                                                                            "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all",
-                                                                            field.value === opt.id ? "border-primary bg-primary/10 shadow-glow-primary-sm" : "border-border bg-card hover:border-primary/30"
-                                                                        )}
-                                                                    >
-                                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{opt.label}</span>
-                                                                        <span className="text-2xl font-black italic">{opt.price} USD</span>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-
-                                                <div className="pt-4 border-t border-primary/10">
-                                                    <h3 className="font-black text-lg mb-4 uppercase flex items-center gap-2">
-                                                        <CreditCard className="w-5 h-5 text-primary" /> Configuration Sécurité
-                                                    </h3>
-                                                    <FormField control={form.control} name="mt5_id" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="font-black uppercase text-xs">ID de compte MT5 (Obligatoire)</FormLabel>
-                                                            <FormControl>
-                                                                <Input placeholder="Ex: 12345678" className="h-12 rounded-xl border-primary/20" {...field} required />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                            <p className="text-[10px] text-muted-foreground italic mt-2">
-                                                                Note : Votre indicateur sera verrouillé sur cet ID spécifique pour garantir votre exclusivité.
-                                                            </p>
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10">
-                                            <h3 className="font-black text-lg mb-4 uppercase">3. Coordonnées</h3>
-                                            {form.watch('payment_method') === 'mobile_money' && (
-                                                <div className="space-y-3">
-                                                    {(settings?.payment_methods?.mobile_money || []).map((num: any, i: number) => {
-                                                        const numberToDisplay = typeof num === 'object' ? num.number : num;
-                                                        const networkName = typeof num === 'object' ? num.name : `Réseau ${i + 1}`;
-                                                        return (
-                                                            <div key={i} className="flex items-center justify-between p-4 bg-card rounded-2xl border">
-                                                                <div>
-                                                                    <p className="text-[10px] font-bold text-muted-foreground">{networkName}</p>
-                                                                    <p className="text-xl font-black font-mono text-primary">{numberToDisplay}</p>
-                                                                </div>
-                                                                <Button variant="ghost" size="sm" type="button" onClick={() => { navigator.clipboard.writeText(numberToDisplay); toast.success("Copié !"); }}>Copier</Button>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                            {form.watch('payment_method') === 'bank_transfer' && (
-                                                <p className="text-sm p-4 bg-card rounded-2xl whitespace-pre-wrap">{settings?.payment_methods?.bank || "Contactez le support."}</p>
-                                            )}
-                                        </div>
-
-                                        <div className="grid md:grid-cols-2 gap-6">
-                                            <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel className="font-black uppercase text-xs">4. Montant à payer (USD)</FormLabel><FormControl><Input type="number" step="0.01" className="h-12 rounded-xl bg-muted/50" {...field} readOnly /></FormControl></FormItem>)} />
-                                            <FormField control={form.control} name="transaction_reference" render={({ field }) => (<FormItem><FormLabel className="font-black uppercase text-xs">Référence de Transaction</FormLabel><FormControl><Input placeholder="Ex: TXN123..." className="h-12 rounded-xl" {...field} /></FormControl></FormItem>)} />
-                                        </div>
-
-                                        <FormItem>
-                                            <FormLabel className="font-black uppercase text-xs">5. Preuve de paiement</FormLabel>
-                                            <FormControl>
-                                                <div className={cn("relative border-4 border-dashed rounded-3xl p-10 text-center", proofFile ? "border-green-500/50" : "border-primary/10")}>
-                                                    <input type="file" accept="image/*" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0" />
-                                                    {proofFile ? <div className="flex flex-col items-center gap-2"><CheckCircle className="w-10 h-10 text-green-500" /><p className="font-black">{proofFile.name}</p></div> : <div className="flex flex-col items-center gap-2"><Upload className="w-12 h-12 text-primary/30" /><p className="font-black">Charger votre reçu</p></div>}
-                                                </div>
-                                            </FormControl>
-                                        </FormItem>
-
-                                        {productType === 'indicator' && (
-                                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
-                                                <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                                                <div>
-                                                    <p className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Délai de Configuration</p>
-                                                    <p className="text-xs font-medium text-amber-700 leading-relaxed italic">
-                                                        Note : Cet outil est sécurisé manuellement avec votre ID MT5. Livraison estimée sous <strong>24h à 48h ouvrées</strong> après validation du paiement.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <Button type="submit" className="w-full h-16 rounded-2xl text-xl font-black uppercase shadow-glow-primary" disabled={uploadMutation.isPending || !proofFile}>
-                                            {uploadMutation.isPending ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : "Confirmer mon achat"}
-                                        </Button>
-                                    </form>
-                                </Form>
-                            </CardContent>
-                        </Card>
-                    </div>
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          {/* Order Summary - Sticky Sidebar */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-4 order-1 lg:order-1">
+            <div className="bento-card p-0 overflow-hidden bg-card border-none shadow-2xl sticky top-28">
+              <div className="p-6 bg-primary/5 border-b border-primary/10 flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg text-primary"><ShoppingCart className="w-5 h-5" /></div>
+                <h2 className="text-xl font-black uppercase italic tracking-tighter">Récapitulatif</h2>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="aspect-video rounded-3xl overflow-hidden shadow-inner bg-muted group relative">
+                   <img src={product.thumbnail_url || product.image_url || "/placeholder.svg"} alt={product.title || product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                   <div className="absolute top-4 left-4"><Badge className="bg-primary/90 backdrop-blur-md text-white font-black uppercase text-[9px] px-3 py-1 rounded-full border-none">{productType}</Badge></div>
                 </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter leading-none line-clamp-2">{product.title || product.name}</h3>
+                  <p className="text-xs text-muted-foreground font-medium italic line-clamp-3 leading-relaxed">{product.description}</p>
+                </div>
+                <div className="pt-6 border-t border-border/50 space-y-4">
+                  <div className="flex justify-between items-end">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Total à régler</span>
+                    <div className="text-right">
+                       <span className="text-4xl font-black italic text-primary leading-none">{form.watch('amount')} USD</span>
+                       <p className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-widest mt-1">TVA & Frais inclus</p>
+                    </div>
+                  </div>
+                </div>
+
+                {productType === 'course' && (
+                    <div className="pt-6 border-t border-border/50 space-y-3">
+                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            <span>Formule choisie</span>
+                            <Badge variant="outline" className={cn("rounded-full px-3", selectedPlan === 'installments' ? "border-emerald-500 text-emerald-600" : "border-primary text-primary")}>
+                                {selectedPlan === 'installments' ? "Échelonné" : "Paiement Total"}
+                            </Badge>
+                        </div>
+                        {selectedPlan === 'installments' ? (
+                            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-[10px] font-bold text-emerald-800 leading-relaxed italic">
+                                <Info className="w-3 h-3 mb-1" />
+                                Vous réglez l'acompte ({(product?.min_installment_amount || 0)}$) + les frais d'inscription ({(product?.registration_fee || 0)}$). Le reste sera dû selon l'échéancier.
+                            </div>
+                        ) : (
+                            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 text-[10px] font-bold text-primary/80 leading-relaxed italic">
+                                <Trophy className="w-3 h-3 mb-1" />
+                                Vous réglez la totalité de la formation ainsi que les frais d'inscription. Accès définitif illimité.
+                            </div>
+                        )}
+                    </div>
+                )}
+              </div>
             </div>
+          </motion.div>
+
+          {/* Checkout Form */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-8 order-1 lg:order-2">
+            <div className="bento-card p-10 bg-card border-none shadow-2xl">
+              <div className="mb-10">
+                <h1 className="text-4xl font-black uppercase italic tracking-tighter leading-none mb-2">Finaliser l'acquisition</h1>
+                <p className="italic font-medium text-sm text-muted-foreground">Suivez les étapes sécurisées pour débloquer votre accès.</p>
+              </div>
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(uploadMutation.mutate)} className="space-y-12">
+                  {/* Step 1: Payment Method */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center font-black italic shadow-glow-primary">1</div>
+                       <h3 className="text-xl font-black uppercase italic tracking-tighter">Méthode de paiement</h3>
+                    </div>
+                    <FormField control={form.control} name="payment_method" render={({ field }) => (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                          { id: 'mobile_money', label: 'Mobile Money', icon: Wallet, desc: 'Rapide & Instantané' },
+                          { id: 'bank_transfer', label: 'Virement', icon: Landmark, desc: 'Sécurisé & Classique' }
+                        ].map(item => (
+                          <button 
+                            key={item.id} 
+                            type="button" 
+                            onClick={() => field.onChange(item.id)}
+                            className={cn(
+                              "flex items-center gap-4 p-6 rounded-3xl border-2 transition-all duration-300 transform active:scale-[0.98] text-left group",
+                              field.value === item.id ? "border-primary bg-primary/5 shadow-xl shadow-primary/10" : "border-border/50 bg-background hover:border-primary/30"
+                            )}
+                          >
+                            <div className={cn("p-4 rounded-2xl transition-colors duration-300", field.value === item.id ? "bg-primary text-white" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary")}>
+                              <item.icon className="w-8 h-8" />
+                            </div>
+                            <div>
+                               <p className="font-black uppercase italic tracking-tighter text-lg leading-none">{item.label}</p>
+                               <p className="text-[10px] font-bold text-muted-foreground italic uppercase tracking-widest mt-1">{item.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )} />
+                  </div>
+
+                  {/* Step 2: Course Preferences or Indicator Config */}
+                  {(productType === 'course' && product?.mode !== 'online') || productType === 'indicator' ? (
+                    <div className="space-y-6 p-8 bg-muted/30 rounded-[2.5rem] border border-border/50">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black italic shadow-glow-amber">2</div>
+                         <h3 className="text-xl font-black uppercase italic tracking-tighter">Configuration spécifique</h3>
+                      </div>
+                      
+                      {productType === 'course' && product?.mode !== 'online' && (
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <FormField control={form.control} name="session_id" render={({ field }) => (
+                             <FormItem className="space-y-3">
+                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Choix de la session</FormLabel>
+                               <Select onValueChange={field.onChange} value={field.value}>
+                                 <FormControl><SelectTrigger className="h-14 rounded-2xl border-2 border-border/50 font-bold italic px-6 focus:border-primary/50"><SelectValue placeholder="Séléctionnez une cohorte" /></SelectTrigger></FormControl>
+                                 <SelectContent className="rounded-2xl border-none shadow-2xl p-2">{sessions?.map((s: any) => (<SelectItem key={s.id} value={s.id} className="rounded-xl font-bold italic py-3">{s.session_name} ({format(new Date(s.start_date), 'dd MMM', { locale: fr })})</SelectItem>))}</SelectContent>
+                               </Select>
+                             </FormItem>
+                          )} />
+                          <FormField control={form.control} name="vacation_id" render={({ field }) => (
+                             <FormItem className="space-y-3">
+                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Créneau horaire</FormLabel>
+                               <Select onValueChange={field.onChange} value={field.value}>
+                                 <FormControl><SelectTrigger className="h-14 rounded-2xl border-2 border-border/50 font-bold italic px-6 focus:border-primary/50"><SelectValue placeholder="Heure préférée" /></SelectTrigger></FormControl>
+                                 <SelectContent className="rounded-2xl border-none shadow-2xl p-2">{vacations?.map((v: any) => (<SelectItem key={v.id} value={v.id} className="rounded-xl font-bold italic py-3">{v.name} ({v.time_range})</SelectItem>))}</SelectContent>
+                               </Select>
+                             </FormItem>
+                          )} />
+                        </div>
+                      )}
+
+                      {productType === 'indicator' && (
+                        <div className="space-y-8">
+                          <div className="space-y-4">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><Clock className="w-4 h-4" /> Durée de l'accessibilité</Label>
+                            <FormField control={form.control} name="subscription_duration" render={({ field }) => (
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {[
+                                  { id: '1m', label: '1 MOIS', price: product.price_1m, desc: 'Découverte' },
+                                  { id: '3m', label: '3 MOIS', price: product.price_3m, desc: 'Progressif' },
+                                  { id: 'lifetime', label: 'À VIE', price: product.price_lifetime, desc: 'Investisseur' }
+                                ].map(opt => (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => { field.onChange(opt.id); if (opt.price) form.setValue('amount', opt.price); }}
+                                    className={cn(
+                                      "flex flex-col items-start p-6 rounded-2xl border-2 transition-all group",
+                                      field.value === opt.id ? "border-amber-500 bg-amber-500/5 shadow-xl shadow-amber-500/10" : "border-border/50 bg-background hover:border-amber-500/30"
+                                    )}
+                                  >
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-1">{opt.desc}</span>
+                                    <span className="text-xl font-black italic leading-none mb-4 group-hover:text-amber-600 transition-colors">{opt.label}</span>
+                                    <span className="text-2xl font-black italic text-primary">{opt.price} USD</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )} />
+                          </div>
+
+                          <FormField control={form.control} name="mt5_id" render={({ field }) => (
+                            <FormItem className="space-y-3 pt-6 border-t border-border/50">
+                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-2"><CreditCard className="w-4 h-4" /> ID de compte MetaTrader 5 (Obligatoire)</FormLabel>
+                               <FormControl><Input placeholder="Ex: 88721054" className="h-16 rounded-2xl border-2 border-border/50 bg-background font-black font-mono text-xl px-6 focus:border-amber-500/50 transition-all shadow-inner" {...field} required /></FormControl>
+                               <FormMessage />
+                               <p className="text-[9px] font-bold text-amber-600 italic uppercase tracking-widest">L'outil sera verrouillé exclusivement sur cet identifiant MT5.</p>
+                            </FormItem>
+                          )} />
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Step 3: Payment Details */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black italic shadow-glow-emerald">3</div>
+                       <h3 className="text-xl font-black uppercase italic tracking-tighter">Coordonnées de paiement</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      {form.watch('payment_method') === 'mobile_money' && (
+                        <div className="grid gap-3">
+                           {(settings?.payment_methods?.mobile_money || []).map((num: any, i: number) => {
+                             const numberToDisplay = typeof num === 'object' ? num.number : num;
+                             const networkName = typeof num === 'object' ? num.name : `Réseau ${i + 1}`;
+                             return (
+                               <motion.div key={i} whileHover={{ x: 5 }} className="flex items-center justify-between p-6 bg-muted/20 rounded-3xl border border-border/50 group">
+                                 <div className="space-y-1">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">{networkName}</p>
+                                    <p className="text-2xl font-black font-mono text-primary tracking-tight">{numberToDisplay}</p>
+                                 </div>
+                                 <Button variant="ghost" size="sm" type="button" onClick={() => { navigator.clipboard.writeText(numberToDisplay); toast.success("Coordonnées copiées !"); }} className="rounded-xl h-12 px-6 border border-primary/20 font-black uppercase text-[10px] tracking-widest italic hover:bg-primary text-primary hover:text-white transition-all">Copier</Button>
+                               </motion.div>
+                             );
+                           })}
+                        </div>
+                      )}
+                      
+                      {form.watch('payment_method') === 'bank_transfer' && (
+                        <div className="p-8 bg-muted/20 rounded-3xl border border-divider/50 font-black italic text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {settings?.payment_methods?.bank || "Coordonnées bancaires non disponibles. Veuillez contacter notre support pour obtenir l'IBAN actuel."}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6 pt-4">
+                       <FormField control={form.control} name="amount" render={({ field }) => (
+                         <FormItem className="space-y-3">
+                           <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Montant à transférer (USD)</FormLabel>
+                           <FormControl><Input type="number" step="0.01" className="h-16 rounded-2xl bg-muted/50 border-none font-black italic text-2xl text-primary px-8" {...field} readOnly /></FormControl>
+                         </FormItem>
+                       )} />
+                    </div>
+                  </div>
+
+                  {/* Step 4: Proof Upload */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-2xl bg-indigo-500 text-white flex items-center justify-center font-black italic shadow-glow-indigo">4</div>
+                       <h3 className="text-xl font-black uppercase italic tracking-tighter">Confirmation par image</h3>
+                    </div>
+                    
+                    <FormItem>
+                       <FormControl>
+                          <div className={cn(
+                            "relative border-4 border-dashed rounded-[2.5rem] p-16 text-center transition-all duration-500 group overflow-hidden",
+                            proofFile ? "border-emerald-500/50 bg-emerald-500/5" : "border-primary/10 bg-muted/10 hover:border-primary/30 hover:bg-primary/5"
+                          )}>
+                             <input type="file" accept="image/*" onChange={(e) => setProofFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                             <AnimatePresence mode="wait">
+                               {proofFile ? (
+                                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="flex flex-col items-center gap-4 relative z-10">
+                                    <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-glow-emerald animate-bounce"><CheckCircle className="w-10 h-10" /></div>
+                                    <div className="space-y-1">
+                                       <p className="font-black text-lg italic uppercase tracking-tighter text-emerald-600 line-clamp-1">{proofFile.name}</p>
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Image séléctionnée avec succès</p>
+                                    </div>
+                                    <Button variant="ghost" type="button" onClick={(e) => { e.stopPropagation(); setProofFile(null); }} className="text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 h-8 rounded-lg mt-2 relative z-30">Changer de fichier</Button>
+                                 </motion.div>
+                               ) : (
+                                 <div className="flex flex-col items-center gap-6 relative z-10 transition-transform duration-500 group-hover:scale-110">
+                                    <div className="w-24 h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary/40"><Upload className="w-12 h-12" /></div>
+                                    <div className="space-y-2">
+                                       <p className="text-2xl font-black italic uppercase tracking-tighter">Déposer votre reçu ici</p>
+                                       <p className="text-xs font-medium text-muted-foreground italic px-10">Capture d'écran du SMS ou photo du bordereau de paiement.</p>
+                                    </div>
+                                 </div>
+                               )}
+                             </AnimatePresence>
+                             {/* Background Decoration */}
+                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/5 blur-[80px] rounded-full pointer-events-none" />
+                          </div>
+                       </FormControl>
+                    </FormItem>
+                  </div>
+
+                  {productType === 'indicator' && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-amber-500/10 rounded-3xl border border-amber-500/20 flex gap-4">
+                       <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-600 h-fit"><Clock className="w-6 h-6" /></div>
+                       <div className="space-y-2">
+                          <h4 className="text-lg font-black uppercase italic tracking-tighter text-amber-700 leading-none">Processus de sécurité</h4>
+                          <p className="text-xs font-medium text-amber-800 italic leading-relaxed">
+                             Chaque licence est cryptée manuellement pour correspondre à votre compte MT5. La livraison s'effectue généralement sous <strong>24h à 48h ouvrées</strong>.
+                          </p>
+                       </div>
+                    </motion.div>
+                  )}
+
+                  <div className="pt-4">
+                     <Button 
+                        type="submit" 
+                        disabled={uploadMutation.isPending || !proofFile} 
+                        className="w-full h-20 rounded-[2rem] text-xl font-black uppercase tracking-[0.2em] shadow-glow-primary bg-primary text-white hover:shadow-primary/40 active:scale-[0.98] transition-all italic"
+                     >
+                        {uploadMutation.isPending ? (<><Loader2 className="mr-3 h-8 w-8 animate-spin" /> Validation...</>) : "Soumettre ma commande d'excellence"}
+                     </Button>
+                     <p className="text-center text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest mt-6">Paiement sécurisé par cryptage AES-256</p>
+                  </div>
+                </form>
+              </Form>
+            </div>
+          </motion.div>
         </div>
+      </div>
+    </div>
     );
 };
 

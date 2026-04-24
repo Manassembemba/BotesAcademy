@@ -1,135 +1,95 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, BookOpen, Clock, Loader2, Search, TrendingUp, Download, Eye, Plus, Trash2, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { 
-    AlertDialog, 
-    AlertDialogAction, 
-    AlertDialogCancel, 
-    AlertDialogContent, 
-    AlertDialogDescription, 
-    AlertDialogFooter, 
-    AlertDialogHeader, 
-    AlertDialogTitle, 
-    AlertDialogTrigger 
-} from "@/components/ui/alert-dialog";
-
-interface Course {
-    id: string;
-    title: string;
-    price: number;
-}
-
-interface Strategy {
-    id: string;
-    title: string;
-    price: number;
-}
-
-interface Indicator {
-    id: string;
-    name: string;
-    price: number;
-}
-
-interface Vacation {
-    id: string;
-    name: string;
-    time_range: string;
-    course_id: string;
-}
-
-interface StudentData {
-    student_id: string;
-    full_name: string;
-    email: string;
-    avatar_url: string | null;
-    banned_until: string | null;
-    enrolled_courses_count: number;
-    purchased_strategies_count: number;
-    purchased_indicators_count: number;
-    course_titles: string[];
-    course_purchase_ids: string[];
-    strategy_titles: string[];
-    strategy_purchase_ids: string[];
-    indicator_titles: string[];
-    indicator_purchase_ids: string[];
-    total_spent: number;
-    last_enrollment_date: string | null;
-}
-
-const VacationOptions = ({ courseId }: { courseId: string }) => {
-    const { data: vacations } = useQuery({
-        queryKey: ['course-vacations-list', courseId],
-        queryFn: async () => {
-            const { data } = await supabase.from('course_vacations').select('*').eq('course_id', courseId);
-            return (data as Vacation[]) || [];
-        },
-        enabled: !!courseId
-    });
-
-    if (!vacations || vacations.length === 0) return <SelectItem value="none" disabled>Aucune vacation disponible</SelectItem>;
-
-    return (
-        <>
-            {vacations.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                    {v.name} ({v.time_range})
-                </SelectItem>
-            ))}
-        </>
-    );
-};
+import { StudentManagementHeader } from "@/components/admin/students/StudentManagementHeader";
+import { AddStudentDialog } from "@/components/admin/students/AddStudentDialog";
+import { StudentTable } from "@/components/admin/students/StudentTable";
+import { InstallmentsHistoryDialog } from "@/components/admin/students/InstallmentsHistoryDialog";
+import { StudentDetailsSheet } from "@/components/admin/students/StudentDetailsSheet";
+import { UnifiedPaymentDialog } from "@/components/admin/students/UnifiedPaymentDialog";
+import { BulkEmailDialog } from "@/components/admin/students/BulkEmailDialog";
+import { useStudentManagement } from "@/hooks/admin/useStudentManagement";
 
 const StudentManagement = () => {
     const { user } = useAuth();
+    const queryClient = useQueryClient();
+    
+    // UI States
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
+    const [courseFilter, setCourseFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [sortConfig, setSortConfig] = useState({ column: 'last_enrollment_date', ascending: false });
+    const pageSize = 15;
+
+    // Debounce effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+    
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-    const [shouldNotify, setShouldNotify] = useState(true);
+    const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false);
+    const [isBulkEmailOpen, setIsBulkEmailOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    
+    // Manual Payment States
+    const [isInstallmentsOpen, setIsInstallmentsOpen] = useState(false);
+    const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
+    const [manualPaymentAmount, setManualPaymentAmount] = useState<number>(0);
 
-    // Form states for new student (plus de champ password — Magic Link géré par Supabase Auth)
-    const [newStudent, setNewStudent] = useState({
-        full_name: "",
-        email: "",
-        course_id: "",
-        session_id: "",
-        vacation_id: "",
-        amount: 0,
-        payment_method: "cash_deposit" as const
+    // Use our new custom hook
+    const { 
+        students, 
+        totalCount, 
+        isLoading, 
+        error, 
+        addStudentMutation, 
+        userActionMutation,
+        bulkDeleteMutation,
+        bulkEmailMutation,
+        bulkStatusUpdateMutation
+    } = useStudentManagement(
+        debouncedSearchTerm, 
+        page, 
+        pageSize, 
+        { courseId: courseFilter, status: statusFilter },
+        sortConfig
+    );
+
+    const { data: financialStats } = useQuery({
+        queryKey: ['admin-financial-dashboard'],
+        queryFn: async () => {
+            const { data, error } = await supabase.rpc('get_admin_financial_dashboard');
+            if (error) throw error;
+            return data;
+        }
     });
 
-    const { data: students, isLoading, error } = useQuery({
-        queryKey: ['admin-students'],
+    const { data: installments, isLoading: isLoadingInstallments } = useQuery({
+        queryKey: ['purchase-installments', selectedPurchase?.id],
         queryFn: async () => {
-            // Note: Cette vue 'student_management_view' nécessite l'exécution de la migration SQL
+            if (!selectedPurchase?.id) return [];
             const { data, error } = await supabase
-                .from('student_management_view' as any)
-                .select('*');
-
-            if (error) {
-                console.error("Erreur StudentManagement:", error);
-                throw new Error(error.message);
-            }
-            return data as StudentData[];
+                .from('payment_installments')
+                .select(`
+                    *,
+                    admin:admin_id (full_name)
+                `)
+                .eq('purchase_id', selectedPurchase.id)
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
         },
+        enabled: isInstallmentsOpen && !!selectedPurchase?.id
     });
 
     const { data: allCourses } = useQuery({
@@ -156,97 +116,77 @@ const StudentManagement = () => {
         }
     });
 
-    // Fetch sessions for selected course in the form
     const { data: courseSessions } = useQuery({
-        queryKey: ['admin-course-sessions', newStudent.course_id],
+        queryKey: ['admin-course-sessions', selectedStudentId], 
         queryFn: async () => {
-            if (!newStudent.course_id) return [];
             const { data } = await supabase
                 .from('course_sessions')
-                .select('id, session_name')
-                .eq('course_id', newStudent.course_id);
+                .select('id, session_name, course_id');
             return data || [];
-        },
-        enabled: !!newStudent.course_id
+        }
     });
 
-    const queryClient = useQueryClient();
+    const unifiedPaymentMutation = useMutation({
+        mutationFn: async (data: any) => {
+            if (!selectedStudentId || !user?.id) return;
+            
+            // 1. Appel RPC pour enregistrer en base
+            const { data: purchaseId, error } = await supabase.rpc('process_student_payment', {
+                p_user_id: selectedStudentId,
+                p_course_id: data.courseId,
+                p_amount: data.amount,
+                p_payment_method: data.paymentMethod,
+                p_admin_id: user.id,
+                p_session_id: data.sessionId || null,
+                p_vacation_id: data.vacationId === 'none' ? null : data.vacationId
+            });
+            if (error) throw error;
 
-    const addStudentMutation = useMutation({
-        mutationFn: async (data: typeof newStudent) => {
-            // Appel atomique à la Edge Function (magic link + purchase + proof + audit)
-            const { data: response, error } = await supabase.functions.invoke('admin-register-student', {
+            // 2. Calcul du nouveau solde pour l'email
+            const { data: purchase } = await supabase
+                .from('purchases')
+                .select('total_amount, paid_amount, courses(title)')
+                .eq('user_id', selectedStudentId)
+                .eq('course_id', data.courseId)
+                .single();
+
+            const balance = (purchase?.total_amount || 0) - (purchase?.paid_amount || 0);
+
+            // 3. Déclenchement de l'email de reçu
+            await supabase.functions.invoke('payment-receipt-email', {
                 body: {
-                    email: data.email,
-                    fullName: data.full_name,
-                    courseId: data.course_id,
-                    sessionId: data.session_id || null,
-                    vacationId: data.vacation_id && data.vacation_id !== "none" ? data.vacation_id : null,
+                    userId: selectedStudentId,
+                    courseTitle: (purchase?.courses as any)?.title || 'Formation Botes Academy',
                     amount: data.amount,
-                    paymentMethod: data.payment_method,
-                    adminId: user?.id  // Pour le log d'audit
+                    paymentMethod: data.paymentMethod,
+                    balance: balance
                 }
             });
-
-            if (error || response?.error) throw new Error(error?.message || response?.error);
-
-            // Email de bienvenue avec le lien de reset — envoyé si shouldNotify est actif
-            if (shouldNotify) {
-                const course = allCourses?.find(c => c.id === data.course_id);
-                try {
-                    await supabase.functions.invoke('welcome-email', {
-                        body: {
-                            fullName: data.full_name,
-                            email: data.email,
-                            courseTitle: course?.title,
-                            resetLink: response?.resetLink  // ← lien de définition du mot de passe
-                        }
-                    });
-                } catch (emailErr) {
-                    console.error("Erreur lors de l'envoi du mail de bienvenue:", emailErr);
-                }
-            }
         },
         onSuccess: () => {
-            toast.success(
-                shouldNotify
-                    ? "Étudiant inscrit ! Un lien d'invitation a été envoyé par email."
-                    : "Étudiant inscrit avec succès.",
-                { duration: 8000 }
-            );
+            toast.success("Transaction validée et reçu envoyé par email.");
             queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+            queryClient.invalidateQueries({ queryKey: ['student-courses', selectedStudentId] });
             queryClient.invalidateQueries({ queryKey: ['admin-accounting'] });
-            setIsAddStudentOpen(false);
-            setNewStudent({ full_name: "", email: "", course_id: "", session_id: "", vacation_id: "", amount: 0, payment_method: "cash_deposit" });
+            setIsEnrollDialogOpen(false);
         },
-        onError: (err: any) => toast.error(err.message)
+        onError: (err: any) => toast.error(`Échec de l'opération: ${err.message}`)
     });
 
-    const enrollMutation = useMutation({
-        mutationFn: async ({ type, itemId }: { type: 'course' | 'strategy' | 'indicator', itemId: string }) => {
-            if (!selectedStudentId) return;
+    const enrollResourcesMutation = useMutation({
+        mutationFn: async (data: { type: 'strategy' | 'indicator', itemId: string }) => {
+            if (!selectedStudentId || !user?.id) return;
 
-            if (type === 'course') {
-                const course = allCourses?.find(c => c.id === itemId);
-                const { error } = await supabase.from('purchases').insert({
-                    user_id: selectedStudentId,
-                    course_id: itemId,
-                    amount: course?.price || 0,
-                    payment_status: 'completed',
-                    validation_status: 'approved',
-                    validated_at: new Date().toISOString()
-                });
-                if (error) throw error;
-            } else if (type === 'strategy') {
+            if (data.type === 'strategy') {
                 const { error } = await supabase.from('strategy_purchases').insert({
                     user_id: selectedStudentId,
-                    strategy_id: itemId
+                    strategy_id: data.itemId
                 });
                 if (error) throw error;
-            } else if (type === 'indicator') {
+            } else if (data.type === 'indicator') {
                 const { error } = await supabase.from('indicator_purchases').insert({
                     user_id: selectedStudentId,
-                    indicator_id: itemId
+                    indicator_id: data.itemId
                 });
                 if (error) throw error;
             }
@@ -254,12 +194,10 @@ const StudentManagement = () => {
         onSuccess: () => {
             toast.success("Ressource ajoutée avec succès");
             queryClient.invalidateQueries({ queryKey: ['admin-students'] });
-            // Update selectedStudent in state to reflect change immediately if possible,
-            // but invalidating query is safer. For now close and let user reopen or just wait
+            queryClient.invalidateQueries({ queryKey: ['student-strategies', selectedStudentId] });
+            queryClient.invalidateQueries({ queryKey: ['student-indicators', selectedStudentId] });
         },
-        onError: (err: any) => {
-            toast.error(`Erreur: ${err.message}`);
-        }
+        onError: (err: any) => toast.error(`Échec de l'ajout: ${err.message}`)
     });
 
     const deleteMutation = useMutation({
@@ -278,44 +216,12 @@ const StudentManagement = () => {
         onSuccess: () => {
             toast.success("Ressource retirée avec succès");
             queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+            queryClient.invalidateQueries({ queryKey: ['student-courses', selectedStudentId] });
+            queryClient.invalidateQueries({ queryKey: ['student-strategies', selectedStudentId] });
+            queryClient.invalidateQueries({ queryKey: ['student-indicators', selectedStudentId] });
         },
-        onError: (err: any) => {
-            toast.error(`Erreur lors de la suppression: ${err.message}`);
-        }
+        onError: (err: any) => toast.error(`Erreur lors de la suppression: ${err.message}`)
     });
-
-    // Mutations relatives aux actions d'utilisateurs
-    const userActionMutation = useMutation({
-        mutationFn: async ({ action, targetUserId, data }: { action: 'UPDATE_PROFILE' | 'SUSPEND_USER' | 'RESTORE_USER' | 'DELETE_USER' | 'SEND_RECOVERY', targetUserId: string, data?: any }) => {
-            const { data: response, error } = await supabase.functions.invoke('admin-user-actions', {
-                body: { action, targetUserId, data }
-            });
-            if (error || response?.error) throw new Error(error?.message || response?.error);
-            return { action, response };
-        },
-        onSuccess: ({ action }) => {
-            if (action === 'DELETE_USER') {
-                toast.success("Hallelujah ! Utilisateur supprimé définitivement.");
-                setIsDetailsOpen(false);
-                setSelectedStudentId(null);
-            } else if (action === 'SUSPEND_USER') {
-                toast.warning("L'accès de l'utilisateur est maintenant suspendu.");
-            } else if (action === 'RESTORE_USER') {
-                toast.success("Accès restauré : l'utilisateur peut à nouveau se connecter !");
-            } else if (action === 'SEND_RECOVERY') {
-                toast.success("Email de réinitialisation de mot de passe envoyé avec succès !");
-            } else if (action === 'UPDATE_PROFILE') {
-                toast.success("Profil mis à jour.");
-            }
-            queryClient.invalidateQueries({ queryKey: ['admin-students'] });
-        },
-        onError: (err: any) => toast.error(`Opération échouée : ${err.message}`)
-    });
-
-    const filteredStudents = students?.filter(student =>
-        student.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     const selectedStudent = students?.find(s => s.student_id === selectedStudentId);
 
@@ -326,6 +232,7 @@ const StudentManagement = () => {
                 .from('purchases')
                 .select(`
                     id, 
+                    course_id,
                     created_at, 
                     amount, 
                     total_amount,
@@ -370,712 +277,173 @@ const StudentManagement = () => {
         enabled: !!selectedStudentId && isDetailsOpen
     });
 
-    const [editForm, setEditForm] = useState({ fullName: '', email: '' });
-    // Effect pour populer l'edit form
-    if (selectedStudentId && isDetailsOpen && selectedStudent && editForm.email === '' && editForm.fullName === '') {
-        setEditForm({ fullName: selectedStudent.full_name || '', email: selectedStudent.email || '' });
-    }
+    const { data: fullProfile, isLoading: isLoadingProfile } = useQuery({
+        queryKey: ['admin-student-profile', selectedStudentId],
+        queryFn: async () => {
+            if (!selectedStudentId) return null;
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', selectedStudentId)
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedStudentId && isDetailsOpen
+    });
 
+    const updateProfileFieldsMutation = useMutation({
+        mutationFn: async (fields: any) => {
+            const { error } = await supabase
+                .from('profiles')
+                .update(fields)
+                .eq('id', selectedStudentId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            toast.success("Informations académiques mises à jour.");
+            queryClient.invalidateQueries({ queryKey: ['admin-student-profile', selectedStudentId] });
+            queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+        },
+        onError: (err: any) => toast.error(`Erreur: ${err.message}`)
+    });
+
+    const [editForm, setEditForm] = useState({ fullName: '', email: '' });
+    const [academicForm, setAcademicForm] = useState({
+        gender: '',
+        birth_date: '',
+        address: '',
+        phone: '',
+        emergency_contact_name: '',
+        emergency_contact_phone: ''
+    });
+
+    useEffect(() => {
+        if (selectedStudentId && isDetailsOpen && selectedStudent) {
+            setEditForm({ 
+                fullName: selectedStudent.full_name || '', 
+                email: selectedStudent.email || '' 
+            });
+        }
+    }, [selectedStudentId, isDetailsOpen, selectedStudent]);
+    
+    useEffect(() => {
+        if (fullProfile) {
+            setAcademicForm({
+                gender: fullProfile.gender || '',
+                birth_date: fullProfile.birth_date || '',
+                address: fullProfile.address || '',
+                phone: fullProfile.phone || '',
+                emergency_contact_name: fullProfile.emergency_contact_name || '',
+                emergency_contact_phone: fullProfile.emergency_contact_phone || ''
+            });
+        }
+    }, [fullProfile]);
 
     return (
-        <div className="container mx-auto p-4 md:p-8 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2">Gestion des Étudiants</h1>
-                    <p className="text-muted-foreground">
-                        Visualisez et gérez les apprenants inscrits à l'académie.
-                    </p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <Button onClick={() => setIsAddStudentOpen(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20">
-                        <Plus className="w-4 h-4" />
-                        Nouvel Étudiant
-                    </Button>
-                    <Card className="p-3 bg-primary/10 border-primary/20 flex items-center gap-3">
-                        <Users className="w-5 h-5 text-primary" />
-                        <div>
-                            <div className="text-xl font-bold">{students?.length || 0}</div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total Étudiants</div>
-                        </div>
-                    </Card>
-                </div>
+        <div className="min-h-screen bg-mesh-gradient relative overflow-hidden flex flex-col pb-20">
+            <div className="container mx-auto p-4 md:p-8 space-y-12 relative z-10 pt-32">
+                <StudentManagementHeader 
+                    studentCount={totalCount}
+                    financialStats={financialStats}
+                    onAddStudent={() => setIsAddStudentOpen(true)}
+                />
+
+                <AddStudentDialog 
+                    open={isAddStudentOpen}
+                    onOpenChange={setIsAddStudentOpen}
+                    allCourses={allCourses || []}
+                    courseSessions={courseSessions || []}
+                    addStudentMutation={addStudentMutation as any}
+                />
+
+                <StudentTable 
+                    students={students}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    setSelectedStudentId={setSelectedStudentId}
+                    setIsDetailsOpen={setIsDetailsOpen}
+                    isLoading={isLoading}
+                    error={error}
+                    page={page}
+                    totalCount={totalCount}
+                    setPage={setPage}
+                    pageSize={pageSize}
+                    bulkDeleteMutation={bulkDeleteMutation}
+                    bulkEmailMutation={bulkEmailMutation}
+                    bulkStatusUpdateMutation={bulkStatusUpdateMutation}
+                    courseFilter={courseFilter}
+                    setCourseFilter={setCourseFilter}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    allCourses={allCourses || []}
+                    sortConfig={sortConfig}
+                    setSortConfig={setSortConfig}
+                    selectedIds={selectedIds}
+                    setSelectedIds={setSelectedIds}
+                    onOpenBulkEmail={() => setIsBulkEmailOpen(true)}
+                />
+
+                <StudentDetailsSheet
+                    open={isDetailsOpen}
+                    onOpenChange={setIsDetailsOpen}
+                    selectedStudent={selectedStudent}
+                    isLoadingProfile={isLoadingProfile}
+                    fullProfile={fullProfile}
+                    academicForm={academicForm}
+                    setAcademicForm={setAcademicForm}
+                    updateProfileFieldsMutation={updateProfileFieldsMutation}
+                    isLoadingCourses={isLoadingCourses}
+                    studentCoursesDetails={studentCoursesDetails}
+                    studentStrategiesDetails={studentStrategiesDetails}
+                    studentIndicatorsDetails={studentIndicatorsDetails}
+                    allStrategies={allStrategies || []}
+                    allIndicators={allIndicators || []}
+                    enrollMutation={enrollResourcesMutation}
+                    deleteMutation={deleteMutation}
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    userActionMutation={userActionMutation}
+                    selectedStudentId={selectedStudentId}
+                    setSelectedPurchase={setSelectedPurchase}
+                    setIsInstallmentsOpen={setIsInstallmentsOpen}
+                    setManualPaymentAmount={setManualPaymentAmount}
+                    setIsManualPaymentOpen={setIsEnrollDialogOpen}
+                    setIsEnrollDialogOpen={setIsEnrollDialogOpen}
+                />
+
+                <UnifiedPaymentDialog 
+                    open={isEnrollDialogOpen}
+                    onOpenChange={setIsEnrollDialogOpen}
+                    studentId={selectedStudentId}
+                    studentName={selectedStudent?.full_name || ""}
+                    allCourses={allCourses || []}
+                    existingPurchases={studentCoursesDetails || []}
+                    onApply={(data) => unifiedPaymentMutation.mutate(data)}
+                    isPending={unifiedPaymentMutation.isPending}
+                />
+
+                <BulkEmailDialog 
+                    open={isBulkEmailOpen}
+                    onOpenChange={setIsBulkEmailOpen}
+                    selectedCount={selectedIds.length}
+                    isPending={bulkEmailMutation.isPending}
+                    onSend={(subject, message) => bulkEmailMutation.mutate({ userIds: selectedIds, subject, message }, {
+                        onSuccess: () => {
+                            setIsBulkEmailOpen(false);
+                            setSelectedIds([]);
+                        }
+                    })}
+                />
+
+                <InstallmentsHistoryDialog
+                    open={isInstallmentsOpen}
+                    onOpenChange={setIsInstallmentsOpen}
+                    selectedPurchase={selectedPurchase}
+                    installments={installments}
+                    isLoadingInstallments={isLoadingInstallments}
+                />
             </div>
-
-            {/* Dialog for adding new student */}
-            <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Inscrire un étudiant manuellement</DialogTitle>
-                        <DialogDescription>
-                            Cette action inscrit l'étudiant, enregistre le paiement en comptabilité et lui envoie un lien d'invitation sécurisé.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        {/* Bannière d'information sur le Magic Link */}
-                        <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800">
-                            <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs font-medium leading-relaxed">
-                                L'étudiant recevra un <strong>lien d'invitation sécurisé</strong> pour définir son propre mot de passe. Aucun mot de passe n'est généré par l'admin.
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Nom Complet de l'étudiant</Label>
-                            <Input 
-                                placeholder="ex: Jean Dupont" 
-                                value={newStudent.full_name}
-                                onChange={(e) => setNewStudent({...newStudent, full_name: e.target.value})}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Email (Sert d'identifiant de connexion)</Label>
-                            <Input 
-                                type="email"
-                                placeholder="exemple@email.com" 
-                                value={newStudent.email}
-                                onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Sélectionner la formation</Label>
-                            <Select onValueChange={(val) => {
-                                const course = allCourses?.find(c => c.id === val);
-                                setNewStudent({...newStudent, course_id: val, amount: course?.price || 0, session_id: "", vacation_id: ""});
-                            }}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Choisir un cours" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {allCourses?.map(c => (
-                                        <SelectItem key={c.id} value={c.id}>{c.title} (${c.price})</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {newStudent.course_id && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                <div className="space-y-2">
-                                    <Label>Session (Mois / Période)</Label>
-                                    <Select 
-                                        value={newStudent.session_id} 
-                                        onValueChange={(val) => setNewStudent({...newStudent, session_id: val})}
-                                    >
-                                        <SelectTrigger className="bg-primary/5 border-primary/20">
-                                            <SelectValue placeholder="Choisir une session" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {courseSessions?.map(s => (
-                                                <SelectItem key={s.id} value={s.id}>{s.session_name}</SelectItem>
-                                            ))}
-                                            {courseSessions?.length === 0 && <SelectItem value="none" disabled>Aucune session</SelectItem>}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Vacation (Créneau horaire)</Label>
-                                    <Select 
-                                        value={newStudent.vacation_id} 
-                                        onValueChange={(val) => setNewStudent({...newStudent, vacation_id: val})}
-                                        disabled={!newStudent.session_id}
-                                    >
-                                        <SelectTrigger className="bg-primary/5 border-primary/20">
-                                            <SelectValue placeholder="Choisir une vacation" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">Aucune (Par défaut)</SelectItem>
-                                            <VacationOptions courseId={newStudent.course_id} />
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Montant Reçu ($)</Label>
-                                <Input 
-                                    type="number" 
-                                    value={newStudent.amount}
-                                    onChange={(e) => setNewStudent({...newStudent, amount: Number(e.target.value)})}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Mode de Paiement</Label>
-                                <Select 
-                                    value={newStudent.payment_method}
-                                    onValueChange={(val: any) => setNewStudent({...newStudent, payment_method: val})}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="cash_deposit">Cash / Espèces</SelectItem>
-                                        <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                                        <SelectItem value="bank_transfer">Virement</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                            <div className="space-y-0.5">
-                                <Label className="text-sm font-bold">Envoyer un email de bienvenue</Label>
-                                <p className="text-[10px] text-muted-foreground uppercase font-medium">Informe l'étudiant de son inscription</p>
-                            </div>
-                            <Switch 
-                                checked={shouldNotify}
-                                onCheckedChange={setShouldNotify}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>Annuler</Button>
-                        <Button 
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() => addStudentMutation.mutate(newStudent)} 
-                            disabled={addStudentMutation.isPending || !newStudent.email || !newStudent.course_id}
-                        >
-                            {addStudentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Inscrire et Encaisser
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <CardTitle>Liste des Apprenants</CardTitle>
-                            <CardDescription>Détails des inscriptions et activité récente.</CardDescription>
-                        </div>
-                        <div className="relative w-full md:w-72">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Rechercher un étudiant..."
-                                className="pl-9"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        </div>
-                    ) : error ? (
-                        <div className="text-center py-12 text-destructive">
-                            <p>Erreur lors du chargement des données. Assurez-vous d'avoir exécuté la migration SQL.</p>
-                            <p className="text-sm mt-2">{error.message}</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Desktop Table View */}
-                            <div className="hidden md:block rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Étudiant</TableHead>
-                                            <TableHead>Formations</TableHead>
-                                            <TableHead>Outils</TableHead>
-                                            <TableHead>Dernière Inscription</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredStudents?.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                                    Aucun étudiant trouvé.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            filteredStudents?.map((student) => (
-                                                <TableRow key={student.student_id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar>
-                                                                <AvatarImage src={student.avatar_url || ''} />
-                                                                <AvatarFallback>{student.full_name?.charAt(0) || 'U'}</AvatarFallback>
-                                                            </Avatar>
-                                                            <div>
-                                                                <div className="font-medium">{student.full_name}</div>
-                                                                <div className="text-xs text-muted-foreground">{student.email}</div>
-                                                            </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col gap-1">
-                                                            <Badge variant="secondary" className="gap-1 w-fit">
-                                                                <BookOpen className="w-3 h-3" />
-                                                                {student.enrolled_courses_count} Formations
-                                                            </Badge>
-                                                            {student.course_titles?.filter(Boolean).slice(0, 1).map((title, i) => (
-                                                                <div key={i} className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                                                                    {title} {student.course_titles.length > 1 && `...`}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col gap-1">
-                                                            <Badge variant="outline" className="gap-1 w-fit border-accent/30 text-accent">
-                                                                <TrendingUp className="w-3 h-3" />
-                                                                {student.purchased_strategies_count} Stratégies
-                                                            </Badge>
-                                                            <Badge variant="outline" className="gap-1 w-fit border-primary/30 text-primary">
-                                                                <Download className="w-3 h-3" />
-                                                                {student.purchased_indicators_count} Indicateurs
-                                                            </Badge>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2 text-sm">
-                                                            <Clock className="w-3 h-3 text-muted-foreground" />
-                                                            {student.last_enrollment_date
-                                                                ? format(new Date(student.last_enrollment_date), 'dd MMM yyyy', { locale: fr })
-                                                                : 'Aucune'}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="hover:bg-primary/10 hover:text-primary gap-2"
-                                                            onClick={() => {
-                                                                setSelectedStudentId(student.student_id);
-                                                                setIsDetailsOpen(true);
-                                                            }}
-                                                        >
-                                                            <Eye className="w-4 h-4" />
-                                                            Détails
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {/* Mobile Card View */}
-                            <div className="grid grid-cols-1 gap-4 md:hidden">
-                                {filteredStudents?.map((student) => (
-                                    <Card key={student.student_id} className="p-4 border-primary/10 hover:border-primary/30 transition-all">
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <Avatar className="h-12 w-12">
-                                                <AvatarImage src={student.avatar_url || ''} />
-                                                <AvatarFallback>{student.full_name?.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold truncate">{student.full_name}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{student.email}</p>
-                                            </div>
-                                            <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="rounded-full h-8 w-8 p-0"
-                                                onClick={() => {
-                                                    setSelectedStudentId(student.student_id);
-                                                    setIsDetailsOpen(true);
-                                                }}
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-dashed">
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Inscriptions</p>
-                                                <p className="font-bold text-sm">{student.enrolled_courses_count} Cours</p>
-                                            </div>
-                                            <div className="space-y-1 text-right">
-                                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Investi</p>
-                                                <p className="font-bold text-sm text-emerald-600">${student.total_spent || 0}</p>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
-                                {filteredStudents?.length === 0 && (
-                                    <p className="text-center py-12 text-muted-foreground italic uppercase text-xs tracking-widest">Aucun résultat.</p>
-                                )}
-                            </div>
-                        </>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-12 w-12 border-2 border-primary/20 relative">
-                                <AvatarImage src={selectedStudent?.avatar_url || ''} />
-                                <AvatarFallback>{selectedStudent?.full_name?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                                    {selectedStudent?.full_name}
-                                    {selectedStudent?.banned_until && new Date(selectedStudent.banned_until) > new Date() && (
-                                        <Badge variant="destructive" className="text-[10px] uppercase">Banni</Badge>
-                                    )}
-                                </DialogTitle>
-                                <DialogDescription className="flex items-center gap-2">
-                                    {selectedStudent?.email}
-                                    <span className="text-xs py-0.5 px-2 bg-primary/10 text-primary rounded-full font-bold">
-                                        Total investi: {selectedStudent?.total_spent?.toLocaleString()} $
-                                    </span>
-                                </DialogDescription>
-                            </div>
-                        </div>
-                    </DialogHeader>
-
-                    <Tabs defaultValue="courses" className="mt-6">
-                        <TabsList className="grid w-full grid-cols-4">
-                            <TabsTrigger value="courses" className="gap-2 text-xs">
-                                <BookOpen className="w-4 h-4" /> Formations
-                            </TabsTrigger>
-                            <TabsTrigger value="strategies" className="gap-2 text-xs">
-                                <TrendingUp className="w-4 h-4" /> Stratégies
-                            </TabsTrigger>
-                            <TabsTrigger value="indicators" className="gap-2 text-xs">
-                                <Download className="w-4 h-4" /> Indicateurs
-                            </TabsTrigger>
-                            <TabsTrigger value="settings" className="gap-2 text-xs text-red-500 hover:text-red-600 font-bold data-[state=active]:bg-red-50">
-                                <Trash2 className="w-4 h-4" /> Compte
-                            </TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="courses" className="space-y-4 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-bold flex items-center gap-2">
-                                    <BookOpen className="w-4 h-4 text-primary" />
-                                    Inscriptions ({selectedStudent?.enrolled_courses_count})
-                                </h3>
-                                <div className="flex gap-2">
-                                    <Select onValueChange={(val) => enrollMutation.mutate({ type: 'course', itemId: val })}>
-                                        <SelectTrigger className="w-[200px] h-8 text-xs">
-                                            <SelectValue placeholder="Choisir une formation..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {allCourses?.map(c => (
-                                                <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            {isLoadingCourses ? (
-                                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {studentCoursesDetails?.length ? (
-                                        studentCoursesDetails.map((purchase: any) => (
-                                            <div key={purchase.id} className="flex flex-col p-4 rounded-xl border bg-muted/10 group relative hover:border-primary/30 transition-all">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="pr-8">
-                                                        <span className="text-sm font-bold block">{purchase.courses?.title || 'Cours Inconnu'}</span>
-                                                        <span className="text-xs text-muted-foreground block">
-                                                            Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}
-                                                        </span>
-                                                    </div>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity absolute top-3 right-3"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Confirmer le retrait</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Êtes-vous sûr de vouloir retirer l'accès à la formation <span className="font-bold text-foreground">"{purchase.courses?.title}"</span> ? 
-                                                                    L'étudiant ne pourra plus consulter le contenu.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                <AlertDialogAction 
-                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                                    onClick={() => deleteMutation.mutate({ type: 'course', id: purchase.id })}
-                                                                >
-                                                                    Retirer l'accès
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                                    <div className="bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Finances</span>
-                                                        <div className="flex flex-col gap-0.5">
-                                                            <span className="text-xs font-bold text-slate-700">Total: ${purchase.total_amount || purchase.amount}</span>
-                                                            <span className="text-xs font-bold text-emerald-600">Payé: ${purchase.paid_amount || 0}</span>
-                                                            {(purchase.total_amount - (purchase.paid_amount || 0)) > 0 && (
-                                                                <span className="text-xs font-black text-red-600">Reste: ${purchase.total_amount - (purchase.paid_amount || 0)}</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Statut Paiement</span>
-                                                        <div className="flex flex-col gap-1">
-                                                            {purchase.payment_status === 'completed' ? (
-                                                                <Badge variant="outline" className="text-[10px] py-0 bg-emerald-50 text-emerald-600 border-emerald-200 w-fit">Complet</Badge>
-                                                            ) : purchase.payment_status === 'partial' ? (
-                                                                <Badge variant="outline" className="text-[10px] py-0 bg-amber-50 text-amber-600 border-amber-200 w-fit">Partiel</Badge>
-                                                            ) : purchase.payment_status === 'overdue' ? (
-                                                                <Badge variant="outline" className="text-[10px] py-0 bg-red-50 text-red-600 border-red-200 w-fit">Retard</Badge>
-                                                            ) : (
-                                                                <Badge variant="outline" className="text-[10px] py-0 bg-slate-50 text-slate-600 border-slate-200 w-fit">En attente</Badge>
-                                                            )}
-                                                            {purchase.due_date && purchase.payment_status !== 'completed' && (
-                                                                <span className="text-[9px] text-muted-foreground italic">
-                                                                    Échéance: {format(new Date(purchase.due_date), 'dd/MM/yyyy')}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-span-2 bg-background rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
-                                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Session / Horaires</span>
-                                                        <span className="text-xs font-semibold text-slate-700 truncate">
-                                                            {purchase.course_sessions?.session_name || 'Aucune Session Info'} 
-                                                            {purchase.course_vacations ? ` • ${purchase.course_vacations.name} (${purchase.course_vacations.time_range})` : ''}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="col-span-2 py-8 flex items-center justify-center border border-dashed rounded-xl bg-muted/5">
-                                            <p className="text-sm text-muted-foreground italic font-medium">Aucune formation active pour cet étudiant.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        <TabsContent value="strategies" className="space-y-4 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-bold flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 text-accent" />
-                                    Stratégies possédées ({selectedStudent?.purchased_strategies_count})
-                                </h3>
-                                <div className="flex gap-2">
-                                    <Select onValueChange={(val) => enrollMutation.mutate({ type: 'strategy', itemId: val })}>
-                                        <SelectTrigger className="w-[200px] h-8 text-xs">
-                                            <SelectValue placeholder="Choisir une stratégie..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {allStrategies?.map(s => (
-                                                <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            {isLoadingStrategies ? (
-                                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {studentStrategiesDetails?.length ? (
-                                        studentStrategiesDetails.map((purchase: any) => (
-                                            <div key={purchase.id} className="flex items-center justify-between p-4 rounded-xl border bg-accent/5 group hover:border-accent/30 hover:bg-accent/10 transition-all">
-                                                <div>
-                                                    <span className="text-sm font-extrabold text-accent-foreground block mb-1">{purchase.strategies?.title || 'Stratégie Inconnue'}</span>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        <span>Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}</span>
-                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                        <span className="text-emerald-600 font-black">${purchase.strategies?.price || 0}</span>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => deleteMutation.mutate({ type: 'strategy', id: purchase.id })}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="col-span-2 py-8 flex items-center justify-center border border-dashed rounded-xl bg-muted/5">
-                                            <p className="text-sm text-muted-foreground italic font-medium">Aucune stratégie active pour cet étudiant.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        <TabsContent value="indicators" className="space-y-4 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-bold flex items-center gap-2">
-                                    <Download className="w-4 h-4 text-primary" />
-                                    Indicateurs possédés ({selectedStudent?.purchased_indicators_count})
-                                </h3>
-                                <div className="flex gap-2">
-                                    <Select onValueChange={(val) => enrollMutation.mutate({ type: 'indicator', itemId: val })}>
-                                        <SelectTrigger className="w-[200px] h-8 text-xs">
-                                            <SelectValue placeholder="Choisir un indicateur..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {allIndicators?.map(ind => (
-                                                <SelectItem key={ind.id} value={ind.id}>{ind.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            {isLoadingIndicators ? (
-                                <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {studentIndicatorsDetails?.length ? (
-                                        studentIndicatorsDetails.map((purchase: any) => (
-                                            <div key={purchase.id} className="flex items-center justify-between p-4 rounded-xl border bg-primary/5 group hover:border-primary/30 hover:bg-primary/10 transition-all">
-                                                <div>
-                                                    <span className="text-sm font-extrabold text-foreground block mb-1">{purchase.indicators?.name || 'Indicateur Inconnu'}</span>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                        <span>Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}</span>
-                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                        <span className="text-emerald-600 font-black">${purchase.indicators?.price || 0}</span>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => deleteMutation.mutate({ type: 'indicator', id: purchase.id })}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="col-span-2 py-8 flex items-center justify-center border border-dashed rounded-xl bg-muted/5">
-                                            <p className="text-sm text-muted-foreground italic font-medium">Aucun indicateur actif pour cet étudiant.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        {/* Onglet Paramètres du compte - Gère l'édition du profil, ban et suppression */}
-                        <TabsContent value="settings" className="space-y-6 py-4 px-2">
-                            <div className="space-y-4">
-                                <h3 className="text-md font-bold text-slate-800 border-b pb-2">Modifier le profil</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Nom Complet</Label>
-                                        <Input 
-                                            value={editForm.fullName} 
-                                            onChange={e => setEditForm({...editForm, fullName: e.target.value})}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Email</Label>
-                                        <Input 
-                                            value={editForm.email} 
-                                            onChange={e => setEditForm({...editForm, email: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex justify-end">
-                                    <Button 
-                                        size="sm" 
-                                        onClick={() => userActionMutation.mutate({ action: 'UPDATE_PROFILE', targetUserId: selectedStudentId!, data: editForm })}
-                                        disabled={userActionMutation.isPending}
-                                    >
-                                        Enregistrer les modifications
-                                    </Button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 mt-6 border-t border-slate-100">
-                                <h3 className="text-md font-bold text-slate-800">Assistance / Dépannage</h3>
-                                <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                                    <div className="space-y-1">
-                                        <h4 className="font-medium text-blue-900 text-sm">Force Password Reset</h4>
-                                        <p className="text-xs text-blue-700">Envoie un lien magique de réinitialisation si l'étudiant ne parvient plus à se connecter.</p>
-                                    </div>
-                                    <Button 
-                                        variant="outline" size="sm" className="bg-white"
-                                        onClick={() => userActionMutation.mutate({ action: 'SEND_RECOVERY', targetUserId: selectedStudentId! })}
-                                        disabled={userActionMutation.isPending}
-                                    >
-                                        Renvoyer l'Email
-                                    </Button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 mt-6 border-t border-red-100 bg-red-50/30 rounded-xl p-4">
-                                <h3 className="text-md font-bold text-red-600 flex items-center gap-2"><Trash2 className="w-4 h-4"/> Danger Zone</h3>
-                                
-                                <div className="flex items-center justify-between py-2 border-b border-red-100">
-                                    <div className="space-y-1">
-                                        <h4 className="font-medium text-sm text-slate-900">Bannir temporairement</h4>
-                                        <p className="text-xs text-slate-500">L'étudiant ne pourra pas se connecter. Ses données d'achat sont conservées.</p>
-                                    </div>
-                                    <Switch 
-                                        checked={selectedStudent?.banned_until ? new Date(selectedStudent.banned_until) > new Date() : false}
-                                        onCheckedChange={(checked) => {
-                                            if (checked) {
-                                                userActionMutation.mutate({ action: 'SUSPEND_USER', targetUserId: selectedStudentId!, data: { durationHours: 87600 }}); // Banni pour 10 ans
-                                            } else {
-                                                userActionMutation.mutate({ action: 'RESTORE_USER', targetUserId: selectedStudentId! });
-                                            }
-                                        }}
-                                        disabled={userActionMutation.isPending}
-                                        className="data-[state=checked]:bg-red-600"
-                                    />
-                                </div>
-
-                                <div className="flex flex-col gap-2 pt-2">
-                                    <h4 className="font-medium text-sm text-slate-900">Supprimer le compte</h4>
-                                    <p className="text-xs text-slate-500 mb-2">Purger définitivement ce compte de la base de données. Irréversible.</p>
-                                    
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="destructive" className="w-full sm:w-auto self-start">
-                                                Suprimer Définitivement
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent className="border-red-500 border-2">
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle className="text-red-500">Êtes-vous absolument sûr ?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Ceci entraînera la <strong className="text-black">perte totale des données</strong> de l'étudiant 
-                                                    ({selectedStudent?.full_name}), y lit ses accès, paiements, et son identification Auth. 
-                                                    L'action est instantanée et <strong className="text-red-500">irréversible</strong>.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                <AlertDialogAction 
-                                                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-8"
-                                                    onClick={() => userActionMutation.mutate({ action: 'DELETE_USER', targetUserId: selectedStudentId! })}
-                                                >
-                                                    OUI, SUPPRIMER L'ÉTUDIANT
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                    </Tabs>
-
-                    <DialogFooter className="mt-8 border-t pt-4">
-                        <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>Fermer</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

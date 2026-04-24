@@ -50,8 +50,8 @@ serve(async (req) => {
       throw new Error('[PARSE] Corps de la requête invalide (JSON malformé)')
     }
 
-    const { email, fullName, courseId, sessionId, vacationId, amount, paymentMethod, adminId } = body
-    log('PARSE_BODY', 'OK', { email, fullName, courseId, sessionId, vacationId, amount, paymentMethod, adminId })
+    const { email, fullName, mt5Id, courseId, sessionId, vacationId, amount, paymentMethod, adminId } = body
+    log('PARSE_BODY', 'OK', { email, fullName, mt5Id, courseId, sessionId, vacationId, amount, paymentMethod, adminId })
 
     // -- Validation des champs requis
     if (!email || !fullName || !courseId) {
@@ -61,6 +61,8 @@ serve(async (req) => {
     log('VALIDATE', 'OK')
 
     // -- ETAPE 1 : Création du compte Auth
+    // Note: Le trigger 'on_auth_user_created' créera automatiquement le profil dans la table 'profiles'
+    // et notre nouveau trigger 'trigger_assign_matricule' lui attribuera son matricule officiel.
     log('AUTH_CREATE_USER', 'START', { email })
     const tempPassword = generateSecurePassword()
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -94,20 +96,33 @@ serve(async (req) => {
     const resetLink = linkError ? null : linkData?.properties?.action_link
 
     // -- ETAPE 3 : Insertion Purchase
-    log('INSERT_PURCHASE', 'START', { userId, courseId, amount })
+    log('INSERT_PURCHASE', 'START', { userId, course_id: courseId, amount })
+    const { data: courseData } = await supabaseAdmin
+      .from('courses')
+      .select('price, registration_fee')
+      .eq('id', courseId)
+      .single()
+    
+    const registrationFee = courseData?.registration_fee || 0
+    const coursePrice = courseData?.price || 0
+    const totalToPay = coursePrice + registrationFee
+
     const { error: purchaseError } = await supabaseAdmin.from('purchases').insert({
       user_id: userId,
       course_id: courseId,
       session_id: sessionId || null,
       vacation_id: (vacationId && vacationId !== 'none') ? vacationId : null,
-      amount,
-      payment_status: 'completed',
+      amount: amount,
+      total_amount: totalToPay,
+      paid_amount: amount,
+      payment_status: amount >= totalToPay ? 'completed' : 'partial',
       validation_status: 'approved',
-      validated_at: new Date().toISOString()
+      validated_at: new Date().toISOString(),
+      enrollment_status: 'active'
     })
 
     if (purchaseError) {
-      log('INSERT_PURCHASE', 'ERROR', { code: purchaseError.code, message: purchaseError.message, details: purchaseError.details })
+      log('INSERT_PURCHASE', 'ERROR', { code: purchaseError.code, message: purchaseError.message })
       log('ROLLBACK', 'INFO', { action: 'delete_user', userId })
       await supabaseAdmin.auth.admin.deleteUser(userId)
       userId = null
@@ -115,7 +130,21 @@ serve(async (req) => {
     }
     log('INSERT_PURCHASE', 'OK')
 
-    // -- ETAPE 4 : Insertion Payment Proof
+    // -- ETAPE 4 : Mise à jour de la source d'inscription (Audit)
+    log('INIT_PROFILE', 'START', { userId })
+    const { error: profileError } = await supabaseAdmin.from('profiles').update({
+      registration_source: 'admin',
+      mt5_id: mt5Id || null,
+      profile_completed: false
+    }).eq('id', userId)
+
+    if (profileError) {
+      log('INIT_PROFILE', 'ERROR', { message: profileError.message })
+    } else {
+      log('INIT_PROFILE', 'OK')
+    }
+
+    // -- ETAPE 5 : Insertion Payment Proof
     log('INSERT_PROOF', 'START', { userId, courseId, amount })
     const { error: proofError } = await supabaseAdmin.from('payment_proofs').insert({
       user_id: userId,
@@ -124,13 +153,14 @@ serve(async (req) => {
       vacation_id: (vacationId && vacationId !== 'none') ? vacationId : null,
       amount,
       payment_method: paymentMethod,
+      mt5_id: mt5Id || null,
       status: 'approved',
       validated_at: new Date().toISOString(),
-      admin_notes: 'Inscription manuelle. Lien de connexion envoyé par email.'
+      admin_notes: 'Inscription manuelle par Admin. Matricule auto-généré par le système.'
     })
 
     if (proofError) {
-      log('INSERT_PROOF', 'ERROR', { code: proofError.code, message: proofError.message, details: proofError.details })
+      log('INSERT_PROOF', 'ERROR', { code: proofError.code, message: proofError.message })
       log('ROLLBACK', 'INFO', { action: 'delete_purchase_and_user', userId })
       await supabaseAdmin.from('purchases').delete().eq('user_id', userId)
       await supabaseAdmin.auth.admin.deleteUser(userId)
@@ -139,28 +169,16 @@ serve(async (req) => {
     }
     log('INSERT_PROOF', 'OK')
     
-    // -- ETAPE 5 : Incrémentation de la capacité de la session (Présentiel uniquement)
+    // -- ETAPE 6 : Incrémentation de la capacité de la session
     if (sessionId) {
-      log('INCREMENT_SESSION', 'START', { sessionId })
       const { error: incError } = await supabaseAdmin.rpc('increment_session_students', { 
         session_id: sessionId 
       })
-      
-      if (incError) {
-        log('INCREMENT_SESSION', 'ERROR', { code: incError.code, message: incError.message })
-        log('ROLLBACK', 'INFO', { action: 'delete_purchase_and_proof_and_user', userId })
-        await supabaseAdmin.from('payment_proofs').delete().eq('user_id', userId)
-        await supabaseAdmin.from('purchases').delete().eq('user_id', userId)
-        await supabaseAdmin.auth.admin.deleteUser(userId)
-        userId = null
-        throw new Error(`[CAPACITY] La session est probablement complète ou introuvable : ${incError.message}`)
-      }
-      log('INCREMENT_SESSION', 'OK')
+      if (incError) log('INCREMENT_SESSION', 'ERROR', { message: incError.message })
     }
 
-    // -- ETAPE 6 : Audit log (non bloquant)
+    // -- ETAPE 7 : Audit log
     if (adminId) {
-      log('AUDIT_LOG', 'INFO', { adminId, action: 'manual_enrollment' })
       supabaseAdmin.from('admin_audit_logs').insert({
         admin_id: adminId,
         action: 'manual_enrollment',
@@ -170,7 +188,7 @@ serve(async (req) => {
       }).then(() => {})
     }
 
-    log('FUNCTION', 'OK', { userId, hasResetLink: !!resetLink })
+    log('FUNCTION', 'OK', { userId })
     return new Response(
       JSON.stringify({ success: true, userId, resetLink }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

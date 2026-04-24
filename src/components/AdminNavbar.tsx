@@ -17,13 +17,13 @@ const AdminNavbar = () => {
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/admin/dashboard" className="flex items-center gap-3 group">
-          <img src="/logo.png" alt="Botes Academy Logo" className="h-[200px] w-auto object-contain" />
+          <img src="/logo.png?v=2" alt="Botes Academy Logo" className="h-[200px] w-auto object-contain" />
           <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
-            {role === 'receptionist' ? 'Réception' : 'Admin'}
+            {role === 'receptionist' ? 'Réception' : role === 'teacher' ? 'Enseignant' : 'Admin'}
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-6 overflow-x-auto pb-2">
           <Link
             to="/admin/dashboard"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -31,27 +31,27 @@ const AdminNavbar = () => {
             <LayoutDashboard className="w-4 h-4" />
             Dashboard
           </Link>
-          <Link
-            to="/admin/payments"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <CreditCard className="w-4 h-4" />
-            Paiements
-          </Link>
-          <Link
-            to="/admin/delivery"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Livraisons
-          </Link>
-          <Link
-            to="/admin/applications"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            Candidatures
-          </Link>
+
+          {!isAdmin && role !== 'teacher' && (
+            <Link
+              to="/admin/payments"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <CreditCard className="w-4 h-4" />
+              Paiements
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/admin/payments"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <CreditCard className="w-4 h-4" />
+              Paiements
+            </Link>
+          )}
+
           <Link
             to="/admin/students"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -59,12 +59,21 @@ const AdminNavbar = () => {
             <Users className="w-4 h-4" />
             Étudiants
           </Link>
+
           <Link
             to="/admin/attendance"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <CheckCircle2 className="w-4 h-4" />
             Émargement
+          </Link>
+
+          <Link
+            to="/admin/announcements"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Annonces
           </Link>
           
           {isAdmin && (
@@ -75,6 +84,13 @@ const AdminNavbar = () => {
               >
                 <TrendingUp className="w-4 h-4" />
                 Comptabilité
+              </Link>
+              <Link
+                to="/admin/analytics"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                Reporting
               </Link>
               <Link
                 to="/admin/settings"

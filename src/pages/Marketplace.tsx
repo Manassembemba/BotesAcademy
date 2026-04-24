@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -116,91 +116,111 @@ const Marketplace = () => {
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <motion.div 
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.15
+            }
+          }
+        }}
+        className="bento-grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3"
+      >
         {filteredProducts.map((product, index) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            hasPurchased={purchases?.has(product.id) || false}
-            index={index}
-          />
+          <motion.div 
+            key={product.id} 
+            variants={{
+              hidden: { opacity: 0, y: 30, scale: 0.95 },
+              show: { opacity: 1, y: 0, scale: 1 }
+            }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className={index === 0 ? "md:col-span-2 md:row-span-1 lg:col-span-2" : ""}
+          >
+            <ProductCard
+              product={product}
+              hasPurchased={purchases?.has(product.id) || false}
+              index={index}
+            />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-mesh-gradient">
       <Navbar />
 
-      <div className="pt-32 pb-20 relative overflow-hidden bg-gradient-hero border-b border-border/50">
-        {/* Decorative Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full animate-pulse" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full animate-pulse delay-700" />
-          <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] bg-[grid_32px_32px]" />
-        </div>
+      <div className="pt-fluid-xl pb-fluid-lg relative overflow-hidden border-b border-border/40">
+        {/* Dynamic background accents */}
+        <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-primary/5 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[30vw] h-[30vw] bg-accent/5 rounded-full blur-[120px] pointer-events-none animate-glow" />
 
-        <div className="container relative z-10 mx-auto px-4">
+        <div className="container relative z-10 mx-auto px-6">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-4xl mx-auto text-center"
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-5xl mx-auto text-center space-y-fluid-xs"
           >
-            <Badge variant="outline" className="mb-6 px-4 py-1.5 border-primary/30 bg-primary/5 text-primary text-xs font-black uppercase tracking-[0.2em] animate-fade-in">
-              Botes Tools & Resources
-            </Badge>
-            <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter leading-none italic">
-              <span className="text-gradient-primary">MARKET</span>PLACE
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em]"
+            >
+              <Zap className="w-3 h-3" />
+              Elite Terminal & Tools
+            </motion.div>
+
+            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-6 tracking-tighter leading-[0.85] uppercase italic">
+              <span className="text-gradient-primary">MARKET</span><br />
+              <span className="opacity-20">PLACE</span>
             </h1>
-            <p className="text-muted-foreground text-xl md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed">
-              Équipez-vous des meilleurs outils de <span className="text-foreground font-bold underline decoration-primary/50 decoration-4">Trading</span> et ressources professionnelles pour propulser votre carrière.
+            
+            <p className="text-xl md:text-2xl text-muted-foreground font-medium max-w-3xl mx-auto leading-relaxed border-t-2 border-primary/10 pt-8">
+              Équipez votre setup avec les outils de <span className="text-foreground font-black underline decoration-primary/40 decoration-8 underline-offset-4">Trading</span> les plus avancés du marché.
             </p>
           </motion.div>
         </div>
       </div>
 
-      <section className="py-20 relative">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
-            <div className="flex items-center gap-3">
-               <div className="w-12 h-1 bg-primary rounded-full" />
-               <h2 className="text-3xl font-black uppercase tracking-tighter italic">Catalogue Premium</h2>
+      <section className="py-fluid-md relative">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between mb-16 gap-12">
+            <div className="flex flex-col gap-2">
+               <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic">Catalogue <span className="text-primary">Premium</span></h2>
+               <div className="w-24 h-1.5 bg-primary/20 rounded-full overflow-hidden">
+                  <div className="w-1/3 h-full bg-primary" />
+               </div>
             </div>
-            <div className="text-muted-foreground font-medium italic">
-               Filtrer par type de ressource : 
-               <span className="ml-3 inline-flex gap-2">
-                  <Badge 
-                    onClick={() => setActiveFilter('all')}
-                    className={cn(
-                      "transition-colors cursor-pointer",
-                      activeFilter === 'all' ? "bg-primary text-white" : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                    )}
-                  >
-                    Tout
-                  </Badge>
-                  <Badge 
-                    variant="outline" 
-                    onClick={() => setActiveFilter('indicator')}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      activeFilter === 'indicator' ? "bg-primary text-white border-primary" : "hover:bg-primary/10"
-                    )}
-                  >
-                    Outils
-                  </Badge>
-                  <Badge 
-                    variant="outline" 
-                    onClick={() => setActiveFilter('strategy')}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      activeFilter === 'strategy' ? "bg-primary text-white border-primary" : "hover:bg-primary/10"
-                    )}
-                  >
-                    Stratégies
-                  </Badge>
-               </span>
+
+            <div className="flex items-center gap-6 p-2 bg-muted/20 backdrop-blur-xl border border-border/40 rounded-3xl">
+               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 hidden md:block">Filtrage :</span>
+               <div className="flex gap-2">
+                  {[
+                    { id: 'all', label: 'Tout' },
+                    { id: 'indicator', label: 'Outils Tech' },
+                    { id: 'strategy', label: 'Stratégies' }
+                  ].map((filter) => (
+                    <button 
+                      key={filter.id}
+                      onClick={() => setActiveFilter(filter.id as any)}
+                      className={cn(
+                        "px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-500",
+                        activeFilter === filter.id 
+                          ? "bg-primary text-white shadow-glow-primary" 
+                          : "hover:bg-primary/10 text-muted-foreground"
+                      )}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+               </div>
             </div>
           </div>
           {renderProductGrid()}
