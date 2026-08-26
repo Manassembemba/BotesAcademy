@@ -9,9 +9,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // Sub-components
 import { ProfileTab } from "./details/ProfileTab";
 import { FinanceTab } from "./details/FinanceTab";
+import { AttendanceTab } from "./details/AttendanceTab";
 import { ResourcesTab } from "./details/ResourcesTab";
 import { SecurityTab } from "./details/SecurityTab";
 import { DocumentsTab } from "./details/DocumentsTab";
+import { Clock } from "lucide-react";
 
 interface StudentDetailsSheetProps {
     open: boolean;
@@ -120,12 +122,15 @@ export const StudentDetailsSheet = ({
 
                         {/* Navigation Tabs */}
                         <Tabs defaultValue="academic" className="w-full">
-                            <TabsList className="grid w-full grid-cols-5 h-14 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5">
+                            <TabsList className="grid w-full grid-cols-6 h-14 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5">
                                 <TabsTrigger value="academic" title="Profil Civil" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                                     <User className="w-4 h-4" />
                                 </TabsTrigger>
-                                <TabsTrigger value="finance" title="Comptabilité" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                <TabsTrigger value="finance" title="Comptabilité & Cursus" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                                     <CreditCard className="w-4 h-4" />
+                                </TabsTrigger>
+                                <TabsTrigger value="attendance" title="Présences & Assiduité" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                    <Clock className="w-4 h-4" />
                                 </TabsTrigger>
                                 <TabsTrigger value="resources" title="Outils Trading" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                                     <LayoutDashboard className="w-4 h-4" />
@@ -160,6 +165,10 @@ export const StudentDetailsSheet = ({
                                     setIsManualPaymentOpen={setIsManualPaymentOpen}
                                     deleteMutation={deleteMutation}
                                 />
+                            </TabsContent>
+
+                            <TabsContent value="attendance" className="outline-none">
+                                <AttendanceTab studentId={selectedStudentId || ""} />
                             </TabsContent>
 
                             <TabsContent value="resources" className="outline-none">

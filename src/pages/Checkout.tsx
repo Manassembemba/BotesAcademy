@@ -28,7 +28,7 @@ const paymentSchema = z.object({
     payment_method: z.enum(['mobile_money', 'bank_transfer', 'cash_deposit', 'other']),
     amount: z.coerce.number().positive("Le montant doit être positif"),
     session_id: z.string().optional(),
-    vacation_id: z.string().optional(),
+    vacation_name: z.string().optional(),
     mt5_id: z.string().optional(),
     subscription_duration: z.enum(['1m', '3m', 'lifetime']).optional(),
 });
@@ -70,16 +70,6 @@ const Checkout = () => {
         enabled: !!productId && productType === 'course' && product?.mode !== 'online',
     });
 
-    const { data: vacations } = useQuery({
-        queryKey: ['checkoutVacations', productId],
-        queryFn: async () => {
-            if (!productId || productType !== 'course' || product?.mode === 'online') return [];
-            const { data } = await supabase.from('course_vacations' as any).select('*').eq('course_id', productId);
-            return data || [];
-        },
-        enabled: !!productId && productType === 'course' && product?.mode !== 'online',
-    });
-
     const form = useForm<PaymentFormValues>({
         resolver: zodResolver(paymentSchema),
         defaultValues: { payment_method: 'mobile_money', amount: 0, subscription_duration: '1m' },
@@ -111,6 +101,7 @@ const Checkout = () => {
             const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(filePath);
             const proof_url = urlData.publicUrl;
 
+            const selectedSession = sessions?.find(s => s.id === data.session_id);
             const insertData: any = {
                 user_id: user.id,
                 proof_url,
@@ -120,7 +111,7 @@ const Checkout = () => {
                 course_id: productType === 'course' ? productId : null,
                 indicator_id: productType === 'indicator' ? productId : null,
                 strategy_id: productType === 'strategy' ? productId : null,
-                vacation_id: (productType === 'course' && product?.mode !== 'online' && data.vacation_id) ? data.vacation_id : null,
+                vacation_name: (productType === 'course' && product?.mode !== 'online' && selectedSession) ? selectedSession.vacation_name : null,
                 session_id: (productType === 'course' && product?.mode !== 'online' && data.session_id) ? data.session_id : null,
                 mt5_id: data.mt5_id || null,
                 subscription_duration: data.subscription_duration || (productType === 'indicator' ? '1m' : null),
@@ -263,22 +254,20 @@ const Checkout = () => {
                       </div>
                       
                       {productType === 'course' && product?.mode !== 'online' && (
-                        <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-6">
                           <FormField control={form.control} name="session_id" render={({ field }) => (
                              <FormItem className="space-y-3">
-                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Choix de la session</FormLabel>
+                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Session & Créneau Horaire</FormLabel>
                                <Select onValueChange={field.onChange} value={field.value}>
-                                 <FormControl><SelectTrigger className="h-14 rounded-2xl border-2 border-border/50 font-bold italic px-6 focus:border-primary/50"><SelectValue placeholder="Séléctionnez une cohorte" /></SelectTrigger></FormControl>
-                                 <SelectContent className="rounded-2xl border-none shadow-2xl p-2">{sessions?.map((s: any) => (<SelectItem key={s.id} value={s.id} className="rounded-xl font-bold italic py-3">{s.session_name} ({format(new Date(s.start_date), 'dd MMM', { locale: fr })})</SelectItem>))}</SelectContent>
-                               </Select>
-                             </FormItem>
-                          )} />
-                          <FormField control={form.control} name="vacation_id" render={({ field }) => (
-                             <FormItem className="space-y-3">
-                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Créneau horaire</FormLabel>
-                               <Select onValueChange={field.onChange} value={field.value}>
-                                 <FormControl><SelectTrigger className="h-14 rounded-2xl border-2 border-border/50 font-bold italic px-6 focus:border-primary/50"><SelectValue placeholder="Heure préférée" /></SelectTrigger></FormControl>
-                                 <SelectContent className="rounded-2xl border-none shadow-2xl p-2">{vacations?.map((v: any) => (<SelectItem key={v.id} value={v.id} className="rounded-xl font-bold italic py-3">{v.name} ({v.time_range})</SelectItem>))}</SelectContent>
+                                 <FormControl><SelectTrigger className="h-14 rounded-2xl border-2 border-border/50 font-bold italic px-6 focus:border-primary/50"><SelectValue placeholder="Séléctionnez votre session" /></SelectTrigger></FormControl>
+                                 <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
+                                    {sessions?.map((s: any) => (
+                                        <SelectItem key={s.id} value={s.id} className="rounded-xl font-bold italic py-3 text-xs">
+                                            {s.session_name} {s.vacation_name ? `(${s.vacation_name})` : ''} — Dès le {format(new Date(s.start_date), 'dd MMM', { locale: fr })}
+                                        </SelectItem>
+                                    ))}
+                                    {sessions?.length === 0 && <SelectItem value="none" disabled>Aucune session disponible</SelectItem>}
+                                 </SelectContent>
                                </Select>
                              </FormItem>
                           )} />

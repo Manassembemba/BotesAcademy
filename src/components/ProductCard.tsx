@@ -124,55 +124,49 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-                <CardHeader className="p-0 relative aspect-[16/11] overflow-hidden">
+                <CardHeader className="p-0 relative aspect-[16/10] overflow-hidden">
                     <img
                         src={product.image || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80"}
                         alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110 group-hover:rotate-1"
+                        className="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-90" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-60" />
                     
-                    <div className="absolute top-8 left-8 flex flex-wrap gap-3 z-10">
-                        <Badge className="bg-primary/20 backdrop-blur-xl text-primary border-primary/30 shadow-2xl uppercase font-black text-[10px] tracking-[0.3em] px-5 py-2 rounded-full relative overflow-hidden group/badge">
-                            <span className="relative z-10 flex items-center gap-2">
-                                <Zap className="w-3 h-3 fill-current" />
-                                {product.type === 'strategy' ? 'Ressource' : 'Outil Gold'}
-                            </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/badge:translate-x-full transition-transform duration-1000 ease-in-out" />
+                    <div className="absolute top-6 left-6 flex flex-wrap gap-2 z-10">
+                        <Badge className="bg-primary/20 backdrop-blur-md text-primary border-primary/20 font-bold text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                            {product.type === 'strategy' ? 'Ressource' : 'Outil Gold'}
                         </Badge>
                         {hasPurchased && (
                             <Badge className={cn(
-                                "text-white border-none shadow-2xl font-black text-[10px] uppercase px-5 py-2 rounded-full",
-                                isExpired ? "bg-destructive animate-pulse" : "bg-emerald-500"
+                                "text-white border-none font-bold text-[9px] uppercase px-4 py-1.5 rounded-full shadow-lg",
+                                isExpired ? "bg-destructive" : "bg-emerald-600"
                             )}>
-                                {isExpired ? <AlertCircle className="w-3 h-3 mr-2" /> : <CheckCircle2 className="w-3 h-3 mr-2" />}
                                 {isExpired ? 'Expiré' : 'Actif'}
                             </Badge>
                         )}
                     </div>
                 </CardHeader>
 
-                <CardContent className="p-10 flex-1 space-y-8 relative z-10">
+                <CardContent className="p-6 flex-1 space-y-6 relative z-10">
                     <div>
-                        <h3 className="text-3xl font-black italic tracking-tighter uppercase mb-4 group-hover:text-primary transition-colors leading-none">
+                        <h3 className="text-2xl font-black italic tracking-tighter uppercase mb-2 group-hover:text-primary transition-colors leading-tight">
                             {product.name}
                         </h3>
-                        <p className="text-muted-foreground text-sm line-clamp-2 font-medium leading-relaxed">
+                        <p className="text-muted-foreground text-xs line-clamp-2 font-medium">
                             {product.description}
                         </p>
                     </div>
 
                     {hasPurchased && purchaseDetails && (
-                        <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/20 space-y-3 relative overflow-hidden group/details">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl rounded-full" />
-                            <div className="flex justify-between items-center relative z-10">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[0.3em]">Identifiant MT5</span>
-                                <span className="font-mono font-black text-primary text-sm bg-primary/10 px-3 py-1 rounded-lg">{purchaseDetails.mt5_id}</span>
+                        <div className="p-4 bg-muted/50 rounded-2xl border border-border/50 space-y-2">
+                            <div className="flex justify-between items-center text-[10px]">
+                                <span className="font-bold text-muted-foreground uppercase tracking-widest">ID MT5</span>
+                                <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{purchaseDetails.mt5_id}</span>
                             </div>
                             {purchaseDetails.expires_at && (
-                                <div className="flex justify-between items-center relative z-10">
-                                    <span className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[0.3em]">Fin de licence</span>
-                                    <span className={cn("text-xs font-black italic", isExpired ? "text-destructive" : "text-foreground")}>
+                                <div className="flex justify-between items-center text-[10px]">
+                                    <span className="font-bold text-muted-foreground uppercase tracking-widest">Expire le</span>
+                                    <span className={cn("font-bold", isExpired ? "text-destructive" : "text-foreground")}>
                                         {format(new Date(purchaseDetails.expires_at), 'dd MMM yyyy', { locale: fr })}
                                     </span>
                                 </div>
@@ -180,58 +174,51 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
                         </div>
                     )}
 
-                    <div className="space-y-3">
-                        <p className="text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground/40 ml-1">Ecosystème :</p>
-                        <div className="flex flex-wrap gap-3">
-                            {product.compatibility?.map((item) => (
-                                <Badge key={item} variant="outline" className="text-[10px] uppercase font-black tracking-widest bg-muted/30 border-border/40 px-4 py-1.5 rounded-xl hover:bg-primary/10 hover:border-primary/20 transition-colors">
-                                    {item}
-                                </Badge>
-                            ))}
-                        </div>
+                    <div className="flex flex-wrap gap-2">
+                        {product.compatibility?.map((item) => (
+                            <div key={item} className="text-[9px] font-bold uppercase tracking-widest bg-muted px-3 py-1 rounded-lg text-muted-foreground border border-border/20">
+                                {item}
+                            </div>
+                        ))}
                     </div>
                 </CardContent>
 
-                <CardFooter className="p-10 pt-0 flex items-center justify-between border-t border-border/10 bg-muted/5 mt-auto relative z-10">
+                <CardFooter className="p-6 pt-0 flex items-center justify-between mt-auto relative z-10">
                     <div className="flex flex-col">
-                        <span className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-[0.4em] mb-2">
-                            {product.type === 'indicator' ? 'Abonnement' : 'Acquisition'}
-                        </span>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-primary italic leading-none tracking-tighter">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Tarif</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-primary italic tracking-tighter leading-none">
                                 {product.type === 'indicator' ? product.price_1m : product.price}
                             </span>
-                            <span className="text-sm font-black text-primary/40 uppercase">USD</span>
+                            <span className="text-[10px] font-bold text-primary/40 uppercase">USD</span>
                         </div>
                     </div>
 
                     {hasPurchased && !isExpired ? (
                         <Button
                             onClick={handleAction}
-                            size="lg"
+                            size="default"
                             disabled={isFetchingSecret}
                             className={cn(
-                                "rounded-3xl font-black uppercase tracking-widest px-10 h-14 shadow-2xl transition-all hover:scale-105 active:scale-95",
+                                "rounded-xl font-bold uppercase tracking-widest px-6 h-12 transition-all",
                                 purchaseDetails?.delivered_file_url 
-                                    ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" 
-                                    : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                                    ? "bg-emerald-600 hover:bg-emerald-700" 
+                                    : "bg-amber-500 hover:bg-amber-600"
                             )}
                         >
-                            {isFetchingSecret ? <Loader2 className="w-5 h-5 mr-3 animate-spin" /> : (purchaseDetails?.delivered_file_url ? <Download className="w-5 h-5 mr-3" /> : <Clock className="w-5 h-5 mr-3" />)}
-                            {purchaseDetails?.delivered_file_url ? 'Télécharger' : 'En attente...'}
+                            {isFetchingSecret ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : (purchaseDetails?.delivered_file_url ? <Download className="w-4 h-4 mr-2" /> : <Clock className="w-4 h-4 mr-2" />)}
+                            {purchaseDetails?.delivered_file_url ? 'Télécharger' : 'En cours...'}
                         </Button>
                     ) : (
                         <Button 
                             onClick={handleBuyClick}
-                            size="lg" 
-                            className="rounded-3xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest px-10 h-14 shadow-glow-primary group/btn relative overflow-hidden transition-all hover:scale-110 active:scale-95 border-2 border-white/10"
+                            size="default" 
+                            className="rounded-xl bg-primary hover:bg-primary/90 text-white font-bold uppercase tracking-widest px-6 h-12 group/btn relative overflow-hidden transition-all shadow-glow-primary-sm"
                         >
-                            <span className="relative z-10 flex items-center">
-                                <ShoppingCart className="w-5 h-5 mr-4" />
+                            <span className="relative z-10 flex items-center gap-2">
+                                <ShoppingCart className="w-4 h-4" />
                                 {isExpired ? 'Renouveler' : 'Acheter'}
-                                <ArrowRight className="w-5 h-5 ml-3 transition-transform group-hover/btn:translate-x-2" />
                             </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         </Button>
                     )}
                 </CardFooter>

@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface FinanceTabProps {
     selectedStudent: any;
@@ -105,7 +107,15 @@ export const FinanceTab = ({
                             >
                                 {/* Statut Visuel Principal */}
                                 <div className="absolute top-0 right-0 overflow-hidden rounded-bl-[2.5rem]">
-                                    {balance === 0 ? (
+                                    {purchase.is_disputed ? (
+                                        <div className="bg-purple-600 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 animate-pulse">
+                                            <AlertTriangle className="w-3 h-3" /> ⚖️ Litige Financier ({purchase.dispute_reason || 'En cours'})
+                                        </div>
+                                    ) : purchase.enrollment_status === 'graduated' ? (
+                                        <div className="bg-purple-600 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                            <CheckCircle2 className="w-3 h-3" /> 🎓 Formation Terminée & Diplômé
+                                        </div>
+                                    ) : balance === 0 ? (
                                         <div className="bg-emerald-500 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
                                             <CheckCircle2 className="w-3 h-3" /> Dossier Soldé
                                         </div>
@@ -184,7 +194,26 @@ export const FinanceTab = ({
                                         <FileText className="w-4 h-4 opacity-60" /> Historique Tranches
                                     </Button>
                                     
-                                    {balance > 0 && (
+                                    {purchase.is_disputed ? (
+                                        <Button 
+                                            className="flex-1 rounded-[1.5rem] h-14 bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg gap-2" 
+                                            onClick={async () => {
+                                                const notes = prompt("Note de régularisation / Accord amiable :", "Régularisation litige validée par la direction");
+                                                if (notes !== null) {
+                                                    const { error } = await supabase.rpc('resolve_student_dispute_and_pay', { 
+                                                        p_purchase_id: purchase.id,
+                                                        p_payment_amount: balance > 0 ? balance : 0,
+                                                        p_payment_method: 'cash',
+                                                        p_resolution_notes: notes
+                                                    });
+                                                    if (error) toast.error(error.message);
+                                                    else toast.success("Litige régularisé et dossier remis en règle !");
+                                                }
+                                            }}
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" /> Régulariser le Litige
+                                        </Button>
+                                    ) : balance > 0 ? (
                                         <Button 
                                             className="flex-1 rounded-[1.5rem] h-14 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-glow-primary gap-3 hover:scale-[1.02] transition-transform" 
                                             onClick={() => {
@@ -193,9 +222,22 @@ export const FinanceTab = ({
                                                 setIsManualPaymentOpen(true);
                                             }}
                                         >
-                                            <Landmark className="w-4 h-4" /> Solder le Reste (${balance})
+                                            <Landmark className="w-4 h-4" /> Solder (${balance})
                                         </Button>
-                                    )}
+                                    ) : purchase.enrollment_status !== 'graduated' ? (
+                                        <Button 
+                                            className="flex-1 rounded-[1.5rem] h-14 bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg gap-2" 
+                                            onClick={async () => {
+                                                if (confirm(`Confirmer la réussite et la fin de formation de cet étudiant pour ${purchase.courses?.title} ?`)) {
+                                                    const { error } = await supabase.rpc('graduate_student', { p_purchase_id: purchase.id });
+                                                    if (error) toast.error(error.message);
+                                                    else toast.success("Étudiant diplômé et formation clôturée !");
+                                                }
+                                            }}
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" /> Clôturer & Diplômer
+                                        </Button>
+                                    ) : null}
 
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>

@@ -50,41 +50,75 @@ serve(async (req) => {
       throw new Error('[PARSE] Corps de la requête invalide (JSON malformé)')
     }
 
-    const { email, fullName, mt5Id, courseId, sessionId, vacationId, amount, paymentMethod, adminId } = body
-    log('PARSE_BODY', 'OK', { email, fullName, mt5Id, courseId, sessionId, vacationId, amount, paymentMethod, adminId })
+    const { email, fullName, phone, mt5Id, courseId, sessionId, vacationName, amount, paymentMethod, adminId } = body
+    
+    const sanitizedFullName = String(fullName || '').trim()
+    const sanitizedPhone = String(phone || '').trim()
+    let sanitizedEmail = String(email || '').trim().toLowerCase()
+
+    // Si pas d'email fourni OU email invalide → générer un identifiant interne automatique
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!sanitizedEmail || !emailRegex.test(sanitizedEmail)) {
+      const cleanPhone = sanitizedPhone.replace(/\D/g, '')
+      const uniqueSuffix = cleanPhone ? cleanPhone : `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+      const fallbackEmail = `etudiant_${uniqueSuffix}@botesacademy.cd`
+      log('EMAIL_FALLBACK', 'INFO', { originalEmail: sanitizedEmail || '(vide)', generatedEmail: fallbackEmail })
+      sanitizedEmail = fallbackEmail
+    } else {
+      log('EMAIL_VALID', 'INFO', { email: sanitizedEmail })
+    }
+
+    // Normalisation du mode de paiement pour respecter la contrainte
+    const validMethods = ['cash', 'cash_deposit', 'mobile_money', 'bank_transfer', 'pos', 'card', 'other']
+    const sanitizedPaymentMethod = validMethods.includes(paymentMethod) ? paymentMethod : 'cash'
+    
+    log('PARSE_BODY', 'OK', { email: sanitizedEmail, fullName: sanitizedFullName, phone: sanitizedPhone, mt5Id, courseId, sessionId, vacationName, amount, paymentMethod: sanitizedPaymentMethod, adminId })
 
     // -- Validation des champs requis
-    if (!email || !fullName || !courseId) {
-      log('VALIDATE', 'ERROR', { email: !!email, fullName: !!fullName, courseId: !!courseId })
-      throw new Error('[VALIDATE] Champs requis manquants : email, fullName, courseId')
+    if (!sanitizedFullName || !courseId) {
+      log('VALIDATE', 'ERROR', { fullName: !!sanitizedFullName, courseId: !!courseId })
+      throw new Error('[VALIDATE] Champs requis manquants : nom complet et formation obligatoire')
     }
     log('VALIDATE', 'OK')
 
-    // -- ETAPE 1 : Création du compte Auth
-    // Note: Le trigger 'on_auth_user_created' créera automatiquement le profil dans la table 'profiles'
-    // et notre nouveau trigger 'trigger_assign_matricule' lui attribuera son matricule officiel.
-    log('AUTH_CREATE_USER', 'START', { email })
+    // -- ETAPE 1 : Création ou Récupération du compte Auth
+    log('AUTH_CREATE_USER', 'START', { email: sanitizedEmail })
     const tempPassword = generateSecurePassword()
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: sanitizedEmail,
       password: tempPassword,
       email_confirm: true,
-      user_metadata: { full_name: fullName }
+      user_metadata: { full_name: sanitizedFullName, phone: sanitizedPhone }
     })
 
     if (authError) {
-      log('AUTH_CREATE_USER', 'ERROR', { code: authError.status, message: authError.message })
-      throw new Error(`[AUTH] ${authError.message}`)
+      // Si l'utilisateur existe déjà, on récupère son ID existant
+      if (authError.status === 422 || authError.message.includes('already')) {
+        log('AUTH_CREATE_USER', 'INFO', { message: 'Email déjà enregistré, récupération du compte existant...' })
+        const { data: listData } = await supabaseAdmin.auth.admin.listUsers()
+        const existingUser = listData?.users?.find((u: any) => u.email?.toLowerCase() === sanitizedEmail)
+        
+        if (existingUser) {
+          userId = existingUser.id
+          log('AUTH_CREATE_USER', 'OK', { userId, isExisting: true })
+        } else {
+          throw new Error(`[AUTH] ${authError.message}`)
+        }
+      } else {
+        log('AUTH_CREATE_USER', 'ERROR', { code: authError.status, message: authError.message })
+        throw new Error(`[AUTH] ${authError.message}`)
+      }
+    } else {
+      userId = authData.user.id
+      log('AUTH_CREATE_USER', 'OK', { userId })
     }
-    userId = authData.user.id
-    log('AUTH_CREATE_USER', 'OK', { userId })
 
     // -- ETAPE 2 : Génération du Magic Link de reset
-    log('AUTH_GENERATE_LINK', 'START', { email })
+    log('AUTH_GENERATE_LINK', 'START', { email: sanitizedEmail })
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://botesacademy.com'
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
-      email,
+      email: sanitizedEmail,
       options: { redirectTo: `${siteUrl}/update-password` }
     })
 
@@ -111,7 +145,7 @@ serve(async (req) => {
       user_id: userId,
       course_id: courseId,
       session_id: sessionId || null,
-      vacation_id: (vacationId && vacationId !== 'none') ? vacationId : null,
+      vacation_name: vacationName || null, // Switched from vacation_id
       amount: amount,
       total_amount: totalToPay,
       paid_amount: amount,
@@ -134,6 +168,7 @@ serve(async (req) => {
     log('INIT_PROFILE', 'START', { userId })
     const { error: profileError } = await supabaseAdmin.from('profiles').update({
       registration_source: 'admin',
+      phone: sanitizedPhone || null,
       mt5_id: mt5Id || null,
       profile_completed: false
     }).eq('id', userId)
@@ -150,9 +185,9 @@ serve(async (req) => {
       user_id: userId,
       course_id: courseId,
       session_id: sessionId || null,
-      vacation_id: (vacationId && vacationId !== 'none') ? vacationId : null,
+      vacation_name: vacationName || null, // Switched from vacation_id
       amount,
-      payment_method: paymentMethod,
+      payment_method: sanitizedPaymentMethod,
       mt5_id: mt5Id || null,
       status: 'approved',
       validated_at: new Date().toISOString(),
@@ -195,9 +230,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    log('FUNCTION', 'ERROR', { message: error.message, userId })
+    log('FUNCTION', 'ERROR', { message: (error as Error).message, userId })
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }

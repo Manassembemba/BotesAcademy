@@ -38,16 +38,17 @@ const IndicatorDelivery = () => {
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
     const { data: purchases, isLoading } = useQuery({
-        queryKey: ['adminIndicatorPurchases'],
+        queryKey: ['adminIndicatorPurchasesUnified'],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from('indicator_purchases')
+                .from('purchases')
                 .select(`
                     *,
                     profiles:user_id (full_name),
-                    admin_profile:admin_id (full_name),
+                    admin_profile:validated_by (full_name),
                     indicators:indicator_id (name)
                 `)
+                .eq('product_type', 'indicator')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -95,11 +96,11 @@ const IndicatorDelivery = () => {
 
             // 3. Update database with traceability and the original filename
             const { error: updateError } = await supabase
-                .from('indicator_purchases')
+                .from('purchases')
                 .update({ 
                     delivered_file_url: urlData.publicUrl,
                     delivered_file_name: file.name,
-                    admin_id: user.id,
+                    validated_by: user.id,
                     delivery_status: 'delivered',
                     delivered_at: new Date().toISOString()
                 } as any)

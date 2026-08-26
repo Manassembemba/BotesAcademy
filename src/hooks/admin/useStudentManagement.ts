@@ -45,8 +45,16 @@ export const useStudentManagement = (
             }
 
             if (filters.courseId && filters.courseId !== 'all') {
-                // Use the UUID array for filtering
                 query = query.contains('course_ids', [filters.courseId]);
+            }
+
+            // Application du filtre de statut
+            if (filters.status && filters.status !== 'all') {
+                if (filters.status === 'banned') {
+                    query = query.not('banned_until', 'is', null).gt('banned_until', new Date().toISOString());
+                } else if (filters.status === 'active') {
+                    query = query.or('banned_until.is.null,banned_until.lte.' + new Date().toISOString());
+                }
             }
 
             const from = (page - 1) * pageSize;
@@ -69,7 +77,7 @@ export const useStudentManagement = (
                     fullName: student.full_name,
                     courseId: student.course_id,
                     sessionId: student.session_id || null,
-                    vacationId: student.vacation_id && student.vacation_id !== "none" ? student.vacation_id : null,
+                    vacationName: student.vacation_name || null,
                     amount: student.amount,
                     paymentMethod: student.payment_method,
                     adminId: user?.id

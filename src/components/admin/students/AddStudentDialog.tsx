@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { Mail, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +19,8 @@ const studentSchema = z.object({
     email: z.string().email("Format d'email invalide"),
     mt5_id: z.string().optional(),
     course_id: z.string().min(1, "Veuillez choisir une formation"),
-    session_id: z.string().min(1, "Veuillez choisir une session"),
-    vacation_id: z.string().optional(),
+    session_id: z.string().optional(),
+    vacation_name: z.string().default("MATIN"),
     amount: z.coerce.number().min(0, "Le montant ne peut pas être négatif"),
     payment_method: z.enum(["cash_deposit", "mobile_money", "bank_transfer"]),
     shouldNotify: z.boolean().default(true)
@@ -34,30 +35,6 @@ interface AddStudentDialogProps {
     courseSessions: any[];
     addStudentMutation: any;
 }
-
-const VacationOptions = ({ courseId }: { courseId: string }) => {
-    const { data: vacations } = useQuery({
-        queryKey: ['course-vacations-list', courseId],
-        queryFn: async () => {
-            const { data } = await supabase.from('course_vacations').select('*').eq('course_id', courseId);
-            return data || [];
-        },
-        enabled: !!courseId
-    });
-
-    if (!vacations || vacations.length === 0) return <SelectItem value="none" disabled>Aucune vacation disponible</SelectItem>;
-
-    return (
-        <>
-            <SelectItem value="none">Aucune (Par défaut)</SelectItem>
-            {vacations.map((v: any) => (
-                <SelectItem key={v.id} value={v.id}>
-                    {v.name} ({v.time_range})
-                </SelectItem>
-            ))}
-        </>
-    );
-};
 
 export const AddStudentDialog = ({
     open,
@@ -74,7 +51,7 @@ export const AddStudentDialog = ({
             mt5_id: "",
             course_id: "",
             session_id: "",
-            vacation_id: "none",
+            vacation_name: "MATIN",
             amount: 0,
             payment_method: "cash_deposit",
             shouldNotify: true
@@ -84,7 +61,9 @@ export const AddStudentDialog = ({
     const selectedCourseId = form.watch("course_id");
     const selectedSessionId = form.watch("session_id");
 
-    // Update amount when course changes
+    // Update amount and filter sessions when course changes
+    const filteredSessions = courseSessions?.filter(s => s.course_id === selectedCourseId) || [];
+
     useEffect(() => {
         if (selectedCourseId) {
             const course = allCourses.find(c => c.id === selectedCourseId);
@@ -93,6 +72,16 @@ export const AddStudentDialog = ({
             }
         }
     }, [selectedCourseId, allCourses, form]);
+
+    // Update vacation_name when session changes
+    useEffect(() => {
+        if (selectedSessionId) {
+            const session = courseSessions?.find(s => s.id === selectedSessionId);
+            if (session) {
+                form.setValue("vacation_name", session.vacation_name || "");
+            }
+        }
+    }, [selectedSessionId, courseSessions, form]);
 
     const onSubmit = (values: StudentFormValues) => {
         const { shouldNotify, ...studentData } = values;
@@ -192,54 +181,28 @@ export const AddStudentDialog = ({
                             )}
                         />
 
-                        {selectedCourseId && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                <FormField
-                                    control={form.control}
-                                    name="session_id"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-1">
-                                            <FormLabel className="text-[10px] font-black uppercase opacity-60">Session</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger className="bg-primary/5 border-primary/20 h-12 rounded-xl">
-                                                        <SelectValue placeholder="Choisir une session" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent className="rounded-xl border-primary/10">
-                                                    {courseSessions?.map(s => (
-                                                        <SelectItem key={s.id} value={s.id}>{s.session_name}</SelectItem>
-                                                    ))}
-                                                    {courseSessions?.length === 0 && <SelectItem value="none" disabled>Aucune session</SelectItem>}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage className="text-[10px]" />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="vacation_id"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-1">
-                                            <FormLabel className="text-[10px] font-black uppercase opacity-60">Vacation</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedSessionId}>
-                                                <FormControl>
-                                                    <SelectTrigger className="bg-primary/5 border-primary/20 h-12 rounded-xl">
-                                                        <SelectValue placeholder="Choisir une vacation" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent className="rounded-xl border-primary/10">
-                                                    <VacationOptions courseId={selectedCourseId} />
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage className="text-[10px]" />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        )}
+                        <FormField
+                            control={form.control}
+                            name="vacation_name"
+                            render={({ field }) => (
+                                <FormItem className="space-y-1">
+                                    <FormLabel className="text-[10px] font-black uppercase opacity-60">Horaire de Cours Souhaité</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value || "MATIN"}>
+                                        <FormControl>
+                                            <SelectTrigger className="bg-primary/5 border-primary/20 h-12 rounded-xl">
+                                                <SelectValue placeholder="Choisir un horaire" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="rounded-xl border-primary/10">
+                                            <SelectItem value="MATIN">☀️ Matin (08h00 - 11h00)</SelectItem>
+                                            <SelectItem value="MIDI">🌅 Midi (11h30 - 14h30)</SelectItem>
+                                            <SelectItem value="SOIR">🌙 Soir (16h00 - 19h00)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage className="text-[10px]" />
+                                </FormItem>
+                            )}
+                        />
 
                         <div className="grid grid-cols-2 gap-4">
                             <FormField

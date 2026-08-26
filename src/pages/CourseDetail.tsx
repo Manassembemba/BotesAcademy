@@ -135,6 +135,8 @@ const CourseDetail = () => {
   });
 
   const isEnrolled = enrollment?.validation_status === 'approved';
+  const isPendingValidation = enrollment?.validation_status === 'pending';
+  const isRejected = enrollment?.validation_status === 'rejected';
 
   const enrollMutation = useMutation({
     mutationFn: async () => {
@@ -153,7 +155,7 @@ const CourseDetail = () => {
     onSuccess: () => {
       toast.success("Accès débloqué ! Bonne formation.");
       queryClient.invalidateQueries({ queryKey: ['userEnrollment', courseId] });
-      // Ici on pourrait rediriger vers le player de la première leçon
+      navigate(`/formations/${courseId}/content`);
     },
     onError: (error: any) => toast.error(`Erreur: ${error.message}`),
   });
@@ -176,8 +178,23 @@ const CourseDetail = () => {
     }
 
     if (isEnrolled) {
-      // Rediriger vers le player
       navigate(`/formations/${courseId}/content`);
+      return;
+    }
+
+    if (isPendingValidation) {
+      toast.info("Paiement en cours de vérification", {
+        description: "Votre accès sera débloqué dès qu'un administrateur aura validé votre reçu.",
+      });
+      navigate('/finance');
+      return;
+    }
+
+    if (isRejected) {
+      toast.error("Paiement rejeté", {
+        description: "Veuillez vérifier vos informations de paiement ou contacter le support.",
+      });
+      navigate('/finance');
       return;
     }
 
@@ -205,6 +222,8 @@ const CourseDetail = () => {
   const getButtonLabel = () => {
     if (enrollMutation.isPending) return "Traitement...";
     if (isEnrolled) return "Continuer l'apprentissage";
+    if (isPendingValidation) return "Validation en cours...";
+    if (isRejected) return "Paiement Rejeté";
     if (course.price === 0 || !course.is_paid) return "Accéder gratuitement";
     return course.mode === 'online' ? "Acheter la formation" : "Réserver ma place";
   };
@@ -240,7 +259,7 @@ const CourseDetail = () => {
                   {course.full_price && isPromoActive && <p className="text-xs text-muted-foreground line-through -mt-1">{course.full_price}$</p>}
                 </div>
                 <Button onClick={handleEnroll} size="lg" className="rounded-xl font-bold uppercase text-xs tracking-widest hidden sm:flex">
-                  S'inscrire <ArrowRight className="w-4 h-4 ml-2" />
+                  {getButtonLabel()} <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
             </div>
@@ -306,7 +325,7 @@ const CourseDetail = () => {
                 <Button onClick={handleEnroll} size="lg" className="w-full sm:w-auto rounded-xl px-8 h-14 shadow-md font-black uppercase text-[10px] tracking-widest border border-white/5 group overflow-hidden relative">
                   <span className="relative z-10 flex items-center">
                     <Zap className="mr-2 w-4 h-4 fill-current" /> 
-                    Rejoindre le Cursus
+                    {getButtonLabel()}
                   </span>
                   <div className="absolute inset-0 bg-primary opacity-90 group-hover:bg-primary/80 transition-colors" />
                 </Button>

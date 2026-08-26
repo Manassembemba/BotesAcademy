@@ -78,7 +78,6 @@ const Finance = () => {
   };
 
   return (
-  return (
     <div className="min-h-screen bg-mesh-gradient relative overflow-hidden flex flex-col">
       <Navbar />
       

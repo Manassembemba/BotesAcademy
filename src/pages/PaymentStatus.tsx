@@ -30,8 +30,7 @@ const PaymentStatus = () => {
                     *,
                     courses:course_id (id, title, thumbnail_url, mode),
                     profiles:user_id (full_name),
-                    sessions:session_id (session_name, start_date),
-                    vacations:vacation_id (name, time_range)
+                    sessions:session_id (session_name, start_date)
                 `)
                 .eq('id', proofId)
                 .single();
@@ -148,7 +147,6 @@ const PaymentStatus = () => {
     const statusConfig = getStatusConfig();
     const course = paymentProof.courses as any;
     const session = paymentProof.sessions as any;
-    const vacation = paymentProof.vacations as any;
 
     return (
         <div className="min-h-screen bg-background pb-20">
@@ -217,10 +215,10 @@ const PaymentStatus = () => {
                                             <span>Session : <span className="text-foreground">{session.session_name}</span></span>
                                         </div>
                                     )}
-                                    {vacation && (
+                                    {paymentProof.vacation_name && (
                                         <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground">
                                             <Timer className="w-3.5 h-3.5 text-primary" />
-                                            <span>Créneau : <span className="text-foreground">{vacation.name} ({vacation.time_range})</span></span>
+                                            <span>Créneau : <span className="text-foreground">{paymentProof.vacation_name}</span></span>
                                         </div>
                                     )}
                                     <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground">

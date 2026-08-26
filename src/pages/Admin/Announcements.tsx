@@ -28,15 +28,18 @@ const Announcements = () => {
   });
 
   const { data: vacations } = useQuery({
-    queryKey: ["vacations-list", selectedCourse],
+    queryKey: ["vacations-list-simple", selectedCourse],
     queryFn: async () => {
       if (selectedCourse === "all") return [];
       const { data, error } = await supabase
-        .from("course_vacations")
-        .select("id, name")
-        .eq("course_id", selectedCourse);
+        .from("course_sessions")
+        .select("vacation_name")
+        .eq("course_id", selectedCourse)
+        .not("vacation_name", "is", null);
       if (error) throw error;
-      return data;
+      // Filter unique names
+      const uniqueNames = Array.from(new Set(data.map(d => d.vacation_name)));
+      return uniqueNames.map(name => ({ id: name, name }));
     },
     enabled: selectedCourse !== "all",
   });
@@ -49,8 +52,7 @@ const Announcements = () => {
         .select(`
           *,
           sender:profiles!sender_id(full_name),
-          course:courses(title),
-          vacation:course_vacations(name)
+          course:courses(title)
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -64,7 +66,7 @@ const Announcements = () => {
         title,
         message,
         course_id: selectedCourse === "all" ? null : selectedCourse,
-        vacation_id: selectedVacation === "all" ? null : selectedVacation,
+        vacation_name: selectedVacation === "all" ? null : selectedVacation,
       });
       if (error) throw error;
       return data;
@@ -199,7 +201,7 @@ const Announcements = () => {
                           <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Par {ann.sender?.full_name}</span>
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {format(new Date(ann.created_at), 'dd MMMM yyyy HH:mm', { locale: fr })}</span>
                           {ann.course && <span className="flex items-center gap-1 text-primary"><BookOpen className="w-3 h-3" /> {ann.course.title}</span>}
-                          {ann.vacation && <span className="px-2 py-0.5 bg-primary/20 rounded text-primary">{ann.vacation.name}</span>}
+                          {ann.vacation_name && <span className="px-2 py-0.5 bg-primary/20 rounded text-primary">{ann.vacation_name}</span>}
                         </div>
                       </div>
                       <Button 

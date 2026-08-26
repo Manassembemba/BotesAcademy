@@ -76,24 +76,22 @@ const Dashboard = () => {
   });
 
   const { data: purchasedTools, isLoading: isLoadingTools } = useQuery({
-    queryKey: ['purchased-tools', user?.id],
+    queryKey: ['purchased-tools-unified', user?.id],
     queryFn: async () => {
       if (!user) return { strategies: [], indicators: [] };
 
-      const [strategiesRes, indicatorsRes] = await Promise.all([
-        supabase
-          .from('strategy_purchases')
-          .select('*, strategies(*)')
-          .eq('user_id', user.id),
-        supabase
-          .from('indicator_purchases')
-          .select('*, indicators(*)')
-          .eq('user_id', user.id)
-      ]);
+      const { data: unifiedPurchases, error } = await supabase
+        .from('purchases')
+        .select('*, strategies(*), indicators(*)')
+        .eq('user_id', user.id)
+        .in('product_type', ['indicator', 'strategy'])
+        .eq('validation_status', 'approved');
+
+      if (error) throw error;
 
       return {
-        strategies: strategiesRes.data || [],
-        indicators: indicatorsRes.data || []
+        strategies: unifiedPurchases?.filter(p => p.product_type === 'strategy') || [],
+        indicators: unifiedPurchases?.filter(p => p.product_type === 'indicator') || []
       };
     },
     enabled: !!user,

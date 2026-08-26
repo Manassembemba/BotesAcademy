@@ -184,35 +184,67 @@ const FormationManagement = () => {
                     </div>
                     <CardContent className="p-8 flex-1 flex flex-col">
                         <div className="flex justify-between items-start mb-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60 italic">{course.category || "TECH"}</p>
+                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-[0.2em] border-primary/20 text-primary">
+                                {course.category || "FORMATION"}
+                            </Badge>
                             <span className="text-xl font-black italic text-foreground">{course.is_paid ? `${course.price}$` : "Libre"}</span>
                         </div>
-                        <h3 className="text-xl font-black uppercase tracking-tight italic group-hover:text-primary transition-colors leading-tight mb-4">{course.title}</h3>
+                        <h3 className="text-xl font-black uppercase tracking-tight italic group-hover:text-primary transition-colors leading-tight mb-2">{course.title}</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{course.description}</p>
                         
-                        <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                                <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/formations/${course.id}/edit`)} className="rounded-xl hover:bg-primary/10 hover:text-primary"><Edit className="w-4 h-4" /></Button>
-                                <Button size="icon" variant="ghost" onClick={() => togglePublishMutation.mutate({ id: course.id, status: course.status })} className="rounded-xl hover:bg-blue-500/10 hover:text-blue-500">
-                                    {course.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </Button>
+                        {/* CRÉNEAUX DISPONIBLES */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-[9px] font-black uppercase text-muted-foreground">Créneaux :</span>
+                          <div className="flex gap-1.5">
+                            <Badge variant="secondary" className="text-[8px] font-bold">Matin</Badge>
+                            <Badge variant="secondary" className="text-[8px] font-bold">Midi</Badge>
+                            <Badge variant="secondary" className="text-[8px] font-bold">Soir</Badge>
+                          </div>
+                        </div>
+
+                        {/* ACTION RAPIDE VOIR LES ÉTUDIANTS */}
+                        <div className="mt-auto pt-4 border-t border-white/5 space-y-3">
+                            <Link to={`/admin/attendance`} className="w-full">
+                              <Button variant="outline" size="sm" className="w-full h-10 rounded-xl font-black text-[10px] uppercase tracking-wider border-primary/30 text-primary hover:bg-primary/10">
+                                <Users className="w-3.5 h-3.5 mr-2" /> Voir les {course.purchases?.[0]?.count || 0} Inscrits & Présences
+                              </Button>
+                            </Link>
+
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/formations/${course.id}/edit`)} className="rounded-xl hover:bg-primary/10 hover:text-primary" title="Modifier le cours"><Edit className="w-4 h-4" /></Button>
+                                    <Button size="icon" variant="ghost" onClick={() => togglePublishMutation.mutate({ id: course.id, status: course.status })} className="rounded-xl hover:bg-blue-500/10 hover:text-blue-500" title={course.status === 'published' ? 'Dépublier' : 'Publier'}>
+                                        {course.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </Button>
+                                </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl bg-card border-white/10 shadow-2xl">
+                                        <DropdownMenuItem onClick={() => navigate(`/formations/${course.id}`)} className="gap-3 p-3 rounded-xl cursor-pointer">
+                                            <Globe className="w-4 h-4" /> Voir sur le site
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => navigate(`/admin/enrollment`)} className="gap-3 p-3 rounded-xl cursor-pointer">
+                                            <Users className="w-4 h-4" /> Inscrire un étudiant
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                            onClick={() => { 
+                                              const count = course.purchases?.[0]?.count || 0;
+                                              if (count > 0) {
+                                                alert(`Impossible de supprimer cette formation car ${count} étudiant(s) y sont actuellement inscrit(s).`);
+                                                return;
+                                              }
+                                              if(confirm("Supprimer cette formation ?")) deleteMutation.mutate(course.id);
+                                            }} 
+                                            className="gap-3 p-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10"
+                                        >
+                                            <Trash2 className="w-4 h-4" /> Supprimer
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl bg-card border-white/10 shadow-2xl">
-                                    <DropdownMenuItem onClick={() => navigate(`/formations/${course.id}`)} className="gap-3 p-3 rounded-xl cursor-pointer">
-                                        <Globe className="w-4 h-4" /> Voir sur le site
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                        onClick={() => { if(confirm("Supprimer cette formation ?")) deleteMutation.mutate(course.id) }} 
-                                        className="gap-3 p-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10"
-                                    >
-                                        <Trash2 className="w-4 h-4" /> Supprimer
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
                         </div>
                     </CardContent>
                   </Card>

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Home, LogOut, CreditCard, Users, Settings, TrendingUp, CheckCircle2, FileText, Upload } from "lucide-react";
+import { LayoutDashboard, Home, LogOut, CreditCard, Users, Settings, TrendingUp, CheckCircle2, FileText, Upload, BookOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -32,25 +32,29 @@ const AdminNavbar = () => {
             Dashboard
           </Link>
 
-          {!isAdmin && role !== 'teacher' && (
-            <Link
-              to="/admin/payments"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <CreditCard className="w-4 h-4" />
-              Paiements
-            </Link>
-          )}
+          <Link
+            to="/admin/enrollment"
+            className="flex items-center gap-2 text-sm text-primary font-bold hover:text-primary/80 transition-colors"
+          >
+            <Users className="w-4 h-4 text-primary" />
+            + Inscription
+          </Link>
 
-          {isAdmin && (
-            <Link
-              to="/admin/payments"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <CreditCard className="w-4 h-4" />
-              Paiements
-            </Link>
-          )}
+          <Link
+            to="/admin/attendance"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Présences
+          </Link>
+
+          <Link
+            to="/admin/debts"
+            className="flex items-center gap-2 text-sm text-amber-500 font-bold hover:text-amber-400 transition-colors"
+          >
+            <CreditCard className="w-4 h-4 text-amber-500" />
+            Paiements & Tranches
+          </Link>
 
           <Link
             to="/admin/students"
@@ -61,11 +65,11 @@ const AdminNavbar = () => {
           </Link>
 
           <Link
-            to="/admin/attendance"
+            to="/admin/formations"
             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            Émargement
+            <BookOpen className="w-4 h-4" />
+            Formations
           </Link>
 
           <Link

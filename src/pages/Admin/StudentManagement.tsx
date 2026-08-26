@@ -121,7 +121,7 @@ const StudentManagement = () => {
         queryFn: async () => {
             const { data } = await supabase
                 .from('course_sessions')
-                .select('id, session_name, course_id');
+                .select('id, session_name, vacation_name, course_id');
             return data || [];
         }
     });
@@ -138,7 +138,7 @@ const StudentManagement = () => {
                 p_payment_method: data.paymentMethod,
                 p_admin_id: user.id,
                 p_session_id: data.sessionId || null,
-                p_vacation_id: data.vacationId === 'none' ? null : data.vacationId
+                p_vacation_name: data.vacationName || null
             });
             if (error) throw error;
 
@@ -240,9 +240,9 @@ const StudentManagement = () => {
                     due_date,
                     payment_status,
                     validation_status,
+                    vacation_name,
                     courses (title),
-                    course_sessions (session_name),
-                    course_vacations (name, time_range)
+                    course_sessions (session_name)
                 `)
                 .eq('user_id', selectedStudentId);
             if (error) throw error;

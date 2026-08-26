@@ -51,10 +51,15 @@ const fetchStats = async (role: string, userId: string) => {
   const { count: courseCount } = await courseQuery;
   const { count: userCount } = await userQuery;
 
-  let totalRevenue = 0;
-  if (isAdmin) {
-    const { data: payments } = await supabase.from('payment_proofs').select('amount').eq('status', 'approved');
-    totalRevenue = payments?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+  let todayRevenue = 0;
+  if (isAdmin || role === 'receptionist') {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data: installments } = await supabase
+      .from('payment_installments')
+      .select('amount')
+      .gte('created_at', todayStart.toISOString());
+    todayRevenue = installments?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
   }
 
   let pendingPayments = 0;
@@ -63,7 +68,7 @@ const fetchStats = async (role: string, userId: string) => {
     pendingPayments = count || 0;
   }
 
-  return { courseCount, userCount, totalRevenue, pendingPayments };
+  return { courseCount, userCount, todayRevenue, pendingPayments };
 };
 
 const AdminDashboard = () => {
@@ -78,14 +83,16 @@ const AdminDashboard = () => {
   });
 
   const commandCenterItems = [
-    { title: "Formations", desc: "Catalogue & Masterplans", icon: BookOpen, path: "/admin/formations", color: "text-primary", bg: "bg-primary/10", count: stats?.courseCount },
-    { title: "Étudiants", desc: "Profils & Admissions", icon: Users, path: "/admin/students", color: "text-blue-600", bg: "bg-blue-500/10", count: stats?.userCount },
-    { title: "Paiements", desc: "Validation de preuves", icon: Wallet, path: "/admin/payments", color: "text-orange-500", bg: "bg-orange-500/10", count: stats?.pendingPayments, alert: !!stats?.pendingPayments },
-    { title: "Émargement", desc: "Suivi des présences", icon: Clock, path: "/admin/attendance", color: "text-emerald-600", bg: "bg-emerald-500/10" },
-    { title: "Comptabilité", desc: "Analytique & Flux", icon: BarChart3, path: "/admin/accounting", color: "text-indigo-600", bg: "bg-indigo-500/10", adminOnly: true },
-    { title: "Marketplace", desc: "Outils & Livraison", icon: Package, path: "/admin/tools", color: "text-amber-600", bg: "bg-amber-500/10", adminOnly: true },
-    { title: "Annonces", desc: "Communication Live", icon: Bell, path: "/admin/announcements", color: "text-pink-600", bg: "bg-pink-500/10" },
-    { title: "Configuration", desc: "Paramètres Système", icon: Settings, path: "/admin/settings", color: "text-slate-600", bg: "bg-slate-500/10", adminOnly: true },
+    { title: "Nouvelle Inscription", desc: "Admission étudiant & tranches", icon: Users, path: "/admin/enrollment", color: "text-primary", bg: "bg-primary/10" },
+    { title: "Feuille de Présence", desc: "Pointage Matin / Midi / Soir", icon: Clock, path: "/admin/attendance", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+    { title: "Paiements & Tranches", desc: "Suivi des dettes & relances", icon: CreditCard, path: "/admin/debts", color: "text-amber-600", bg: "bg-amber-500/10" },
+    { title: "Formations & Cours", desc: "Catalogue & Programmes", icon: BookOpen, path: "/admin/formations", color: "text-blue-600", bg: "bg-blue-500/10", count: stats?.courseCount },
+    { title: "Gestion Étudiants", desc: "Profils & Dossiers scolaires", icon: Users, path: "/admin/students", color: "text-indigo-600", bg: "bg-indigo-500/10", count: stats?.userCount },
+    { title: "Validation Paiements", desc: "Preuves et bordereaux", icon: Wallet, path: "/admin/payments", color: "text-orange-500", bg: "bg-orange-500/10", count: stats?.pendingPayments, alert: !!stats?.pendingPayments },
+    { title: "Comptabilité & Caisse", desc: "Recettes, flux & analytique", icon: BarChart3, path: "/admin/accounting", color: "text-purple-600", bg: "bg-purple-500/10", adminOnly: true },
+    { title: "Boutique & Marketplace", desc: "Outils de trading & licences", icon: Package, path: "/admin/tools", color: "text-pink-600", bg: "bg-pink-500/10", adminOnly: true },
+    { title: "Annonces & Infos", desc: "Communications aux élèves", icon: Bell, path: "/admin/announcements", color: "text-teal-600", bg: "bg-teal-500/10" },
+    { title: "Paramètres", desc: "Configuration du système", icon: Settings, path: "/admin/settings", color: "text-slate-600", bg: "bg-slate-500/10", adminOnly: true },
   ];
 
   return (
@@ -93,16 +100,16 @@ const AdminDashboard = () => {
       {/* HEADER STRATÉGIQUE */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-[0.4em] px-4 py-1.5 rounded-full italic">Operational Status: Optimal</Badge>
+          <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-[0.4em] px-4 py-1.5 rounded-full italic">Statut Opérationnel : Optimal</Badge>
           <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">
-            COMMAND <span className="text-primary">CENTER</span>
+            TABLEAU DE BORD <span className="text-primary">ADMIN</span>
           </h1>
-          <p className="text-muted-foreground font-medium text-sm md:text-lg italic opacity-60">Bienvenue sur le cockpit de pilotage de Botes Academy.</p>
+          <p className="text-muted-foreground font-medium text-sm md:text-lg italic opacity-60">Pilotage pédagogique et financier de Botes Academy.</p>
         </div>
         <div className="flex items-center gap-4">
             <Link to="/admin/formations/new">
                 <Button className="h-16 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-glow-primary group overflow-hidden relative border-2 border-white/10">
-                    <span className="relative z-10 flex items-center gap-3"><PlusCircle className="w-5 h-5" /> Nouveau Cursus</span>
+                    <span className="relative z-10 flex items-center gap-3"><PlusCircle className="w-5 h-5" /> Nouvelle Formation</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
             </Link>
@@ -135,15 +142,17 @@ const AdminDashboard = () => {
             </CardContent>
         </Card>
 
-        {isAdmin && (
+        {(isAdmin || role === 'receptionist') && (
             <Card className="rounded-[2.5rem] border-white/5 bg-card/40 backdrop-blur-md shadow-2xl overflow-hidden group hover:border-emerald-500/30 transition-all duration-500">
                 <CardContent className="p-8 flex items-center gap-6">
                     <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-glow-emerald transition-transform group-hover:rotate-12">
                         <TrendingUp className="w-8 h-8" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Revenus (Net)</p>
-                        <p className="text-4xl font-black italic tracking-tighter">${stats?.totalRevenue || 0}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">
+                          Encaissé Aujourd'hui
+                        </p>
+                        <p className="text-4xl font-black italic tracking-tighter text-foreground">${stats?.todayRevenue || 0}</p>
                     </div>
                 </CardContent>
             </Card>

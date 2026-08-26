@@ -55,10 +55,6 @@ export const getDailyReportTemplate = (stats: any) => {
                     <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"><strong>Absences Signalées :</strong></td>
                     <td style="text-align: right; padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #f59e0b; font-weight: bold;">${stats.absences}</td>
                 </tr>
-                <tr>
-                    <td style="padding: 10px 0;"><strong>Commentaires à traiter :</strong></td>
-                    <td style="text-align: right; padding: 10px 0; color: #ef4444; font-weight: bold;">${stats.comments}</td>
-                </tr>
             </table>
         </div>
 

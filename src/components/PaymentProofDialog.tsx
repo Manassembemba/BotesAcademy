@@ -17,7 +17,8 @@ const paymentProofSchema = z.object({
     payment_method: z.enum(['mobile_money', 'bank_transfer', 'cash_deposit', 'other']),
     transaction_reference: z.string().optional(),
     amount: z.coerce.number().positive("Le montant doit être positif"),
-    vacation_id: z.string().optional(),
+    vacation_name: z.string().optional(),
+    session_id: z.string().optional(),
 });
 
 type PaymentProofFormValues = z.infer<typeof paymentProofSchema>;
@@ -36,11 +37,11 @@ export const PaymentProofDialog = ({ isOpen, onClose, courseId, courseTitle, cou
     const [proofFile, setProofFile] = useState<File | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
 
-    const { data: vacations } = useQuery({
-        queryKey: ['courseVacations', courseId],
+    const { data: sessions } = useQuery({
+        queryKey: ['courseSessions', courseId],
         queryFn: async () => {
             if (!courseId) return [];
-            const { data, error } = await supabase.from('course_vacations' as any).select('*').eq('course_id', courseId);
+            const { data, error } = await supabase.from('course_sessions').select('*').eq('course_id', courseId).eq('is_active', true);
             if (error) throw error;
             return data || [];
         },
@@ -53,7 +54,8 @@ export const PaymentProofDialog = ({ isOpen, onClose, courseId, courseTitle, cou
             payment_method: 'mobile_money',
             transaction_reference: '',
             amount: coursePrice,
-            vacation_id: '',
+            vacation_name: '',
+            session_id: '',
         },
     });
 
@@ -89,7 +91,8 @@ export const PaymentProofDialog = ({ isOpen, onClose, courseId, courseTitle, cou
                     amount: data.amount,
                     transaction_reference: data.transaction_reference || null,
                     status: 'pending',
-                    vacation_id: data.vacation_id || null,
+                    session_id: data.session_id || null,
+                    vacation_name: data.vacation_name || null,
                 });
 
             if (insertError) throw insertError;
@@ -194,23 +197,32 @@ export const PaymentProofDialog = ({ isOpen, onClose, courseId, courseTitle, cou
                             )}
                         />
 
-                        {vacations && vacations.length > 0 && (
+                        {sessions && sessions.length > 0 && (
                             <FormField
                                 control={form.control}
-                                name="vacation_id"
+                                name="session_id"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Créneau Horaire (Vacation)</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormLabel>Session & Créneau Horaire</FormLabel>
+                                        <Select 
+                                            onValueChange={(val) => {
+                                                field.onChange(val);
+                                                const selected = sessions.find(s => s.id === val);
+                                                if (selected) {
+                                                    form.setValue('vacation_name', selected.vacation_name || selected.session_name);
+                                                }
+                                            }} 
+                                            value={field.value}
+                                        >
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Sélectionner un créneau" />
+                                                    <SelectValue placeholder="Sélectionner une session" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {vacations.map((v: any) => (
-                                                    <SelectItem key={v.id} value={v.id}>
-                                                        {v.name} ({v.time_range})
+                                                {sessions.map((s: any) => (
+                                                    <SelectItem key={s.id} value={s.id}>
+                                                        {s.session_name} {s.vacation_name ? `(${s.vacation_name})` : ''}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

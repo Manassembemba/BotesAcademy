@@ -44,7 +44,6 @@ export const NotificationCenter = () => {
       case 'success': return <Check className="w-4 h-4 text-emerald-500" />;
       case 'payment': return <CreditCard className="w-4 h-4 text-primary" />;
       case 'warning': return <AlertCircle className="w-4 h-4 text-amber-500" />;
-      case 'comment': return <MessageSquare className="w-4 h-4 text-blue-500" />;
       default: return <Info className="w-4 h-4 text-muted-foreground" />;
     }
   };

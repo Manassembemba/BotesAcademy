@@ -32,7 +32,6 @@ export const UnifiedPaymentDialog = ({
 }: UnifiedPaymentDialogProps) => {
     const [selectedCourseId, setSelectedCourseId] = useState("");
     const [selectedSessionId, setSelectedSessionId] = useState("");
-    const [selectedVacationId, setSelectedVacationId] = useState("");
     const [amount, setAmount] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState("cash_deposit");
 
@@ -41,20 +40,11 @@ export const UnifiedPaymentDialog = ({
     const isNewEnrollment = !existingPurchase;
     const balance = existingPurchase ? (existingPurchase.total_amount - existingPurchase.paid_amount) : 0;
 
-    // Fetch Sessions/Vacations (seulement pour nouvelle inscription)
+    // Fetch Sessions (incluant vacation_name)
     const { data: sessions } = useQuery({
         queryKey: ['course-sessions', selectedCourseId],
         queryFn: async () => {
             const { data } = await supabase.from('course_sessions').select('*').eq('course_id', selectedCourseId);
-            return data || [];
-        },
-        enabled: !!selectedCourseId && isNewEnrollment
-    });
-
-    const { data: vacations } = useQuery({
-        queryKey: ['course-vacations', selectedCourseId],
-        queryFn: async () => {
-            const { data } = await supabase.from('course_vacations').select('*').eq('course_id', selectedCourseId);
             return data || [];
         },
         enabled: !!selectedCourseId && isNewEnrollment
@@ -72,12 +62,13 @@ export const UnifiedPaymentDialog = ({
     }, [selectedCourseId, isNewEnrollment, balance, allCourses]);
 
     const handleAction = () => {
+        const session = sessions?.find(s => s.id === selectedSessionId);
         onApply({
             courseId: selectedCourseId,
             amount: amount,
             paymentMethod: paymentMethod,
             sessionId: selectedSessionId,
-            vacationId: selectedVacationId
+            vacationName: session?.vacation_name || null
         });
     };
 
@@ -131,30 +122,21 @@ export const UnifiedPaymentDialog = ({
 
                             {/* Options Logistique (Seulement si nouveau) */}
                             {isNewEnrollment && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase opacity-40 flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Session</Label>
-                                        <Select onValueChange={setSelectedSessionId} value={selectedSessionId}>
-                                            <SelectTrigger className="rounded-2xl h-12 bg-white/5 border-white/10">
-                                                <SelectValue placeholder="Session" />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl bg-card border-white/10">
-                                                {sessions?.map(s => <SelectItem key={s.id} value={s.id}>{s.session_name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase opacity-40 flex items-center gap-1.5"><Clock className="w-3 h-3" /> Vacation</Label>
-                                        <Select onValueChange={setSelectedVacationId} value={selectedVacationId}>
-                                            <SelectTrigger className="rounded-2xl h-12 bg-white/5 border-white/10">
-                                                <SelectValue placeholder="Vacation" />
-                                            </SelectTrigger>
-                                            <SelectContent className="rounded-2xl bg-card border-white/10">
-                                                <SelectItem value="none">Par défaut</SelectItem>
-                                                {vacations?.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase opacity-40 flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Session & Vacation</Label>
+                                    <Select onValueChange={setSelectedSessionId} value={selectedSessionId}>
+                                        <SelectTrigger className="rounded-2xl h-12 bg-white/5 border-white/10 font-bold">
+                                            <SelectValue placeholder="Choisir une session" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-2xl bg-card border-white/10">
+                                            {sessions?.map(s => (
+                                                <SelectItem key={s.id} value={s.id} className="rounded-xl font-bold py-3">
+                                                    {s.session_name} {s.vacation_name ? `(${s.vacation_name})` : ''}
+                                                </SelectItem>
+                                            ))}
+                                            {sessions?.length === 0 && <SelectItem value="none" disabled>Aucune session disponible</SelectItem>}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             )}
 

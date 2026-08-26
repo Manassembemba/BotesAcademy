@@ -22,7 +22,7 @@ export interface Notification {
   user_id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'course' | 'payment' | 'comment';
+  type: 'info' | 'success' | 'warning' | 'error' | 'course' | 'payment';
   link: string | null;
   read_at: string | null;
   created_at: string;

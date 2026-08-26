@@ -342,16 +342,18 @@ export const StudentTable = ({
                                                                             <MoreHorizontal className="w-5 h-5 opacity-40" />
                                                                         </Button>
                                                                     </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent align="end" className="w-48 bg-card border-white/10 rounded-2xl shadow-2xl p-2">
-                                                                        <DropdownMenuItem className="rounded-xl font-bold py-3 cursor-pointer" onClick={() => { setSelectedStudentId(student.student_id); setIsDetailsOpen(true); }}>
-                                                                            <Eye className="w-4 h-4 mr-3 opacity-60" /> Dossier complet
+                                                                    <DropdownMenuContent align="end" className="w-56 bg-card border-border rounded-2xl shadow-2xl p-2 space-y-1">
+                                                                        <DropdownMenuItem className="rounded-xl font-bold py-2.5 cursor-pointer" onClick={() => { setSelectedStudentId(student.student_id); setIsDetailsOpen(true); }}>
+                                                                            <Eye className="w-4 h-4 mr-3 text-primary" /> Dossier complet
                                                                         </DropdownMenuItem>
-                                                                        <DropdownMenuItem className="rounded-xl font-bold py-3 cursor-pointer" onClick={() => window.open(`mailto:${student.email}`)}>
-                                                                            <Mail className="w-4 h-4 mr-3 opacity-60" /> Contacter l'élève
+                                                                        <DropdownMenuItem className="rounded-xl font-bold py-2.5 cursor-pointer" onClick={() => window.location.href = '/admin/attendance'}>
+                                                                            <Clock className="w-4 h-4 mr-3 text-emerald-500" /> Émargement / Présence
                                                                         </DropdownMenuItem>
-                                                                        <DropdownMenuSeparator className="bg-white/5 my-1" />
-                                                                        <DropdownMenuItem className="rounded-xl font-bold py-3 cursor-pointer text-destructive hover:bg-destructive/10">
-                                                                            <Trash2 className="w-4 h-4 mr-3 opacity-60" /> Supprimer
+                                                                        <DropdownMenuItem className="rounded-xl font-bold py-2.5 cursor-pointer" onClick={() => window.location.href = '/admin/debts'}>
+                                                                            <TrendingUp className="w-4 h-4 mr-3 text-amber-500" /> Dettes & Tranches
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem className="rounded-xl font-bold py-2.5 cursor-pointer" onClick={() => window.open(`mailto:${student.email}`)}>
+                                                                            <Mail className="w-4 h-4 mr-3 opacity-60" /> Contacter par email
                                                                         </DropdownMenuItem>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>

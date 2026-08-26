@@ -36,12 +36,6 @@ serve(async (req) => {
             .eq("status", "absent")
             .gt("created_at", yesterday);
 
-        // New comments
-        const { count: comments } = await supabase
-            .from("comments")
-            .select("*", { count: "exact", head: true })
-            .gt("created_at", yesterday);
-
         // 2. Get Admin Emails
         const { data: adminRoles } = await supabase
             .from("user_roles")
@@ -64,8 +58,7 @@ serve(async (req) => {
         const html = getDailyReportTemplate({
             newStudents: newStudents || 0,
             revenue: revenue.toFixed(2),
-            absences: absences || 0,
-            comments: comments || 0
+            absences: absences || 0
         });
 
         // 4. Send Email

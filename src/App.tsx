@@ -40,6 +40,8 @@ const Announcements = lazy(() => import("./pages/Admin/Announcements"));
 const Analytics = lazy(() => import("./pages/Admin/Analytics"));
 const Finance = lazy(() => import("./pages/Finance"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
+const EnrollmentWizard = lazy(() => import("./pages/Admin/EnrollmentWizard"));
+const DebtManagement = lazy(() => import("./pages/Admin/DebtManagement"));
 
 const queryClient = new QueryClient();
 
@@ -84,6 +86,8 @@ const App = () => (
                   <Route path="/admin/site-settings" element={<SiteSettings />} />
                   <Route path="/admin/accounting" element={<Accounting />} />
                   <Route path="/admin/attendance" element={<Attendance />} />
+                  <Route path="/admin/enrollment" element={<EnrollmentWizard />} />
+                  <Route path="/admin/debts" element={<DebtManagement />} />
                   <Route path="/admin/tools" element={<ToolManagement />} />
                   <Route path="/admin/delivery" element={<IndicatorDelivery />} />
                   <Route path="/admin/announcements" element={<Announcements />} />

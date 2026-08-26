@@ -15,7 +15,7 @@ const corsHeaders = {
 };
 
 interface EmailPayload {
-    type: "WELCOME" | "PASSWORD_CHANGED" | "ACCOUNT_SUSPENDED" | "ATTENDANCE_ABSENT" | "NEW_COMMENT";
+    type: "WELCOME" | "PASSWORD_CHANGED" | "ACCOUNT_SUSPENDED" | "ATTENDANCE_ABSENT";
     email: string;
     fullName: string;
     data?: any;
@@ -51,16 +51,6 @@ serve(async (req) => {
             case "ATTENDANCE_ABSENT":
                 subject = `Avis d'absence - ${data?.courseTitle || "Formation"}`;
                 html = getAttendanceAbsentTemplate(fullName, data);
-                break;
-
-            case "NEW_COMMENT":
-                subject = "Nouveau commentaire sur une formation 💬";
-                // Réutilisation d'un template ou personnalisation rapide
-                html = getDailyReportTemplate({ 
-                    newStudents: 0, revenue: 0, absences: 0, 
-                    comments: 1, // Simulé pour le test
-                    isInteraction: true 
-                });
                 break;
 
             default:

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 
 const sessionSchema = z.object({
     session_name: z.string().min(3, "Le nom doit faire au moins 3 caractères."),
+    vacation_name: z.string().min(1, "La vacation est requise (ex: Matin, Soir)."),
     start_date: z.string().min(1, "La date de début est requise."),
     end_date: z.string().min(1, "La date de fin est requise."),
     location: z.string().min(3, "Le lieu est requis."),
@@ -35,6 +36,7 @@ interface Session {
     id: string;
     course_id: string;
     session_name: string;
+    vacation_name: string;
     start_date: string;
     end_date: string;
     location: string;
@@ -138,6 +140,14 @@ export const CourseSessionEditorDialog = ({ isOpen, onClose, courseId, session }
                             <FormItem>
                                 <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60">Intitulé de la session</FormLabel>
                                 <FormControl><Input placeholder="Ex: Promotion Elite - Mars 2026" {...field} className="rounded-xl h-12 border-white/10 font-bold bg-white/5" /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="vacation_name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="font-black uppercase text-[9px] tracking-widest opacity-60">Vacation (Matin, Soir...)</FormLabel>
+                                <FormControl><Input placeholder="Ex: Matin (08:00 - 12:00)" {...field} className="rounded-xl h-12 border-white/10 font-bold bg-white/5" /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />

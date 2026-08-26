@@ -74,7 +74,7 @@ export const EnrolledCourseCard = ({ course, paymentProofs, user }: EnrolledCour
                     </Badge>
                     {course.vacation_name && (
                       <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/10 text-[9px] font-black uppercase tracking-tighter px-3 h-6 flex items-center rounded-lg">
-                        {course.vacation_name} • {course.vacation_time}
+                        {course.vacation_name}
                       </Badge>
                     )}
                   </div>
