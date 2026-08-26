@@ -90,9 +90,9 @@ const Finance = () => {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
               <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic leading-[0.85]">
-                Mon <span className="text-gradient-primary">Portefeuille</span>
+                Mes <span className="text-gradient-primary">Paiements</span>
               </h1>
-              <p className="text-muted-foreground font-medium italic text-lg ml-1">Gérez vos investissements et votre parcours académique.</p>
+              <p className="text-muted-foreground font-medium italic text-lg ml-1">Suivez vos règlements de formation et votre dossier académique.</p>
             </div>
             
             <div className="flex items-center gap-4 bg-card/30 backdrop-blur-3xl p-5 rounded-[2.5rem] border border-white/5 shadow-premium">
@@ -100,7 +100,7 @@ const Finance = () => {
                  <Wallet className="w-8 h-8" />
                </div>
                <div>
-                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 leading-none mb-1">Total Investi</p>
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 leading-none mb-1">Total Versé</p>
                  <p className="text-4xl font-black italic tracking-tighter">{totalPaid} <span className="text-sm opacity-50 font-bold not-italic">USD</span></p>
                </div>
             </div>

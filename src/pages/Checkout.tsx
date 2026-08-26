@@ -282,8 +282,8 @@ const Checkout = () => {
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {[
                                   { id: '1m', label: '1 MOIS', price: product.price_1m, desc: 'Découverte' },
-                                  { id: '3m', label: '3 MOIS', price: product.price_3m, desc: 'Progressif' },
-                                  { id: 'lifetime', label: 'À VIE', price: product.price_lifetime, desc: 'Investisseur' }
+                                  { id: '3m', label: '3 MOIS', price: product.price_3m, desc: 'Trimestriel' },
+                                  { id: 'lifetime', label: 'À VIE', price: product.price_lifetime, desc: 'Illimité' }
                                 ].map(opt => (
                                   <button
                                     key={opt.id}

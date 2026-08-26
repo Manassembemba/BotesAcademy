@@ -175,7 +175,7 @@ const Formations = () => {
                       </div>
 
                       <div className="space-y-4 pt-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Niveau d'investissement</Label>
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frais de formation</Label>
                         <RadioGroup defaultValue={filters.price} onValueChange={(v) => handleFilterChange('price', v)} className="grid grid-cols-3 gap-2">
                           {['all', 'free', 'paid'].map((p) => (
                             <Label key={p} className={cn(
@@ -183,7 +183,7 @@ const Formations = () => {
                               filters.price === p ? "border-primary bg-primary/10 text-primary shadow-glow-primary/10" : "border-white/5 bg-white/5 hover:bg-white/10"
                             )}>
                               <RadioGroupItem value={p} className="sr-only" />
-                              <span className="text-xs font-semibold tracking-wide">{p === 'all' ? 'Tout' : p === 'free' ? 'Libre' : 'Elite'}</span>
+                              <span className="text-xs font-semibold tracking-wide">{p === 'all' ? 'Toutes' : p === 'free' ? 'Gratuite' : 'Payante'}</span>
                             </Label>
                           ))}
                         </RadioGroup>

@@ -24,7 +24,7 @@ export const generateInvoice = (data: InvoiceData) => {
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('Formation en Trading & Investissement', pageWidth / 2, 27, { align: 'center' });
+    doc.text('Formation Professionnelle & Certifiante', pageWidth / 2, 27, { align: 'center' });
 
     // Divider
     doc.setDrawColor(200);

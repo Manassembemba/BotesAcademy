@@ -225,7 +225,7 @@ const CourseDetail = () => {
     if (isPendingValidation) return "Validation en cours...";
     if (isRejected) return "Paiement Rejeté";
     if (course.price === 0 || !course.is_paid) return "Accéder gratuitement";
-    return course.mode === 'online' ? "Acheter la formation" : "Réserver ma place";
+    return course.mode === 'online' ? "S'inscrire à la formation" : "Réserver ma place";
   };
 
   const learningObjectives = useMemo(() => course?.learning_objectives?.filter(o => o) || [], [course]);
@@ -454,19 +454,19 @@ const CourseDetail = () => {
         </MotionSection>
       )}
 
-      {/* --- SECTION 4 : TERMINAL D'INVESTISSEMENT --- */}
+      {/* --- SECTION 4 : FRAIS DE FORMATION & INSCRIPTION --- */}
       <MotionSection className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5 blur-[120px] rounded-full scale-150 translate-y-1/2 pointer-events-none" />
         <div className="container relative z-10 mx-auto px-4 md:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
-            {/* Payment Terminal */}
+            {/* Payment / Enrollment Card */}
             <div className="order-2 lg:order-1">
                 <Card className="rounded-3xl border-primary/20 bg-black/40 backdrop-blur-3xl shadow-xl overflow-hidden">
                   <div className="p-6 bg-primary/5 border-b border-white/10 relative">
-                    <div className="absolute top-0 right-0 p-4 opacity-5"><CreditCard className="w-16 h-16" /></div>
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><GraduationCap className="w-16 h-16" /></div>
                     <div className="relative z-10 space-y-1">
-                        <Badge className="bg-primary text-white border-none px-3 py-0.5 rounded-full font-black uppercase text-[8px] tracking-widest shadow-glow-primary">Checkout Terminal</Badge>
-                        <h2 className="text-xl font-black uppercase tracking-tighter italic text-white leading-none">VOTRE <span className="text-primary">INVESTISSEMENT</span></h2>
+                        <Badge className="bg-primary text-white border-none px-3 py-0.5 rounded-full font-black uppercase text-[8px] tracking-widest shadow-glow-primary">Tarif & Inscription</Badge>
+                        <h2 className="text-xl font-black uppercase tracking-tighter italic text-white leading-none">FRAIS DE <span className="text-primary">FORMATION</span></h2>
                     </div>
                   </div>
 
@@ -474,7 +474,7 @@ const CourseDetail = () => {
                     <div className="space-y-4">
                       <div className="flex items-baseline justify-between border-b border-white/5 pb-4">
                         <div className="space-y-1">
-                          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">Investissement Total</p>
+                          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">Frais de Formation</p>
                           <div className="flex items-center gap-2">
                             <span className="text-3xl font-black text-white italic tracking-tighter">{course.price}$</span>
                             {course.full_price && isPromoActive && (
@@ -493,19 +493,19 @@ const CourseDetail = () => {
 
                       <div className="flex items-center gap-3 text-muted-foreground/60">
                          <CreditCard className="w-3.5 h-3.5" />
-                         <p className="text-[10px] font-bold uppercase italic tracking-widest">CB • Mobile Money • Virement</p>
+                         <p className="text-[10px] font-bold uppercase italic tracking-widest">Carte • Mobile Money • Virement Bancaire</p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
                         <Button onClick={handleEnroll} size="lg" className="w-full h-14 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-glow-primary group overflow-hidden relative">
                             <span className="relative z-10 flex items-center justify-center gap-2">
-                                {enrollMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
+                                {enrollMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
                                 {getButtonLabel()}
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Button>
-                        <p className="text-[8px] text-center text-muted-foreground font-bold uppercase tracking-[0.15em] italic opacity-50">Sécurisé & Accompagnement Inclus</p>
+                        <p className="text-[8px] text-center text-muted-foreground font-bold uppercase tracking-[0.15em] italic opacity-50">Inscription certifiée & Support académique</p>
                     </div>
                   </div>
                 </Card>

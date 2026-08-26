@@ -111,7 +111,7 @@ export const StudentDetailsSheet = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white/5 p-4 rounded-[2rem] border border-white/5 text-center">
                                     <div className="text-2xl font-black italic tracking-tighter text-primary">${selectedStudent?.total_spent?.toLocaleString() || 0}</div>
-                                    <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 mt-1">Investissement Total</div>
+                                    <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 mt-1">Montant Total Formation</div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-[2rem] border border-white/5 text-center">
                                     <div className="text-2xl font-black italic tracking-tighter">{selectedStudent?.enrolled_courses_count || 0}</div>
