@@ -72,90 +72,72 @@ const CourseCard = ({
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-90 group-hover/img:opacity-70 transition-opacity duration-700" />
             
-            {/* Viewfinder Brackets */}
-            <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-primary/30 rounded-tl-sm pointer-events-none" />
-            <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-primary/30 rounded-tr-sm pointer-events-none" />
-            <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-primary/30 rounded-bl-sm pointer-events-none" />
-            <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-primary/30 rounded-br-sm pointer-events-none" />
-
             <div className="absolute top-6 left-6 flex flex-wrap gap-2 z-10">
-              <Badge className="bg-primary/20 backdrop-blur-xl text-primary border-primary/30 shadow-2xl uppercase font-black text-[9px] tracking-[0.2em] px-4 py-1.5 rounded-full relative overflow-hidden group/badge">
-                  <span className="relative z-10">{category}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/badge:translate-x-full transition-transform duration-1000 ease-in-out" />
+              <Badge className="bg-primary/90 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md">
+                {category}
               </Badge>
-              {isPremium && (
-                <Badge className="bg-accent/20 backdrop-blur-xl text-accent border-accent/30 shadow-2xl font-black text-[9px] uppercase tracking-[0.2em] px-4 py-1.5 rounded-full">
-                  Elite
-                </Badge>
-              )}
             </div>
 
             {isPromoActive && discount > 0 && (
               <div className="absolute top-6 right-6 z-10">
-                <Badge className="bg-emerald-500 text-white font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-emerald-500/20">
+                <Badge className="bg-emerald-500 text-white font-bold uppercase text-[10px] tracking-wider px-3 py-1 rounded-full shadow-md">
                   -{discount}%
                 </Badge>
               </div>
             )}
 
             <div className="absolute bottom-6 left-6 right-6 z-10 flex items-center justify-between">
-               <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/90 drop-shadow-md">Session Ouverte</span>
+               <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white drop-shadow-md">Inscriptions Ouvertes</span>
                </div>
                {isSpecialSession && (
-                  <Badge className="bg-destructive/80 backdrop-blur-md text-white border-none font-black uppercase text-[8px] tracking-[0.3em] px-3 py-1 animate-glow">
-                    PROMO LIVE
+                  <Badge className="bg-destructive text-white border-none font-bold uppercase text-[9px] tracking-wider px-2.5 py-0.5 shadow-sm">
+                    Session Spéciale
                   </Badge>
                )}
             </div>
           </CardHeader>
 
-          <CardContent className="p-8 flex-1 space-y-6 relative z-10">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
-              <div className="flex items-center gap-2">
+          <CardContent className="p-6 md:p-8 flex-1 space-y-5 relative z-10">
+            <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+              <div className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-primary" />
                 <span>{duration}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 text-primary text-base font-black italic">
-                   <span>{totalPrice}$</span>
-                   {fullPrice && isPromoActive && (
-                     <span className="text-[10px] text-muted-foreground line-through opacity-50 decoration-destructive">{fullPrice + registrationFee}$</span>
-                   )}
-                </div>
+              <div className="flex items-center gap-1.5 text-primary text-lg font-bold">
+                 <span>{totalPrice}$</span>
+                 {fullPrice && isPromoActive && (
+                   <span className="text-xs text-muted-foreground line-through opacity-50">{fullPrice + registrationFee}$</span>
+                 )}
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tighter italic leading-[1] group-hover:text-primary transition-colors duration-500 line-clamp-2">
+            <div className="space-y-3">
+              <h3 className="text-xl md:text-2xl font-bold uppercase tracking-tight leading-snug group-hover:text-primary transition-colors line-clamp-2">
                 {title}
               </h3>
-              <p className="text-muted-foreground text-sm font-medium line-clamp-2 leading-relaxed opacity-80 italic">
+              <p className="text-muted-foreground text-sm font-normal line-clamp-2 leading-relaxed">
                 {description}
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <div className="px-3 py-1.5 rounded-xl bg-muted/30 border border-border/40 transition-colors group-hover:bg-muted/50">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">{level}</span>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="px-3 py-1 rounded-lg bg-muted/50 border border-border/40 text-xs font-medium text-muted-foreground">
+                {level}
               </div>
               {mode && (
-                <div className="px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/20 transition-colors group-hover:bg-primary/10">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                    {mode === 'online' ? 'VOD / Live' : mode === 'presentiel' ? 'Campus' : 'Hybride'}
-                  </span>
+                <div className="px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                  {mode === 'online' ? 'En ligne' : mode === 'presentiel' ? 'Présentiel' : 'Hybride'}
                 </div>
               )}
             </div>
           </CardContent>
 
-          <CardFooter className="p-8 pt-0 flex flex-col mt-auto border-t border-border/10 bg-muted/5 relative z-10">
-              <Button className="w-full h-16 rounded-[1.5rem] shadow-glow-primary group/btn bg-primary group-hover:scale-105 active:scale-95 transition-all duration-500 border-2 border-white/10 flex items-center justify-between px-8 mt-8">
-                <span className="font-black uppercase tracking-[0.2em] text-[10px] text-white">Rejoindre le Cursus</span>
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center transition-transform group-hover/btn:translate-x-2">
-                  <ArrowRight className="w-5 h-5 text-white" />
-                </div>
+          <CardFooter className="p-6 md:p-8 pt-0 flex flex-col mt-auto border-t border-border/10 bg-muted/5 relative z-10">
+              <Button className="w-full h-12 rounded-xl shadow-sm bg-primary text-white hover:bg-primary/90 font-bold uppercase tracking-wider text-xs flex items-center justify-between px-6 mt-6 group/btn">
+                <span>Voir la formation</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
               </Button>
           </CardFooter>
         </Card>

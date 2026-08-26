@@ -15,14 +15,14 @@ const Footer = () => {
             <Link to="/" className="flex items-center gap-4 group">
               <img src="/logo.png?v=2" alt="Botes Academy Logo" className="h-12 w-auto object-contain transition-transform group-hover:scale-110" />
               <div className="flex flex-col">
-                <span className="text-xl font-black uppercase tracking-tighter leading-none italic">
+                <span className="text-xl font-bold uppercase tracking-tight leading-none italic">
                   Botes <span className="text-primary">Academy</span>
                 </span>
-                <span className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] mt-1">Elite Intelligence</span>
+                <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-widest mt-1">Académie Professionnelle</span>
               </div>
             </Link>
-            <p className="text-muted-foreground text-sm leading-relaxed italic font-medium opacity-80">
-              L'excellence académique fusionnée avec l'agilité technologique. Nous forgeons les leaders de l'économie numérique en RDC.
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Centre de formation professionnelle, pratique et certifiante pour développer vos compétences en RDC.
             </p>
             <div className="flex gap-4">
               {[
@@ -46,40 +46,37 @@ const Footer = () => {
           
           {[
             {
-              title: "Plateforme",
+              title: "Formations",
               links: [
-                { name: "Cursus Elite", path: "/formations" },
-                { name: "Terminal Market", path: "/marketplace" },
-                { name: "Elite Dashboard", path: "/dashboard" },
-                { name: "Espace Membre", path: "/auth" }
+                { name: "Nos Formations", path: "/formations" },
+                { name: "Bibliothèque", path: "/marketplace" },
+                { name: "Espace Étudiant", path: "/dashboard" },
+                { name: "Connexion", path: "/auth" }
               ]
             },
             {
-              title: "Support Tech",
+              title: "Assistance",
               links: [
                 { name: "Centre d'Aide", path: settings?.academy_info?.support_link || "#" },
-                { name: "Assistance Directe", path: `mailto:${settings?.academy_info?.email || "academy@botes.com"}` },
-                { name: "Flux Telegram", path: "#" },
+                { name: "Contact", path: `mailto:${settings?.academy_info?.email || "academy@botes.com"}` },
                 { name: "Documentation", path: "#" }
               ]
             },
             {
-              title: "Gouvernance",
+              title: "Informations",
               links: [
                 { name: "Mentions Légales", path: "#" },
-                { name: "Contrats CGV", path: "#" },
-                { name: "Data & Privacy", path: "#" },
-                { name: "Sécurité", path: "#" }
+                { name: "Conditions Générales", path: "#" },
+                { name: "Confidentialité", path: "#" }
               ]
             }
           ].map((column, i) => (
             <div key={i}>
-              <h4 className="font-black mb-8 text-lg uppercase tracking-tight italic border-l-4 border-primary/20 pl-4">{column.title}</h4>
-              <ul className="space-y-4">
+              <h4 className="font-bold mb-6 text-sm uppercase tracking-wider border-l-2 border-primary/40 pl-3">{column.title}</h4>
+              <ul className="space-y-3">
                 {column.links.map((link, j) => (
                   <li key={j}>
-                    <Link to={link.path} className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-all duration-300 flex items-center gap-2 group/link">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover/link:bg-primary transition-all scale-0 group-hover/link:scale-100" />
+                    <Link to={link.path} className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
                       {link.name}
                     </Link>
                   </li>
@@ -89,12 +86,9 @@ const Footer = () => {
           ))}
         </div>
 
-        <div className="pt-8 border-t border-border/40 flex flex-col md:flex-row items-center justify-between gap-6 text-[9px] text-muted-foreground uppercase tracking-[0.3em] font-black italic opacity-60">
-          <p>© 2026 BOTES ACADEMY // PROTOCOLE D'EXCELLENCE</p>
-          <div className="flex gap-8">
-            <span>DRC // GLOBAL</span>
-            <span>SYSTEM STATUS: OPERATIONAL</span>
-          </div>
+        <div className="pt-8 border-t border-border/40 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <p>© 2026 BOTES ACADEMY. Tous droits réservés.</p>
+          <p>République Démocratique du Congo</p>
         </div>
       </div>
     </footer>

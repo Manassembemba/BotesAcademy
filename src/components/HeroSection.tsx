@@ -64,13 +64,7 @@ const HeroSection = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="flex-[1.2] text-center lg:text-left space-y-fluid-sm w-full"
           >
-            {/* HERO BADGE */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted border border-border/50 text-muted-foreground mb-2 mx-auto lg:mx-0">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Excellence Académique</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1] uppercase tracking-tight italic">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.05] uppercase tracking-tight italic">
               {settings?.appearance?.hero_title ? (
                 (() => {
                   const parts = settings.appearance.hero_title.split(/[\[\]]/);
@@ -83,55 +77,21 @@ const HeroSection = () => {
                   );
                 })()
               ) : (
-                <>Architecture de <br /> votre <span className="text-primary">Succès</span></>
+                <>Apprenez des compétences <br /> pour votre <span className="text-primary">Avenir</span></>
               )}
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium italic border-l-2 border-primary/20 pl-8 py-2">
-              {settings?.appearance?.hero_description || "Botes Academy fusionne la rigueur technologique et l'agilité du marché pour transformer vos ambitions en expertise d'élite."}
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+              {settings?.appearance?.hero_description || "Botes Academy vous accompagne dans votre montée en compétences avec des formations pratiques et certifiantes adaptées aux besoins du marché."}
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-8 pt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
               <Link to="/formations" className="w-full sm:w-auto">
-                <Button size="xl" className="w-full sm:w-auto h-14 px-10 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-primary text-white shadow-glow-primary-sm transition-all hover:scale-105 active:scale-95 group">
-                  Explorer les pôles
+                <Button size="xl" className="w-full sm:w-auto h-14 px-10 rounded-xl text-xs font-bold uppercase tracking-wider bg-primary text-white shadow-md transition-all hover:scale-105 active:scale-95 group">
+                  Découvrir les formations
                   <ArrowRight className="ml-3 w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
-
-              <div className="flex -space-x-3 items-center">
-                 {[1,2,3,4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-background bg-muted overflow-hidden shadow-sm">
-                        <img src={`https://i.pravatar.cc/150?u=${i+25}`} alt="Student" />
-                    </div>
-                 ))}
-                 <div className="w-10 h-10 rounded-full border-2 border-background bg-primary flex items-center justify-center text-white text-[8px] font-bold italic shadow-sm">
-                    +2K
-                 </div>
-                 <div className="ml-4 flex flex-col justify-center text-left">
-                    <p className="text-[10px] font-bold uppercase tracking-widest leading-none mb-1">Élèves actifs</p>
-                    <div className="flex gap-0.5 text-amber-500">
-                        {[1,2,3,4,5].map(i => <CheckCircle key={i} className="w-2.5 h-2.5 fill-current" />)}
-                    </div>
-                 </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-10 border-t border-border/10">
-              {[
-                { icon: <Code className="w-4 h-4" />, label: "TECH", sub: "Info", color: "text-primary" },
-                { icon: <Globe className="w-4 h-4" />, label: "MONDE", sub: "Langues", color: "text-accent" },
-                { icon: <Briefcase className="w-4 h-4" />, label: "BIZ", sub: "Management", color: "text-emerald-600" },
-                { icon: <TrendingUp className="w-4 h-4" />, label: "TRADE", sub: "Finance", color: "text-amber-600" }
-              ].map((pole, i) => (
-                <div key={i} className="flex flex-col items-center lg:items-start group cursor-default">
-                  <div className={cn("flex items-center gap-2 mb-1 transition-colors", pole.color)}>
-                      {pole.icon}
-                      <p className="text-base font-bold italic tracking-tight leading-none">{pole.label}</p>
-                  </div>
-                  <p className="text-[8px] text-muted-foreground uppercase font-bold tracking-[0.2em] opacity-60">{pole.sub}</p>
-                </div>
-              ))}
             </div>
           </motion.div>
 
@@ -168,10 +128,10 @@ const HeroSection = () => {
                        <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center">
                           <BookOpen className="text-white w-6 h-6" />
                        </div>
-                       <div>
-                          <p className="text-white font-black text-xl tracking-tighter italic uppercase leading-none mb-1">Maîtrise de l'Elite</p>
-                          <p className="text-primary font-bold text-[9px] uppercase tracking-[0.2em]">Excellence Académique</p>
-                       </div>
+                        <div>
+                          <p className="text-white font-bold text-lg tracking-tight uppercase leading-none mb-1">Botes Academy</p>
+                          <p className="text-primary font-bold text-[10px] uppercase tracking-wider">Formations Certifiantes</p>
+                        </div>
                     </div>
                     <div className="space-y-2">
                        <div className="flex items-center justify-between text-[9px] text-white font-black uppercase tracking-[0.2em] opacity-80">

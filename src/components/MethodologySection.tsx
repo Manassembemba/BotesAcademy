@@ -29,8 +29,8 @@ const features = [
   },
   {
     icon: <BarChart className="w-6 h-6" />,
-    title: "Outils Professionnels",
-    description: "Accès exclusif à notre Marketplace d'indicateurs et de logiciels pour une expérience au-delà de la théorie."
+    title: "Supports Pédagogiques",
+    description: "Des supports de cours structurés et des ressources documentaires pour accompagner votre progression."
   }
 ];
 

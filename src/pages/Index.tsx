@@ -89,28 +89,20 @@ const Index = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col lg:flex-row items-start gap-fluid-lg">
             <div className="lg:w-1/2 space-y-6">
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-3 px-4 py-1 rounded-full bg-muted/50 border border-border text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em]"
-              >
-                Manifeste Académique
-              </motion.div>
               <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-tight leading-tight">
-                Au-delà de la formation, <br />
-                <span className="text-primary italic">une transformation.</span>
+                Une pédagogie axée sur <br />
+                <span className="text-primary italic">la pratique et le résultat.</span>
               </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed font-medium italic border-l-2 border-primary/20 pl-8 py-2">
-                "Dans un monde en mutation constante, le savoir statique ne suffit plus. Botes Academy forge les leaders capables d'allier rigueur technique et vision stratégique."
+              <p className="text-lg text-muted-foreground leading-relaxed font-medium">
+                Botes Academy vous offre un cadre d'apprentissage moderne, encadré par des formateurs expérimentés pour vous transmettre des compétences immédiatement applicables.
               </p>
             </div>
 
-            <div className="lg:w-1/2 grid grid-cols-1 gap-12 pt-8">
+            <div className="lg:w-1/2 grid grid-cols-1 gap-8 pt-4">
               {[
-                { title: "Éducation Agile", desc: "Programmes synchronisés avec les exigences changeantes des marchés mondiaux.", icon: <Zap className="w-5 h-5" /> },
-                { title: "Rigueur d'Élite", desc: "Nous cultivons l'esprit critique et l'excellence, socles de toute réussite durable.", icon: <Shield className="w-5 h-5" /> },
-                { title: "Vision Globale", desc: "Démocratiser l'accès aux compétences de pointe pour propulser les carrières de demain.", icon: <TrendingUp className="w-5 h-5" /> }
+                { title: "Formations Pratiques", desc: "Des cours concrets basés sur des projets réels et des cas d'usage professionnels.", icon: <Zap className="w-5 h-5" /> },
+                { title: "Encadrement & Suivi", desc: "Des formateurs à votre écoute pour vous accompagner tout au long de votre parcours.", icon: <Shield className="w-5 h-5" /> },
+                { title: "Certificat de Réussite", desc: "Obtenez une certification valorisante pour attester de vos acquis et compétences.", icon: <TrendingUp className="w-5 h-5" /> }
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -136,7 +128,7 @@ const Index = () => {
 
       <MethodologySection />
 
-      {/* Popular Courses Section [BENTO 2.0 REFINED] */}
+      {/* Popular Courses Section */}
       <section className="py-fluid-xl bg-background border-y border-border/20 relative">
         <div className="container mx-auto px-6 relative z-10">
           <div className="flex flex-col md:flex-row items-end justify-between mb-fluid-md gap-8">
@@ -147,10 +139,10 @@ const Index = () => {
               className="max-w-2xl space-y-4"
             >
               <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-tight leading-none">
-                Pôles <span className="text-primary italic">d'Excellence</span>
+                Nos <span className="text-primary italic">Formations</span>
               </h2>
               <p className="text-lg text-muted-foreground font-medium max-w-xl">
-                Une sélection de cursus conçus pour les bâtisseurs du futur. Choisissez votre voie.
+                Découvrez nos programmes disponibles et commencez votre apprentissage dès aujourd'hui.
               </p>
             </motion.div>
 
@@ -178,7 +170,7 @@ const Index = () => {
                            value={cat}
                            className="rounded-xl px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-glow-primary-sm transition-all duration-300"
                          >
-                           {cat === "all" ? "Toutes les Disciplines" : cat}
+                           {cat === "all" ? "Toutes les Formations" : cat}
                          </TabsTrigger>
                        ))}
                      </TabsList>
@@ -235,27 +227,26 @@ const Index = () => {
               viewport={{ once: true }}
               className="lg:w-1/2 space-y-6"
             >
-              <Badge variant="outline" className="text-accent border-accent/20 bg-accent/5 px-4 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full">Ecosystème</Badge>
               <h2 className="text-3xl md:text-5xl font-bold leading-tight uppercase tracking-tight">
-                Optimisez votre parcours avec le <span className="text-primary">Marketplace</span>
+                Ressources et Outils <span className="text-primary">Pédagogiques</span>
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed font-medium">
-                Accédez à une sélection exclusive d'outils, de logiciels et de ressources documentaires pour accélérer vos compétences.
+                Accédez à des supports de cours, guides pratiques et documents complémentaires pour approfondir vos connaissances.
               </p>
               <div className="space-y-4 pt-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/5 rounded-lg text-primary"><Zap className="w-5 h-5" /></div>
-                  <p className="font-semibold text-sm">Téléchargement immédiat après achat</p>
+                  <div className="p-2 bg-primary/5 rounded-lg text-primary"><BookOpen className="w-5 h-5" /></div>
+                  <p className="font-semibold text-sm">Supports de cours complets et structurés</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/5 rounded-lg text-primary"><Download className="w-5 h-5" /></div>
-                  <p className="font-semibold text-sm">Accès illimité et mises à jour</p>
+                  <div className="p-2 bg-primary/5 rounded-lg text-primary"><GraduationCap className="w-5 h-5" /></div>
+                  <p className="font-semibold text-sm">Ressources accessibles aux étudiants inscrits</p>
                 </div>
               </div>
               <div className="pt-8">
                 <Link to="/marketplace">
                   <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary/5 rounded-2xl px-10 font-bold">
-                    Explorer la bibliothèque
+                    Consulter la bibliothèque
                   </Button>
                 </Link>
               </div>
@@ -267,12 +258,11 @@ const Index = () => {
               viewport={{ once: true }}
               className="lg:w-1/2 grid grid-cols-2 gap-4"
             >
-                {/* Visual placeholders for marketplace poles */}
                 {[
-                  { title: "Ressources PDF", icon: <BookOpen className="w-6 h-6" />, label: "Guides de formation" },
-                  { title: "Outils Tech", icon: <Code className="w-6 h-6" />, label: "Logiciels & Scripts" },
-                  { title: "Templates", icon: <Shield className="w-6 h-6" />, label: "Gestion & Admin" },
-                  { title: "Logiciels Pro", icon: <Laptop className="w-6 h-6" />, label: "Installateurs" }
+                  { title: "Guides PDF", icon: <BookOpen className="w-6 h-6" />, label: "Supports de formation" },
+                  { title: "Exercices", icon: <Code className="w-6 h-6" />, label: "Travaux pratiques" },
+                  { title: "Fiches & Modèles", icon: <FileText className="w-6 h-6" />, label: "Documents de synthèse" },
+                  { title: "Certificats", icon: <GraduationCap className="w-6 h-6" />, label: "Validation des compétences" }
                 ].map((item, idx) => (
                   <Card key={idx} className="p-6 bg-muted/20 border-border/40 rounded-3xl flex flex-col justify-between group hover:border-primary/20 transition-all">
                     <div className="w-12 h-12 bg-primary/10 rounded-xl mb-6 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">{item.icon}</div>

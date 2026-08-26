@@ -230,7 +230,7 @@ export const StudentTable = ({
                                             <TableHead className="h-16 text-[11px] font-black uppercase tracking-[0.2em] opacity-40 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('average_progress')}>
                                                 <div className="flex items-center">Cursus Académique <SortIcon column="average_progress" /></div>
                                             </TableHead>
-                                            <TableHead className="h-16 text-[11px] font-black uppercase tracking-[0.2em] opacity-40">Écosystème Outils</TableHead>
+                                            <TableHead className="h-16 text-[11px] font-black uppercase tracking-[0.2em] opacity-40">Outils & Logiciels</TableHead>
                                             <TableHead className="h-16 text-[11px] font-black uppercase tracking-[0.2em] opacity-40">Statut</TableHead>
                                             <TableHead className="text-right pr-10 h-16 text-[11px] font-black uppercase tracking-[0.2em] opacity-40">Actions</TableHead>
                                         </TableRow>

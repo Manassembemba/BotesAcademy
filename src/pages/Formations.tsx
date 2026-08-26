@@ -31,12 +31,12 @@ const fetchCategories = async () => {
 };
 
 const categoryIcons: Record<string, any> = {
-  "Trading": <Laptop className="w-6 h-6" />,
-  "Informatique": <Laptop className="w-6 h-6" />,
-  "Auto-école": <Car className="w-6 h-6" />,
-  "Langues": <Languages className="w-6 h-6" />,
-  "Management": <Building2 className="w-6 h-6" />,
-  "default": <GraduationCap className="w-6 h-6" />
+  "Trading": <Laptop className="w-4 h-4" />,
+  "Informatique": <Laptop className="w-4 h-4" />,
+  "Auto-école": <Car className="w-4 h-4" />,
+  "Langues": <Languages className="w-4 h-4" />,
+  "Management": <Building2 className="w-4 h-4" />,
+  "default": <GraduationCap className="w-4 h-4" />
 };
 
 const Formations = () => {
@@ -71,10 +71,6 @@ const Formations = () => {
   
   const handleCategoryClick = (category: string) => {
     handleFilterChange('category', category);
-    // Add small delay to let state update and render before scrolling
-    setTimeout(() => {
-      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
   };
 
   const filteredCourses = useMemo(() => {
@@ -94,96 +90,93 @@ const Formations = () => {
       <Navbar />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 md:pt-48 pb-16 md:pb-24 overflow-hidden">
+      <section className="relative pt-32 md:pt-40 pb-8 md:pb-12 overflow-hidden">
         <div className="absolute top-0 right-0 w-[70vw] h-[70vw] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
         
         <div className="container relative z-10 mx-auto px-4 md:px-6">
-          <div className="max-w-5xl mx-auto text-center space-y-8">
+          <div className="max-w-4xl mx-auto text-center space-y-6">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-xs font-bold uppercase tracking-wider"
             >
               <GraduationCap className="w-4 h-4" />
-              Écosystème d'Excellence
+              Catalogue des Formations
             </motion.div>
 
             <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[clamp(2.5rem,8vw,7rem)] font-black uppercase tracking-tighter leading-[0.85] italic break-words"
+              transition={{ duration: 0.8 }}
+              className="text-4xl md:text-6xl font-bold uppercase tracking-tight italic"
             >
-              NOS <span className="text-gradient-primary">CURSUS</span>
+              NOS <span className="text-gradient-primary">FORMATIONS</span>
             </motion.h1>
 
             <motion.p 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-lg md:text-2xl text-muted-foreground font-medium max-w-3xl mx-auto leading-relaxed border-t border-white/10 pt-8 italic"
+              transition={{ delay: 0.2 }}
+              className="text-base md:text-lg text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed"
             >
-              Propulsez votre carrière avec des parcours immersifs conçus pour l'impact. <span className="text-foreground font-black underline decoration-primary/30 underline-offset-8">On ne forme pas, on transforme.</span>
+              Des programmes structurés et pratiques pour développer des compétences immédiatement valorisables sur le marché.
             </motion.p>
 
             {/* SEARCH & FILTERS */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto pt-12"
+              transition={{ delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto pt-6"
             >
               <div className="relative flex-1 group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-all duration-500" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input 
-                  placeholder="Quelle expertise recherchez-vous ?" 
+                  placeholder="Rechercher une formation..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-16 h-16 md:h-20 bg-white/5 backdrop-blur-2xl border-white/10 rounded-2xl md:rounded-3xl shadow-2xl focus-visible:ring-primary/20 focus-visible:border-primary font-bold text-lg md:text-xl transition-all placeholder:text-muted-foreground/40"
+                  className="pl-14 h-14 bg-background/80 backdrop-blur-xl border-border/60 rounded-2xl shadow-sm focus-visible:ring-primary/20 focus-visible:border-primary font-medium text-base transition-all"
                 />
               </div>
               
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button className="h-16 md:h-20 px-10 rounded-2xl md:rounded-3xl font-black uppercase tracking-widest text-xs shadow-glow-primary group relative overflow-hidden border-2 border-white/10">
-                    <span className="relative z-10 flex items-center gap-4">
-                      <Filter className="w-5 h-5" />
-                      Filtres
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <Button className="h-14 px-8 rounded-2xl font-bold uppercase tracking-wider text-xs bg-primary text-white shadow-sm hover:bg-primary/90 flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    Filtres
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-6 md:p-8 bg-black/80 backdrop-blur-3xl rounded-[2rem] border-white/10 shadow-2xl" align="end">
-                  <div className="space-y-8">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                      <h4 className="font-black uppercase tracking-tighter italic text-xl">Paramètres</h4>
-                      <Button variant="ghost" size="sm" onClick={resetFilters} className="h-8 text-[9px] font-black uppercase tracking-widest hover:text-destructive">Reset</Button>
+                <PopoverContent className="w-80 p-6 bg-card/95 backdrop-blur-2xl rounded-2xl border-border shadow-2xl" align="end">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                      <h4 className="font-bold text-sm uppercase tracking-wider">Filtres</h4>
+                      <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 text-xs font-semibold text-muted-foreground hover:text-destructive">Réinitialiser</Button>
                     </div>
                     
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Format d'apprentissage</Label>
+                    <div className="space-y-5">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold text-muted-foreground">Mode d'apprentissage</Label>
                         <Select value={filters.mode} onValueChange={(v) => handleFilterChange('mode', v)}>
-                          <SelectTrigger className="h-12 rounded-xl font-medium border-white/10 bg-white/5"><SelectValue /></SelectTrigger>
-                          <SelectContent className="rounded-xl border-white/10">
-                            <SelectItem value="all" className="font-bold">Tous</SelectItem>
-                            <SelectItem value="online" className="font-bold">Digital / VOD</SelectItem>
-                            <SelectItem value="presentiel" className="font-bold">Campus Physique</SelectItem>
-                            <SelectItem value="hybrid" className="font-bold">Hybride</SelectItem>
+                          <SelectTrigger className="h-11 rounded-xl font-medium"><SelectValue /></SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="all">Tous les modes</SelectItem>
+                            <SelectItem value="online">En ligne</SelectItem>
+                            <SelectItem value="presentiel">Présentiel</SelectItem>
+                            <SelectItem value="hybrid">Hybride</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
-                      <div className="space-y-4 pt-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frais de formation</Label>
+                      <div className="space-y-3 pt-1">
+                        <Label className="text-xs font-semibold text-muted-foreground">Frais de formation</Label>
                         <RadioGroup defaultValue={filters.price} onValueChange={(v) => handleFilterChange('price', v)} className="grid grid-cols-3 gap-2">
                           {['all', 'free', 'paid'].map((p) => (
                             <Label key={p} className={cn(
-                              "flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-500",
-                              filters.price === p ? "border-primary bg-primary/10 text-primary shadow-glow-primary/10" : "border-white/5 bg-white/5 hover:bg-white/10"
+                              "flex flex-col items-center justify-center p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-semibold",
+                              filters.price === p ? "border-primary bg-primary/10 text-primary" : "border-border/50 bg-background/50 hover:bg-muted/50"
                             )}>
                               <RadioGroupItem value={p} className="sr-only" />
-                              <span className="text-xs font-semibold tracking-wide">{p === 'all' ? 'Toutes' : p === 'free' ? 'Gratuite' : 'Payante'}</span>
+                              <span>{p === 'all' ? 'Toutes' : p === 'free' ? 'Gratuite' : 'Payante'}</span>
                             </Label>
                           ))}
                         </RadioGroup>
@@ -193,149 +186,56 @@ const Formations = () => {
                 </PopoverContent>
               </Popover>
             </motion.div>
-          </div>
-        </div>
-      </section>
 
-      {/* --- CATEGORY SELECTOR --- */}
-      <section className="py-12 md:py-24">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 md:mb-16">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-4"
-            >
-              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic leading-none">
-                POLES DE <span className="text-gradient-primary">TRANSFORMATION</span>
-              </h2>
-              <div className="w-24 h-1.5 bg-primary/20 rounded-full overflow-hidden">
-                 <div className="w-1/2 h-full bg-primary animate-glow" />
-              </div>
-            </motion.div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
-            {/* ALL DISCIPLINES NODE */}
-            <motion.button 
-              whileHover={{ y: -8, scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleCategoryClick('all')}
-              className={cn(
-                "group relative p-8 flex flex-col items-center gap-6 rounded-[2.5rem] transition-all duration-700 border overflow-hidden",
-                filters.category === 'all' 
-                  ? "bg-primary border-primary shadow-[0_20px_50px_-10px_rgba(var(--primary-rgb),0.5)]" 
-                  : "bg-card/40 border-white/10 text-foreground hover:border-primary/40 shadow-xl backdrop-blur-md"
-              )}
-            >
-              {/* Active Glow Aura */}
-              {filters.category === 'all' && (
-                <motion.div 
-                  layoutId="activeAura"
-                  className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50"
-                />
-              )}
-              
-              <div className={cn(
-                "relative z-10 w-20 h-20 flex items-center justify-center rounded-[1.5rem] transition-all duration-500 shadow-2xl", 
-                filters.category === 'all' ? "bg-white text-primary rotate-12" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:-rotate-12"
-              )}>
-                <LayoutGrid className="w-10 h-10" />
-                <div className="absolute inset-0 rounded-[1.5rem] bg-current opacity-0 group-hover:opacity-20 animate-ping" />
-              </div>
-
-              <div className="relative z-10 flex flex-col items-center">
-                <span className={cn(
-                    "font-black uppercase text-[10px] tracking-[0.3em] italic mb-1 transition-colors",
-                    filters.category === 'all' ? "text-white" : "text-muted-foreground group-hover:text-primary"
-                )}>
-                    Catalogue
-                </span>
-                <span className={cn(
-                    "font-black uppercase text-xs tracking-tighter italic leading-none transition-colors",
-                    filters.category === 'all' ? "text-white" : "text-foreground"
-                )}>
-                    GLOBAL
-                </span>
-              </div>
-
-              {filters.category === 'all' && (
-                <motion.div 
-                  layoutId="activeIndicator"
-                  className="absolute bottom-4 w-12 h-1.5 bg-white rounded-full shadow-glow-primary"
-                />
-              )}
-            </motion.button>
-
-            {/* CATEGORY NODES */}
-            {dbCategories?.map((cat) => (
-              <motion.button 
-                key={cat.id}
-                whileHover={{ y: -8, scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleCategoryClick(cat.name)}
+            {/* COMPACT CATEGORIES HORIZONTAL LIST */}
+            <div className="flex items-center justify-center gap-2 overflow-x-auto pt-4 pb-2 scrollbar-hide max-w-4xl mx-auto flex-wrap">
+              <button
+                onClick={() => handleCategoryClick('all')}
                 className={cn(
-                  "group relative p-8 flex flex-col items-center gap-6 rounded-[2.5rem] transition-all duration-700 border overflow-hidden",
-                  filters.category === cat.name 
-                    ? "bg-primary border-primary shadow-[0_20px_50px_-10px_rgba(var(--primary-rgb),0.5)]" 
-                    : "bg-card/40 border-white/10 text-foreground hover:border-primary/40 shadow-xl backdrop-blur-md"
+                  "px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 flex items-center gap-2 border",
+                  filters.category === 'all'
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-card/70 text-muted-foreground border-border/50 hover:border-primary/40 hover:text-foreground"
                 )}
               >
-                {filters.category === cat.name && (
-                  <motion.div 
-                    layoutId="activeAura"
-                    className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50"
-                  />
-                )}
-
-                <div className={cn(
-                  "relative z-10 w-20 h-20 flex items-center justify-center rounded-[1.5rem] transition-all duration-500 shadow-2xl", 
-                  filters.category === cat.name ? "bg-white text-primary rotate-12" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:-rotate-12"
-                )}>
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Toutes
+              </button>
+              {dbCategories?.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat.name)}
+                  className={cn(
+                    "px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 flex items-center gap-2 border",
+                    filters.category === cat.name
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-card/70 text-muted-foreground border-border/50 hover:border-primary/40 hover:text-foreground"
+                  )}
+                >
                   {categoryIcons[cat.name] || categoryIcons.default}
-                  <div className="absolute inset-0 rounded-[1.5rem] bg-current opacity-0 group-hover:opacity-20 animate-ping" />
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center">
-                    <span className={cn(
-                        "font-black uppercase text-[10px] tracking-[0.3em] italic mb-1 transition-colors",
-                        filters.category === cat.name ? "text-white" : "text-muted-foreground group-hover:text-primary"
-                    )}>
-                        Discipline
-                    </span>
-                    <span className={cn(
-                        "font-black uppercase text-xs tracking-tighter italic leading-none text-center transition-colors",
-                        filters.category === cat.name ? "text-white" : "text-foreground"
-                    )}>
-                        {cat.name}
-                    </span>
-                </div>
-
-                {filters.category === cat.name && (
-                  <motion.div 
-                    layoutId="activeIndicator"
-                    className="absolute bottom-4 w-12 h-1.5 bg-white rounded-full shadow-glow-primary"
-                  />
-                )}
-              </motion.button>
-            ))}
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* --- CATALOGUE GRID --- */}
-      <section ref={gridRef} className="py-16 md:py-24 bg-muted/5 border-t border-white/5 scroll-mt-24">
+      <section ref={gridRef} className="py-10 md:py-16 scroll-mt-24">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="flex items-center gap-6 mb-12 md:mb-16">
-            <div className="h-px flex-1 bg-white/5" />
-            <div className="flex items-center gap-4 bg-background px-6 md:px-10 py-3 md:py-4 rounded-full border border-white/10 shadow-2xl">
-              <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-              <h2 className="text-lg md:text-3xl font-black uppercase tracking-tighter italic">
-                {filteredCourses.length} <span className="text-primary">Expériences</span> d'Élite
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div className="flex items-center gap-3">
+              <BookOpen className="w-5 h-5 text-primary" />
+              <h2 className="text-xl md:text-2xl font-bold uppercase tracking-tight">
+                {filteredCourses.length} {filteredCourses.length > 1 ? "Formations Disponibles" : "Formation Disponible"}
               </h2>
             </div>
-            <div className="h-px flex-1 bg-white/5" />
+            {filters.category !== 'all' && (
+              <Button variant="ghost" size="sm" onClick={() => handleCategoryClick('all')} className="text-xs text-primary font-semibold">
+                Afficher tout
+              </Button>
+            )}
           </div>
 
           {isLoadingCourses ? (
