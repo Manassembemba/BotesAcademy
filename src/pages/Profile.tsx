@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Camera, User, Mail, Shield, Calendar, Save, Award, Download, BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateBadge } from "@/lib/pdfService";
 
@@ -211,7 +212,7 @@ const Profile = () => {
                       <Mail className="w-3.5 h-3.5 text-primary" />
                       Identifiant de connexion
                     </Label>
-                    <Input id="email" value={user?.email} disabled className="bg-muted/50 border-none h-14 rounded-2xl font-black italic text-foreground/50 px-6 cursor-not-allowed" />
+                    <Input id="email" value={user?.email?.endsWith('@botesacademy.cd') ? '(identifiant interne)' : user?.email} disabled className="bg-muted/50 border-none h-14 rounded-2xl font-black italic text-foreground/50 px-6 cursor-not-allowed" />
                   </div>
 
                   <div className="space-y-3">
@@ -311,7 +312,7 @@ const Profile = () => {
                       className="w-full sm:w-auto px-12 h-16 shadow-2xl shadow-primary/20 rounded-2xl font-black uppercase text-xs tracking-widest bg-primary text-white hover:shadow-primary/40 active:scale-95 transition-all italic"
                     >
                       {updateProfileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                      Sauvegarder l'excellence
+                      Enregistrer les modifications
                     </Button>
                   </div>
                 </div>
@@ -390,14 +391,5 @@ const Profile = () => {
   );
 };
 
-// Simple Badge component if not available
-const Badge = ({ children, variant = "default", className = "" }: any) => {
-  const variants: any = {
-    default: "bg-primary text-primary-foreground",
-    outline: "border border-border text-foreground",
-    secondary: "bg-secondary text-secondary-foreground"
-  };
-  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${variants[variant]} ${className}`}>{children}</span>;
-};
-
 export default Profile;
+

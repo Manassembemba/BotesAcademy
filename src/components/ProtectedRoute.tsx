@@ -12,7 +12,7 @@ export const ProtectedRoute = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('profile_completed')
+        .select('profile_completed, role')
         .eq('id', user?.id)
         .single();
       return data;
@@ -37,11 +37,16 @@ export const ProtectedRoute = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Redirection forcée vers l'onboarding si le profil n'est pas complété
-  // On évite la boucle de redirection infinie en vérifiant si on n'y est pas déjà
-  if (profile && !profile.profile_completed && location.pathname !== "/onboarding") {
+  // Ne pas forcer l'onboarding pour : admins, comptes avec email interne, pages déjà exclues
+  const isAdmin = profile?.role === 'admin';
+  const hasInternalEmail = user.email?.endsWith('@botesacademy.cd');
+  const excludedPaths = ["/onboarding", "/profile", "/update-password"];
+  const isExcluded = excludedPaths.some((p) => location.pathname.startsWith(p));
+
+  if (profile && !profile.profile_completed && !isAdmin && !hasInternalEmail && !isExcluded) {
     return <Navigate to="/onboarding" replace />;
   }
 
   return <Outlet />;
 };
+
