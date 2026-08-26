@@ -46,11 +46,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         const result = (await Promise.race([query, timeoutPromise])) as any;
 
-        if (result.error && result.error.code !== 'PGRST116') {
+        if (result.error) {
           throw result.error;
         }
         return result.data?.role ?? null;

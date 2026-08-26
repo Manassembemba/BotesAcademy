@@ -48,11 +48,12 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
         const fetchDetails = async () => {
             if (!hasPurchased || !user || product.type !== 'indicator') return;
             
-            const { data, error } = await supabase
-                .from('indicator_purchases')
-                .select('delivered_file_url, expires_at, subscription_type, mt5_id')
+            const { data } = await supabase
+                .from('purchases')
+                .select('delivered_file_url, expires_at, subscription_duration, mt5_id')
                 .eq('indicator_id', product.id)
                 .eq('user_id', user.id)
+                .eq('product_type', 'indicator')
                 .maybeSingle();
             
             if (data) setPurchaseDetails(data);
@@ -76,11 +77,12 @@ export const ProductCard = ({ product, hasPurchased, index }: ProductCardProps) 
         try {
             if (product.type === 'indicator') {
                 const { data, error } = await supabase
-                    .from('indicator_purchases')
+                    .from('purchases')
                     .select('delivered_file_url, expires_at')
                     .eq('indicator_id', product.id)
                     .eq('user_id', user.id)
-                    .single();
+                    .eq('product_type', 'indicator')
+                    .maybeSingle();
                 
                 if (error) throw error;
 

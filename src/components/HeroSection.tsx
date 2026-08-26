@@ -111,7 +111,7 @@ const HeroSection = () => {
                  <div className="ml-4 flex flex-col justify-center text-left">
                     <p className="text-[10px] font-bold uppercase tracking-widest leading-none mb-1">Élèves actifs</p>
                     <div className="flex gap-0.5 text-amber-500">
-                        {[1,2,3,4,5].map(i => <CheckCircle className="w-2.5 h-2.5 fill-current" />)}
+                        {[1,2,3,4,5].map(i => <CheckCircle key={i} className="w-2.5 h-2.5 fill-current" />)}
                     </div>
                  </div>
               </div>

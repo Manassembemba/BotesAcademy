@@ -39,9 +39,9 @@ const Auth = () => {
           .from('user_roles')
           .select('role')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
-        if (roleData?.role === 'admin') {
+        if (roleData?.role === 'admin' || roleData?.role === 'receptionist' || roleData?.role === 'teacher') {
           navigate("/admin/dashboard");
         } else {
           navigate("/dashboard");
@@ -75,13 +75,15 @@ const Auth = () => {
         toast.success("Connexion réussie !");
 
         // Récupérer le rôle pour la redirection immédiate
+        const userRes = await supabase.auth.getUser();
+        const userId = userRes.data.user?.id;
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .single();
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        if (roleData?.role === 'admin') {
+        if (roleData?.role === 'admin' || roleData?.role === 'receptionist' || roleData?.role === 'teacher') {
           navigate("/admin/dashboard");
         } else {
           navigate("/dashboard");

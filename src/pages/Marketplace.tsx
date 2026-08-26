@@ -78,14 +78,18 @@ const Marketplace = () => {
     queryFn: async () => {
       if (!user) return new Set<string>();
 
-      const [strategyPurchases, indicatorPurchases] = await Promise.all([
-        supabase.from('strategy_purchases').select('strategy_id').eq('user_id', user.id),
-        supabase.from('indicator_purchases').select('indicator_id').eq('user_id', user.id),
-      ]);
+      const { data: unifiedPurchases } = await supabase
+        .from('purchases')
+        .select('strategy_id, indicator_id, product_type')
+        .eq('user_id', user.id)
+        .in('product_type', ['indicator', 'strategy'])
+        .eq('validation_status', 'approved');
 
       const purchasedIds = new Set<string>();
-      strategyPurchases.data?.forEach(p => purchasedIds.add(p.strategy_id));
-      indicatorPurchases.data?.forEach(p => purchasedIds.add(p.indicator_id));
+      unifiedPurchases?.forEach(p => {
+        if (p.strategy_id) purchasedIds.add(p.strategy_id);
+        if (p.indicator_id) purchasedIds.add(p.indicator_id);
+      });
 
       return purchasedIds;
     },
