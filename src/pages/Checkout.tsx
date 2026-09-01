@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,11 +40,11 @@ const Checkout = () => {
     const { id: productId } = useParams<{ id: string }>();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const { settings } = useSiteSettings();
     const [proofFile, setProofFile] = useState<File | null>(null);
 
-    const searchParams = new URLSearchParams(window.location.search);
     const productType = searchParams.get('type') || 'course';
     const selectedPlan = searchParams.get('plan') || 'total';
 
@@ -84,7 +85,10 @@ const Checkout = () => {
                 form.setValue('amount', regFee + (product.price || 0));
             }
         }
-        else if (productType === 'indicator' && product?.price_1m) form.setValue('amount', product.price_1m);
+        else if (productType === 'indicator' && product) {
+            const initialAmount = product.price_1m || product.price || 0;
+            form.setValue('amount', initialAmount);
+        }
     }, [product, form, productType, selectedPlan]);
 
     const uploadMutation = useMutation({
@@ -126,12 +130,13 @@ const Checkout = () => {
                 toast.success("Preuve de paiement envoyée !");
                 navigate(`/payment-status/${proofData.id}`);
             } else {
-                toast.success("Achat enregistré ! Nos experts configurent votre outil. Vous recevrez un mail dès qu'il sera prêt.", {
+                toast.success("Paiement envoyé avec succès ! Votre outil sera activé dès validation par notre équipe.", {
                     duration: 6000,
                 });
-                navigate(`/marketplace`);
+                navigate(`/dashboard`);
             }
             queryClient.invalidateQueries({ queryKey: ['pendingProof', productId, user?.id] });
+            queryClient.invalidateQueries({ queryKey: ['purchased-tools', user?.id] });
         },
         onError: (error: Error) => toast.error(`Erreur: ${error.message}`),
     });
@@ -203,19 +208,19 @@ const Checkout = () => {
 
           {/* Checkout Form */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:col-span-8 order-1 lg:order-2">
-            <div className="bento-card p-10 bg-card border-none shadow-2xl">
-              <div className="mb-10">
-                <h1 className="text-4xl font-black uppercase italic tracking-tighter leading-none mb-2">Finaliser l'acquisition</h1>
-                <p className="italic font-medium text-sm text-muted-foreground">Suivez les étapes sécurisées pour débloquer votre accès.</p>
+            <div className="bento-card p-5 sm:p-8 md:p-10 bg-card border-none shadow-2xl">
+              <div className="mb-8 sm:mb-10">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2">Finaliser l'acquisition</h1>
+                <p className="font-medium text-xs sm:text-sm text-muted-foreground">Suivez les étapes sécurisées pour débloquer votre accès.</p>
               </div>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(uploadMutation.mutate)} className="space-y-12">
+                <form onSubmit={form.handleSubmit(uploadMutation.mutate)} className="space-y-8 sm:space-y-12">
                   {/* Step 1: Payment Method */}
                   <div className="space-y-6">
                     <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center font-black italic shadow-glow-primary">1</div>
-                       <h3 className="text-xl font-black uppercase italic tracking-tighter">Méthode de paiement</h3>
+                       <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center font-bold shadow-glow-primary">1</div>
+                       <h3 className="text-lg sm:text-xl font-bold tracking-tight">Méthode de paiement</h3>
                     </div>
                     <FormField control={form.control} name="payment_method" render={({ field }) => (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

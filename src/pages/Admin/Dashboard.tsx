@@ -23,7 +23,8 @@ import {
   Calendar,
   Settings,
   Bell,
-  Wallet
+  Wallet,
+  CheckCircle2
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,11 +56,24 @@ const fetchStats = async (role: string, userId: string) => {
   if (isAdmin || role === 'receptionist') {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
+
+    // Sum installments paid today
     const { data: installments } = await supabase
       .from('payment_installments')
       .select('amount')
       .gte('created_at', todayStart.toISOString());
-    todayRevenue = installments?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
+
+    // Sum approved direct proofs from today
+    const { data: approvedProofs } = await supabase
+      .from('payment_proofs')
+      .select('amount')
+      .eq('status', 'approved')
+      .gte('validated_at', todayStart.toISOString());
+
+    const instTotal = installments?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
+    const proofTotal = approvedProofs?.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) || 0;
+    todayRevenue = Math.max(instTotal, proofTotal, (instTotal + proofTotal > 0 ? instTotal : 0));
+    if (todayRevenue === 0 && proofTotal > 0) todayRevenue = proofTotal;
   }
 
   let pendingPayments = 0;
@@ -68,7 +82,21 @@ const fetchStats = async (role: string, userId: string) => {
     pendingPayments = count || 0;
   }
 
-  return { courseCount, userCount, todayRevenue, pendingPayments };
+  // Today attendance
+  const todayStr = new Date().toISOString().split('T')[0];
+  const { data: todayAttendance } = await supabase
+    .from('attendance' as any)
+    .select('status')
+    .eq('date', todayStr);
+
+  let attendanceRateToday = 100;
+  if (todayAttendance && todayAttendance.length > 0) {
+    const present = todayAttendance.filter((a: any) => a.status === 'present').length;
+    const late = todayAttendance.filter((a: any) => a.status === 'late').length;
+    attendanceRateToday = Math.round(((present + late * 0.5) / todayAttendance.length) * 100);
+  }
+
+  return { courseCount, userCount, todayRevenue, pendingPayments, attendanceRateToday, todayAttendanceCount: todayAttendance?.length || 0 };
 };
 
 const AdminDashboard = () => {
@@ -96,156 +124,154 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-12 pb-20">
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-8 pb-16">
       {/* HEADER STRATÉGIQUE */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-[0.4em] px-4 py-1.5 rounded-full italic">Statut Opérationnel : Optimal</Badge>
-          <h1 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">
-            TABLEAU DE BORD <span className="text-primary">ADMIN</span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-semibold">
+            <CheckCircle2 className="w-3 h-3" />
+            Système Opérationnel
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Tableau de Bord Administrateur
           </h1>
-          <p className="text-muted-foreground font-medium text-sm md:text-lg italic opacity-60">Pilotage pédagogique et financier de Botes Academy.</p>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Pilotage pédagogique, financier et académique de Botes Academy.
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-            <Link to="/admin/formations/new">
-                <Button className="h-16 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-glow-primary group overflow-hidden relative border-2 border-white/10">
-                    <span className="relative z-10 flex items-center gap-3"><PlusCircle className="w-5 h-5" /> Nouvelle Formation</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Button>
-            </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/admin/formations/new">
+            <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
+              <PlusCircle className="w-4 h-4" /> Nouvelle Formation
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* KPI TOP BAR [PLATINUM] */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="rounded-[2.5rem] border-white/5 bg-card/40 backdrop-blur-md shadow-2xl overflow-hidden group hover:border-primary/30 transition-all duration-500">
-            <CardContent className="p-8 flex items-center gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white shadow-glow-primary transition-transform group-hover:rotate-12">
-                    <BookOpen className="w-8 h-8" />
-                </div>
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Cursus Actifs</p>
-                    <p className="text-4xl font-black italic tracking-tighter">{stats?.courseCount || 0}</p>
-                </div>
-            </CardContent>
+      {/* KPI TOP BAR */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-primary/30 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Cursus Actifs</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.courseCount || 0}</p>
+            </div>
+          </div>
         </Card>
 
-        <Card className="rounded-[2.5rem] border-white/5 bg-card/40 backdrop-blur-md shadow-2xl overflow-hidden group hover:border-blue-500/30 transition-all duration-500">
-            <CardContent className="p-8 flex items-center gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-glow-blue transition-transform group-hover:rotate-12">
-                    <Users className="w-8 h-8" />
-                </div>
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Population</p>
-                    <p className="text-4xl font-black italic tracking-tighter">{stats?.userCount || 0}</p>
-                </div>
-            </CardContent>
+        <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-blue-500/30 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Étudiants Inscrits</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.userCount || 0}</p>
+            </div>
+          </div>
         </Card>
 
         {(isAdmin || role === 'receptionist') && (
-            <Card className="rounded-[2.5rem] border-white/5 bg-card/40 backdrop-blur-md shadow-2xl overflow-hidden group hover:border-emerald-500/30 transition-all duration-500">
-                <CardContent className="p-8 flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-glow-emerald transition-transform group-hover:rotate-12">
-                        <TrendingUp className="w-8 h-8" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-1">
-                          Encaissé Aujourd'hui
-                        </p>
-                        <p className="text-4xl font-black italic tracking-tighter text-foreground">${stats?.todayRevenue || 0}</p>
-                    </div>
-                </CardContent>
-            </Card>
+          <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-emerald-500/30 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-emerald-600">Encaissé Aujourd'hui</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">${stats?.todayRevenue || 0}</p>
+              </div>
+            </div>
+          </Card>
         )}
 
         <Card className={cn(
-            "rounded-[2.5rem] border-white/5 bg-card/40 backdrop-blur-md shadow-2xl overflow-hidden group hover:border-orange-500/30 transition-all duration-500",
-            stats?.pendingPayments ? "ring-2 ring-orange-500/50 animate-glow" : ""
+          "rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-orange-500/30 transition-colors",
+          stats?.pendingPayments ? "border-orange-500/40 bg-orange-500/5 ring-1 ring-orange-500/20" : ""
         )}>
-            <CardContent className="p-8 flex items-center gap-6">
-                <div className={cn(
-                    "w-16 h-16 rounded-2xl flex items-center justify-center text-white transition-transform group-hover:rotate-12 shadow-glow-orange",
-                    stats?.pendingPayments ? "bg-orange-500 animate-pulse" : "bg-orange-500/40"
-                )}>
-                    <CreditCard className="w-8 h-8" />
-                </div>
-                <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Alertes Flux</p>
-                    <p className="text-4xl font-black italic tracking-tighter">{stats?.pendingPayments || 0}</p>
-                </div>
-            </CardContent>
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+              stats?.pendingPayments ? "bg-orange-500 text-white shadow-xs animate-pulse" : "bg-orange-500/10 text-orange-600"
+            )}>
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Paiements à Valider</p>
+              <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.pendingPayments || 0}</p>
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* BENTO COMMAND GRID */}
-      <div className="space-y-6">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic ml-4">Terminal de Pilotage</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {commandCenterItems.filter(item => !item.adminOnly || isAdmin).map((item, idx) => (
-                <Link key={idx} to={item.path} className="group relative perspective-1000">
-                    <Card className={cn(
-                        "h-full rounded-[2.5rem] border-white/5 bg-card/60 backdrop-blur-xl p-8 transition-all duration-500 overflow-hidden preserve-3d group-hover:rotate-y-1 group-hover:border-primary/40 shadow-xl",
-                        item.alert && "border-orange-500/40 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
-                    )}>
-                        {/* Background Patterns */}
-                        <div className="absolute inset-0 bg-[radial-gradient(#ffffff03_1px,transparent_1px)] [background-size:16px:16px] pointer-events-none" />
-                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
+      {/* TERMINAL DE PILOTAGE */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground tracking-tight">Terminal de Pilotage</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {commandCenterItems.filter(item => !item.adminOnly || isAdmin).map((item, idx) => (
+            <Link key={idx} to={item.path} className="group">
+              <Card className={cn(
+                "h-full rounded-2xl border border-border/50 bg-card/60 p-4 sm:p-5 transition-all duration-200 hover:border-primary/40 hover:bg-card hover:shadow-xs",
+                item.alert && "border-orange-500/40 bg-orange-500/5"
+              )}>
+                <div className="flex flex-col h-full space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-105", item.bg, item.color)}>
+                      <item.icon className="w-4.5 h-4.5" />
+                    </div>
+                    {item.count !== undefined && (
+                      <Badge className={cn(
+                        "font-semibold px-2 py-0.5 rounded-md text-xs",
+                        item.alert ? "bg-orange-500 text-white animate-bounce" : "bg-muted text-muted-foreground"
+                      )}>
+                        {item.count}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-snug mt-0.5">{item.desc}</p>
+                  </div>
 
-                        <div className="relative z-10 flex flex-col h-full space-y-6">
-                            <div className="flex justify-between items-start">
-                                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-transform group-hover:scale-110", item.bg, item.color)}>
-                                    <item.icon className="w-7 h-7" />
-                                </div>
-                                {item.count !== undefined && (
-                                    <Badge className={cn(
-                                        "font-black italic px-3 py-1 rounded-lg text-lg tracking-tighter shadow-2xl",
-                                        item.alert ? "bg-orange-500 text-white animate-bounce" : "bg-white/5 text-foreground"
-                                    )}>
-                                        {item.count}
-                                    </Badge>
-                                )}
-                            </div>
-                            
-                            <div>
-                                <h3 className="text-xl font-black uppercase tracking-tight italic leading-none mb-2">{item.title}</h3>
-                                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{item.desc}</p>
-                            </div>
-
-                            <div className="mt-auto pt-4 flex items-center justify-between text-primary opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Ouvrir le module</span>
-                                <ArrowRight className="w-4 h-4" />
-                            </div>
-                        </div>
-                    </Card>
-                </Link>
-            ))}
+                  <div className="mt-auto pt-2 flex items-center justify-between text-primary text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>Accéder au module</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          ))}
         </div>
       </div>
 
       {/* OPERATIONS CRITIQUES */}
       {stats?.pendingPayments ? (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-1000">
-            <div className="bg-orange-500/10 border-2 border-orange-500/20 p-8 rounded-[3rem] backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-orange-500/10">
-                <div className="flex items-center gap-8">
-                    <div className="w-20 h-20 bg-orange-500 rounded-3xl flex items-center justify-center text-white shadow-glow-orange animate-pulse">
-                        <AlertCircle className="w-10 h-10" />
-                    </div>
-                    <div className="space-y-1">
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Opérations en Attente</h3>
-                        <p className="text-muted-foreground font-medium italic">Vous avez <span className="text-orange-500 font-black">{stats.pendingPayments} paiements</span> à valider pour débloquer l'accès aux élèves.</p>
-                    </div>
-                </div>
-                <Link to="/admin/payments" className="w-full md:w-auto">
-                    <Button size="xl" className="w-full md:w-auto h-16 px-12 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-[11px] shadow-glow-orange border-2 border-white/10">
-                        Accéder au Terminal de Validation
-                    </Button>
-                </Link>
+        <div className="bg-orange-500/10 border border-orange-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shrink-0 animate-pulse">
+              <AlertCircle className="w-5 h-5" />
             </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Vérification de Paiements en Attente</h3>
+              <p className="text-xs text-muted-foreground">
+                Vous avez <span className="text-orange-600 font-bold">{stats.pendingPayments} reçu(s)</span> à vérifier pour activer les accès étudiants.
+              </p>
+            </div>
+          </div>
+          <Link to="/admin/payments" className="w-full sm:w-auto shrink-0">
+            <Button size="sm" className="w-full sm:w-auto h-10 px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs shadow-xs">
+              Valider les reçus
+            </Button>
+          </Link>
         </div>
       ) : (
-        <div className="flex items-center justify-center py-12 opacity-40 grayscale pointer-events-none italic">
-            <ShieldCheck className="w-5 h-5 mr-3 text-emerald-500" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em]">Système de flux stabilisé. Aucune action critique requise.</span>
+        <div className="flex items-center justify-center py-4 text-muted-foreground text-xs font-medium gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <span>Tous les paiements et flux administratifs sont à jour.</span>
         </div>
       )}
     </div>

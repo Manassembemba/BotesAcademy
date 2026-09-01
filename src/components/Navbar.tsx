@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,9 +10,9 @@ import {
   LogOut, 
   User, 
   ShoppingBag, 
-  Search, 
   ChevronRight,
-  CreditCard
+  CreditCard,
+  GraduationCap
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +35,7 @@ const Navbar = () => {
   const { user, signOut, role } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Fetch profile for avatar
   const { data: profile } = useQuery({
@@ -70,90 +71,93 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className={cn(
-        "fixed z-50 transition-all duration-500",
-        "top-0 left-0 right-0 lg:top-4 lg:left-4 lg:right-4",
-        "bg-white/80 dark:bg-black/80 lg:rounded-[2rem] border-b lg:border border-white/10 backdrop-blur-xl shadow-lg",
-        isOpen ? "h-screen lg:h-auto" : "h-auto"
-    )}>
-      <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20 lg:h-24 gap-4">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/85 backdrop-blur-md border-b border-border/50 shadow-xs transition-all">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-4">
           
-          {/* LOGO SECTION - Adaptative size */}
-          <Link to="/" className="flex items-center gap-2 md:gap-4 shrink-0 relative group">
-            <img src="/logo.png?v=2" alt="Logo" className="h-8 md:h-12 lg:h-14 w-auto object-contain transition-transform group-hover:scale-110" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm md:text-lg lg:text-xl font-black uppercase tracking-tighter leading-none italic truncate">
-                Botes <span className="text-primary">Academy</span>
-              </span>
-              <span className="text-[7px] lg:text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] mt-0.5 hidden sm:block italic">ON NE FORME PAS ON TRANSFORME</span>
-            </div>
-          </Link>
+          {/* LOGO & BRAND */}
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center gap-3 shrink-0 group">
+              <img src="/logo.png?v=2" alt="Botes Academy" className="h-9 w-auto object-contain transition-transform group-hover:scale-105" />
+              <div className="flex flex-col">
+                <span className="text-base font-bold tracking-tight text-foreground leading-tight">
+                  Botes <span className="text-primary">Academy</span>
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground tracking-wide leading-none">Centre Professionnel</span>
+              </div>
+            </Link>
 
-          {/* DESKTOP NAV LINKS - Hidden on medium/mobile */}
-          <div className="hidden lg:flex items-center gap-8 ml-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className="text-[10px] font-black text-muted-foreground hover:text-primary transition-all uppercase tracking-[0.2em] relative group/link py-2"
-              >
-                {link.name}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover/link:w-full" />
-              </Link>
-            ))}
+            {/* DESKTOP NAV LINKS */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const isActive = location.pathname === link.path;
+                return (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                      isActive 
+                        ? "text-primary bg-primary/10 font-bold" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
-          {/* SEARCH BAR - Expandable or hidden based on space */}
-          <div className="hidden md:flex flex-1 justify-center max-w-md lg:max-w-lg mx-2 lg:mx-8">
+          {/* SEARCH BAR */}
+          <div className="hidden lg:flex flex-1 justify-center max-w-sm mx-4">
             <div className="w-full">
-                <CommandMenu />
+              <CommandMenu />
             </div>
           </div>
 
-          {/* ACTIONS SECTION */}
-          <div className="flex items-center gap-2 md:gap-4 lg:gap-6 shrink-0">
+          {/* RIGHT ACTIONS */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="hidden sm:flex items-center">
-                <ThemeToggle />
+              <ThemeToggle />
             </div>
             
             {user ? (
-              <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <NotificationCenter />
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="relative group outline-none">
-                      <Avatar className="w-9 h-9 md:w-10 md:h-10 lg:w-12 lg:h-12 border-2 border-primary/20 group-hover:border-primary transition-all duration-500 shadow-lg">
+                    <button className="flex items-center gap-2 p-1 rounded-full hover:bg-muted/50 transition-colors outline-none cursor-pointer">
+                      <Avatar className="w-8 h-8 sm:w-9 sm:h-9 border border-border/80 shadow-xs">
                         <AvatarImage src={profile?.avatar_url || ""} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-black uppercase">
-                          {profile?.full_name?.charAt(0) || user?.email?.charAt(0)}
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                          {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 md:w-4 md:h-4 bg-emerald-500 border-2 border-background rounded-full scale-0 group-hover:scale-100 transition-transform duration-300 shadow-sm" />
                     </button>
                   </DropdownMenuTrigger>
                   
-                  <DropdownMenuContent className="w-64 p-2 bg-card/95 backdrop-blur-xl border-white/10 rounded-2xl shadow-2xl mt-4" align="end">
-                    <DropdownMenuLabel className="p-3">
-                        <p className="text-[10px] font-black uppercase text-primary/60 tracking-widest mb-1 italic">Compte Vérifié</p>
-                        <p className="text-sm font-black uppercase italic truncate">{profile?.full_name || 'Mon Profil'}</p>
+                  <DropdownMenuContent className="w-56 p-1.5 bg-popover/95 backdrop-blur-xl border border-border/80 rounded-xl shadow-lg mt-2" align="end">
+                    <DropdownMenuLabel className="px-3 py-2">
+                      <p className="text-xs font-semibold text-foreground truncate">{profile?.full_name || 'Mon Compte'}</p>
+                      <p className="text-[11px] text-muted-foreground truncate font-normal">{user.email}</p>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-white/5" />
-                    <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 p-3 rounded-xl cursor-pointer text-[10px] font-black uppercase tracking-widest">
-                      <User className="w-4 h-4 text-primary" /> Mon Profil
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                      <User className="w-4 h-4 text-muted-foreground" /> Mon Profil
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate(role === 'admin' ? "/admin/dashboard" : "/dashboard")} className="gap-3 p-3 rounded-xl cursor-pointer text-[10px] font-black uppercase tracking-widest">
-                      <LayoutDashboard className="w-4 h-4 text-primary" /> Dashboard
+                    <DropdownMenuItem onClick={() => navigate(role === 'admin' ? "/admin/dashboard" : "/dashboard")} className="gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                      <LayoutDashboard className="w-4 h-4 text-primary" /> Tableau de Bord
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/marketplace")} className="gap-3 p-3 rounded-xl cursor-pointer text-[10px] font-black uppercase tracking-widest">
-                      <ShoppingBag className="w-4 h-4 text-primary" /> Marketplace
+                    <DropdownMenuItem onClick={() => navigate("/marketplace")} className="gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                      <ShoppingBag className="w-4 h-4 text-muted-foreground" /> Marketplace
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/finance")} className="gap-3 p-3 rounded-xl cursor-pointer text-[10px] font-black uppercase tracking-widest">
-                      <CreditCard className="w-4 h-4 text-primary" /> Mes Finances
+                    <DropdownMenuItem onClick={() => navigate("/finance")} className="gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium">
+                      <CreditCard className="w-4 h-4 text-muted-foreground" /> Mes Finances
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-white/5" />
-                    <DropdownMenuItem onClick={handleSignOut} className="gap-3 p-3 rounded-xl cursor-pointer text-[10px] font-black uppercase tracking-widest text-destructive hover:bg-destructive/10">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-destructive focus:text-destructive hover:bg-destructive/10">
                       <LogOut className="w-4 h-4" /> Déconnexion
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -162,9 +166,9 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <Link to="/auth">
-                  <Button variant="hero" size="sm" className="h-9 md:h-11 lg:h-12 px-4 md:px-8 rounded-xl font-black uppercase tracking-widest text-[9px] md:text-[10px] shadow-glow-primary border border-white/10">
-                    <LogIn className="w-3.5 h-3.5 mr-2 hidden md:block" />
-                    Membre
+                  <Button size="sm" className="h-9 px-4 rounded-xl font-semibold text-xs shadow-xs">
+                    <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                    Connexion
                   </Button>
                 </Link>
               </div>
@@ -172,63 +176,57 @@ const Navbar = () => {
 
             {/* MOBILE MENU TOGGLE */}
             <button 
-                onClick={toggleMenu} 
-                className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 text-primary lg:hidden hover:bg-primary hover:text-white transition-all"
+              onClick={toggleMenu} 
+              className="w-9 h-9 rounded-lg flex items-center justify-center border border-border/60 text-muted-foreground md:hidden hover:text-foreground hover:bg-muted/50 transition-colors"
+              aria-label="Menu"
             >
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
-        {/* MOBILE NAVIGATION OVERLAY */}
+        {/* MOBILE NAVIGATION DRAWER */}
         <AnimatePresence>
-            {isOpen && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="lg:hidden flex flex-col pt-4 pb-10 space-y-6 h-full overflow-y-auto"
-              >
-                {/* Mobile Search */}
-                <div className="md:hidden px-2">
-                    <CommandMenu />
-                </div>
+          {isOpen && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-border/50 py-4 space-y-4 overflow-hidden"
+            >
+              <div className="px-1">
+                <CommandMenu />
+              </div>
 
-                <div className="flex flex-col space-y-2">
-                    <p className="px-4 text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mb-2 opacity-40 italic">Navigation</p>
-                    {navLinks.map((link) => (
+              <div className="flex flex-col space-y-1">
+                {navLinks.map((link) => {
+                  const isActive = location.pathname === link.path;
+                  return (
                     <Link
-                        key={link.name}
-                        to={link.path}
-                        className="flex items-center justify-between px-6 py-4 text-2xl font-black uppercase tracking-tighter italic text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-2xl transition-all"
-                        onClick={() => setIsOpen(false)}
+                      key={link.name}
+                      to={link.path}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors",
+                        isActive ? "text-primary bg-primary/10 font-bold" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                      )}
+                      onClick={() => setIsOpen(false)}
                     >
-                        {link.name}
-                        <ChevronRight className="w-6 h-6 opacity-20" />
+                      {link.name}
+                      <ChevronRight className="w-4 h-4 opacity-40" />
                     </Link>
-                    ))}
-                </div>
+                  );
+                })}
+              </div>
 
-                <div className="px-4 pt-6 mt-auto">
-                    <div className="p-6 bg-muted/20 rounded-[2rem] border border-white/5 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-widest opacity-60 italic">Mode Visuel</span>
-                            <ThemeToggle />
-                        </div>
-                        {!user && (
-                            <Link to="/auth" className="block" onClick={() => setIsOpen(false)}>
-                                <Button variant="hero" className="w-full h-16 rounded-2xl text-xs font-black uppercase tracking-widest shadow-glow-primary">
-                                    <LogIn className="w-5 h-5 mr-3" /> Accès Membre
-                                </Button>
-                            </Link>
-                        )}
-                    </div>
-                </div>
-              </motion.div>
-            )}
+              <div className="pt-2 border-t border-border/40 flex items-center justify-between px-2">
+                <span className="text-xs text-muted-foreground font-medium">Thème visuel</span>
+                <ThemeToggle />
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
-    </nav>
+    </header>
   );
 };
 

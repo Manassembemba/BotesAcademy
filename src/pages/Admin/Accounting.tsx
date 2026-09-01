@@ -156,19 +156,17 @@ export default function Accounting() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-8 pb-24 max-w-7xl">
-      {/* HEADER FINANCIER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-black uppercase tracking-wider">
-              Trésorerie & Recettes
-            </span>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-24 max-w-7xl">
+      {/* HEADER UNIFIÉ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-semibold">
+            Trésorerie & Recettes
           </div>
-          <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight text-foreground mt-2">
-            Comptabilité & <span className="text-emerald-500">Flux Financiers</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Comptabilité & Flux Financiers
           </h1>
-          <p className="text-muted-foreground text-sm font-medium">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Suivi des encaissements par période, formation, moyen de paiement et caissier.
           </p>
         </div>
@@ -176,9 +174,11 @@ export default function Accounting() {
         <div className="flex items-center gap-3">
           <Button
             onClick={exportPDF}
-            className="h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md bg-card border border-border hover:bg-muted text-foreground"
+            size="sm"
+            variant="outline"
+            className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs"
           >
-            <Download className="w-4 h-4 mr-2 text-primary" /> Exporter Rapport PDF
+            <Download className="w-4 h-4 text-primary" /> Exporter PDF
           </Button>
         </div>
       </div>

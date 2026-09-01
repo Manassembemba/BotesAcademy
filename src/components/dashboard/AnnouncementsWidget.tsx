@@ -49,26 +49,24 @@ export const AnnouncementsWidget = () => {
           
           <div className="flex flex-col gap-4">
             <div className="flex items-start justify-between">
-              <div className="p-2.5 bg-primary/20 rounded-xl group-hover:rotate-12 transition-transform duration-500">
-                <Megaphone className="w-5 h-5 text-primary" />
+              <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                <Megaphone className="w-5 h-5" />
               </div>
-              <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary px-3 py-1 rounded-full">
+              <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-primary/20 text-primary px-2.5 py-0.5 rounded-full">
                 Nouveau
               </Badge>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-sm uppercase tracking-tight italic leading-tight group-hover:text-primary transition-colors">{announcement.title}</h4>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 italic font-medium opacity-80">
+            <div className="space-y-1.5">
+              <h4 className="font-bold text-sm text-foreground tracking-tight group-hover:text-primary transition-colors">{announcement.title}</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                 {announcement.message}
               </p>
             </div>
 
-            <div className="pt-2 border-t border-border/5 flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50 flex items-center gap-1.5">
-                <Calendar className="w-3 h-3" />
+            <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
                 {format(new Date(announcement.created_at), 'dd MMMM yyyy', { locale: fr })}
               </span>
             </div>

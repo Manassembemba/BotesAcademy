@@ -131,48 +131,55 @@ const IndicatorDelivery = () => {
     if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
 
     return (
-        <div className="container mx-auto p-4 md:p-8 space-y-8 pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-black uppercase italic tracking-tighter text-primary leading-none mb-2">Livraisons <span className="text-foreground">Elite</span></h1>
-                    <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest">Gestion du déploiement des outils de trading</p>
+        <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-20 max-w-7xl">
+            {/* HEADER UNIFIÉ */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+                <div className="space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
+                        <Upload className="w-3 h-3" /> Logistique Numérique
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                        Livraison des Indicateurs & Outils
+                    </h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                        Déploiement des fichiers d'indicateurs configurés et liés aux identifiants MT5 des élèves.
+                    </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="px-4 py-2 border-primary/20 bg-primary/5 text-primary rounded-xl font-black uppercase text-[10px] tracking-widest">
-                        {purchases?.filter(p => !p.delivered_file_url).length || 0} EN ATTENTE
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/20 text-xs font-semibold">
+                        <Clock className="w-3.5 h-3.5" />
+                        {purchases?.filter(p => !p.delivered_file_url).length || 0} en attente
+                    </span>
                 </div>
             </div>
 
             {/* Barre de Filtres */}
-            <Card className="rounded-[2rem] border-primary/5 bg-card/50 backdrop-blur-xl shadow-xl overflow-hidden">
-                <CardContent className="p-4 flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Rechercher par élève, outil ou ID MT5..." 
-                            className="pl-10 h-12 rounded-xl bg-muted/20 border-none font-medium italic"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex gap-4">
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-[180px] h-12 rounded-xl bg-muted/20 border-none font-bold uppercase text-[10px] tracking-widest">
-                                <div className="flex items-center gap-2">
-                                    <Filter className="w-3 h-3" />
-                                    <SelectValue placeholder="Filtrer" />
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-primary/10">
-                                <SelectItem value="all">Tous les achats</SelectItem>
-                                <SelectItem value="pending">En attente ⏳</SelectItem>
-                                <SelectItem value="delivered">Livrés ✅</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="flex flex-col sm:flex-row gap-3 items-center bg-card border border-border/50 p-3 rounded-2xl shadow-xs">
+                <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Rechercher par élève, outil ou identifiant MT5..." 
+                        className="pl-10 h-10 bg-transparent border-none focus-visible:ring-0 font-medium text-sm"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-xl font-medium text-xs">
+                            <div className="flex items-center gap-2">
+                                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                                <SelectValue placeholder="Filtrer" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="all">Tous les achats</SelectItem>
+                            <SelectItem value="pending">En attente</SelectItem>
+                            <SelectItem value="delivered">Livrés</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
 
             <div className="grid gap-6">
                 {filteredPurchases.length === 0 ? (

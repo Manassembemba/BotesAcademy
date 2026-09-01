@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, CreditCard, LayoutDashboard, FileText, Shield } from "lucide-react";
+import { User, CreditCard, Clock, LayoutDashboard, FileText, Shield } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Sub-components
@@ -13,7 +13,6 @@ import { AttendanceTab } from "./details/AttendanceTab";
 import { ResourcesTab } from "./details/ResourcesTab";
 import { SecurityTab } from "./details/SecurityTab";
 import { DocumentsTab } from "./details/DocumentsTab";
-import { Clock } from "lucide-react";
 
 interface StudentDetailsSheetProps {
     open: boolean;
@@ -40,7 +39,6 @@ interface StudentDetailsSheetProps {
     setSelectedPurchase: (purchase: any) => void;
     setIsInstallmentsOpen: (open: boolean) => void;
     setManualPaymentAmount: (amount: number) => void;
-    setIsManualPaymentOpen: (open: boolean) => void;
     setIsEnrollDialogOpen: (open: boolean) => void;
 }
 
@@ -68,82 +66,92 @@ export const StudentDetailsSheet = ({
     setSelectedPurchase,
     setIsInstallmentsOpen,
     setManualPaymentAmount,
-    setIsManualPaymentOpen,
     setIsEnrollDialogOpen
 }: StudentDetailsSheetProps) => {
+    // Statut calculé dynamiquement
+    const isBanned = selectedStudent?.banned_until && new Date(selectedStudent.banned_until) > new Date();
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-full sm:max-w-xl p-0 bg-card/95 backdrop-blur-3xl border-l border-white/10 shadow-2xl flex flex-col h-full overflow-hidden">
+            <SheetContent className="w-full sm:max-w-xl p-0 bg-card border-l border-border/50 shadow-2xl flex flex-col h-full overflow-hidden">
                 <ScrollArea className="flex-1">
-                    <div className="p-8 space-y-8">
+                    <div className="p-5 space-y-5">
                         {/* Profile Header */}
-                        <SheetHeader className="relative space-y-6">
-                            <div className="flex items-center gap-6">
-                                <div className="relative group">
-                                    <Avatar className="h-24 w-24 border-4 border-primary/20 shadow-2xl transition-transform group-hover:scale-105">
+                        <SheetHeader className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <Avatar className="h-16 w-16 border-2 border-border/50 shadow-md">
                                         <AvatarImage src={selectedStudent?.avatar_url || ''} />
-                                        <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
+                                        <AvatarFallback className="text-xl font-bold bg-primary/10 text-primary">
                                             {selectedStudent?.full_name?.charAt(0)}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                                        ACTIF
+                                    {/* Badge statut dynamique — calculé depuis banned_until */}
+                                    <div className={`absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-md ${isBanned ? 'bg-destructive text-destructive-foreground' : 'bg-emerald-500 text-white'}`}>
+                                        {isBanned ? 'Banni' : 'Actif'}
                                     </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <SheetTitle className="text-3xl font-black uppercase tracking-tighter italic leading-none">
+                                <div className="space-y-1 flex-1 min-w-0">
+                                    <SheetTitle className="text-xl font-bold tracking-tight text-foreground leading-tight truncate">
                                         {selectedStudent?.full_name}
                                     </SheetTitle>
-                                    <SheetDescription className="text-sm font-medium italic opacity-60">
+                                    <SheetDescription className="text-sm text-muted-foreground truncate">
                                         {selectedStudent?.email}
                                     </SheetDescription>
-                                    <div className="flex flex-wrap gap-2 mt-3">
-                                        <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-black text-[10px] uppercase">
+                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                        <Badge variant="secondary" className="text-[10px] font-medium px-2 py-0.5">
                                             ID: {selectedStudentId?.slice(0, 8)}
                                         </Badge>
-                                        {selectedStudent?.banned_until && new Date(selectedStudent.banned_until) > new Date() && (
-                                            <Badge variant="destructive" className="font-black text-[10px] uppercase">BANNI</Badge>
+                                        {isBanned && (
+                                            <Badge variant="destructive" className="text-[10px] font-medium px-2 py-0.5">Banni</Badge>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/5 p-4 rounded-[2rem] border border-white/5 text-center">
-                                    <div className="text-2xl font-black italic tracking-tighter text-primary">${selectedStudent?.total_spent?.toLocaleString() || 0}</div>
-                                    <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 mt-1">Montant Total Formation</div>
+                            {/* KPI Summary Cards */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-muted/40 p-3.5 rounded-2xl border border-border/50 text-center">
+                                    <div className="text-xl font-bold text-primary">${selectedStudent?.total_spent?.toLocaleString() || 0}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">Montant total</div>
                                 </div>
-                                <div className="bg-white/5 p-4 rounded-[2rem] border border-white/5 text-center">
-                                    <div className="text-2xl font-black italic tracking-tighter">{selectedStudent?.enrolled_courses_count || 0}</div>
-                                    <div className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 mt-1">Cursus Actifs</div>
+                                <div className="bg-muted/40 p-3.5 rounded-2xl border border-border/50 text-center">
+                                    <div className="text-xl font-bold">{selectedStudent?.enrolled_courses_count || 0}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">Cursus actifs</div>
                                 </div>
                             </div>
                         </SheetHeader>
 
-                        {/* Navigation Tabs */}
+                        {/* Navigation Tabs — avec labels texte pour l'accessibilité */}
                         <Tabs defaultValue="academic" className="w-full">
-                            <TabsList className="grid w-full grid-cols-6 h-14 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5">
-                                <TabsTrigger value="academic" title="Profil Civil" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <User className="w-4 h-4" />
+                            <TabsList className="grid w-full grid-cols-6 h-10 bg-muted/50 p-1 rounded-xl border border-border/40">
+                                <TabsTrigger value="academic" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
+                                    <User className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Profil</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="finance" title="Comptabilité & Cursus" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <CreditCard className="w-4 h-4" />
+                                <TabsTrigger value="finance" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
+                                    <CreditCard className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Finance</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="attendance" title="Présences & Assiduité" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <Clock className="w-4 h-4" />
+                                <TabsTrigger value="attendance" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Présence</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="resources" title="Outils Trading" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <LayoutDashboard className="w-4 h-4" />
+                                <TabsTrigger value="resources" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
+                                    <LayoutDashboard className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Outils</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="documents" title="Documents" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                                    <FileText className="w-4 h-4" />
+                                <TabsTrigger value="documents" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Docs</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="security" title="Sécurité" className="rounded-xl font-black text-[9px] uppercase tracking-widest data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground">
-                                    <Shield className="w-4 h-4" />
+                                <TabsTrigger value="security" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:shadow-xs">
+                                    <Shield className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Sécu.</span>
                                 </TabsTrigger>
                             </TabsList>
 
-                            <TabsContent value="academic" className="outline-none">
+                            <TabsContent value="academic" className="outline-none mt-4">
                                 <ProfileTab 
                                     isLoading={isLoadingProfile}
                                     fullProfile={fullProfile}
@@ -153,7 +161,7 @@ export const StudentDetailsSheet = ({
                                 />
                             </TabsContent>
 
-                            <TabsContent value="finance" className="outline-none">
+                            <TabsContent value="finance" className="outline-none mt-4">
                                 <FinanceTab 
                                     isLoading={isLoadingCourses}
                                     selectedStudent={selectedStudent}
@@ -162,16 +170,16 @@ export const StudentDetailsSheet = ({
                                     setSelectedPurchase={setSelectedPurchase}
                                     setIsInstallmentsOpen={setIsInstallmentsOpen}
                                     setManualPaymentAmount={setManualPaymentAmount}
-                                    setIsManualPaymentOpen={setIsManualPaymentOpen}
+                                    setIsManualPaymentOpen={setIsEnrollDialogOpen}
                                     deleteMutation={deleteMutation}
                                 />
                             </TabsContent>
 
-                            <TabsContent value="attendance" className="outline-none">
+                            <TabsContent value="attendance" className="outline-none mt-4">
                                 <AttendanceTab studentId={selectedStudentId || ""} />
                             </TabsContent>
 
-                            <TabsContent value="resources" className="outline-none">
+                            <TabsContent value="resources" className="outline-none mt-4">
                                 <ResourcesTab 
                                     studentStrategiesDetails={studentStrategiesDetails}
                                     studentIndicatorsDetails={studentIndicatorsDetails}
@@ -182,11 +190,11 @@ export const StudentDetailsSheet = ({
                                 />
                             </TabsContent>
 
-                            <TabsContent value="documents" className="outline-none">
+                            <TabsContent value="documents" className="outline-none mt-4">
                                 <DocumentsTab studentId={selectedStudentId || ""} />
                             </TabsContent>
 
-                            <TabsContent value="security" className="outline-none">
+                            <TabsContent value="security" className="outline-none mt-4">
                                 <SecurityTab 
                                     editForm={editForm}
                                     setEditForm={setEditForm}

@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Loader2, Package } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Plus, Pencil, Trash2, Loader2, Package, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import ToolEditorDialog from "./ToolEditorDialog";
 
@@ -149,21 +149,30 @@ const ToolManagement = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Gestion du Marketplace</h1>
-          <p className="text-muted-foreground">Ajoutez et modifiez vos ressources, stratégies et outils.</p>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-20 max-w-7xl">
+      {/* HEADER UNIFIÉ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
+            <ShoppingBag className="w-3 h-3" /> Boutique & Outils
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Gestion du Marketplace
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Ajoutez et configurez vos stratégies algorithmiques et indicateurs de trading.
+          </p>
         </div>
-        <Button onClick={handleCreate} className="gap-2">
+        <Button onClick={handleCreate} size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
           <Plus className="w-4 h-4" />
           Nouveau Produit
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Catalogue</CardTitle>
+      <Card className="rounded-2xl border border-border/50 bg-card shadow-xs">
+        <CardHeader className="border-b border-border/40 pb-4">
+          <CardTitle className="text-base font-semibold">Catalogue des Outils & Stratégies</CardTitle>
+          <CardDescription className="text-xs">Liste des produits disponibles sur la boutique.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (

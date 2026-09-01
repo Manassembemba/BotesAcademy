@@ -114,12 +114,12 @@ export const VideoPlayer = ({ url, title, isPreview = false, mode = 'online' }: 
         
         {/* Dynamic Badge indicator inside the player */}
         <div className="absolute top-6 left-6 z-40 pointer-events-none">
-           <Badge className={cn(
-             "font-black text-[8px] tracking-[0.2em] px-3 py-1 rounded-full uppercase border shadow-lg",
-             isOnline ? "bg-primary/80 border-primary/20 text-white" : "bg-emerald-600/80 border-emerald-400/20 text-white"
-           )}>
-             {isOnline ? "📡 LIVE VOD" : "🏫 SALLE DE CLASSE"}
-           </Badge>
+            <Badge className={cn(
+              "font-bold text-[9px] tracking-wider px-3 py-1 rounded-full uppercase border shadow-md",
+              isOnline ? "bg-primary/80 border-primary/20 text-white" : "bg-emerald-600/80 border-emerald-400/20 text-white"
+            )}>
+              {isOnline ? "Cours en ligne" : "Session présentielle"}
+            </Badge>
         </div>
         
         {isPreview && (

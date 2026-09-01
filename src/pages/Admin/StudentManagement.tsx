@@ -52,6 +52,7 @@ const StudentManagement = () => {
         totalCount, 
         isLoading, 
         error, 
+        exportAll,
         addStudentMutation, 
         userActionMutation,
         bulkDeleteMutation,
@@ -240,6 +241,9 @@ const StudentManagement = () => {
                     due_date,
                     payment_status,
                     validation_status,
+                    enrollment_status,
+                    is_disputed,
+                    dispute_reason,
                     vacation_name,
                     courses (title),
                     course_sessions (session_name)
@@ -342,7 +346,7 @@ const StudentManagement = () => {
 
     return (
         <div className="min-h-screen bg-mesh-gradient relative overflow-hidden flex flex-col pb-20">
-            <div className="container mx-auto p-4 md:p-8 space-y-12 relative z-10 pt-32">
+            <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 relative z-10 pt-4 md:pt-6">
                 <StudentManagementHeader 
                     studentCount={totalCount}
                     financialStats={financialStats}
@@ -382,6 +386,7 @@ const StudentManagement = () => {
                     selectedIds={selectedIds}
                     setSelectedIds={setSelectedIds}
                     onOpenBulkEmail={() => setIsBulkEmailOpen(true)}
+                    exportAll={exportAll}
                 />
 
                 <StudentDetailsSheet
@@ -408,7 +413,6 @@ const StudentManagement = () => {
                     setSelectedPurchase={setSelectedPurchase}
                     setIsInstallmentsOpen={setIsInstallmentsOpen}
                     setManualPaymentAmount={setManualPaymentAmount}
-                    setIsManualPaymentOpen={setIsEnrollDialogOpen}
                     setIsEnrollDialogOpen={setIsEnrollDialogOpen}
                 />
 

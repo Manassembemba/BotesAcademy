@@ -112,8 +112,8 @@ const ToolEditorDialog = ({ isOpen, onClose, onSave, initialData, isSaving }: To
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-primary/10 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-primary">
-            {initialData ? "🔧 Configuration Expert" : "🚀 Propulsion Produit"}
+          <DialogTitle className="text-2xl font-bold uppercase tracking-tight text-primary">
+            {initialData ? "Modifier la ressource" : "Ajouter une ressource"}
           </DialogTitle>
         </DialogHeader>
 
@@ -169,7 +169,7 @@ const ToolEditorDialog = ({ isOpen, onClose, onSave, initialData, isSaving }: To
             {/* SECTION 2: TARIFICATION DYNAMIQUE */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2 px-2">
-                    <FormLabel className="font-black uppercase text-[10px] tracking-widest">💰 Modèle Economique</FormLabel>
+                    <FormLabel className="font-bold uppercase text-[10px] tracking-wider text-muted-foreground">Tarification</FormLabel>
                     <div className="h-px flex-1 bg-border/50" />
                 </div>
 

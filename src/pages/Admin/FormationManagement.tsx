@@ -81,56 +81,58 @@ const FormationManagement = () => {
   ];
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-10 pb-20">
-      {/* HEADER TACTIQUE */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase text-primary leading-none">
-            CONTROL <span className="text-foreground">TOWER</span>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-16">
+      {/* HEADER UNIFIÉ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
+            <BookOpen className="w-3 h-3" /> Catalogue Pédagogique
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Gestion des Formations
           </h1>
-          <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest mt-2">Pilotage du catalogue de formations d'élite</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Pilotage du catalogue, des sessions et des programmes d'élite.
+          </p>
         </div>
         <Link to="/admin/formations/new">
-          <Button className="h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-glow-primary group overflow-hidden relative">
-            <span className="relative z-10 flex items-center gap-3">
-                <Plus className="w-5 h-5" /> Initialiser un cursus
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
+            <Plus className="w-4 h-4" /> Nouvelle Formation
           </Button>
         </Link>
       </div>
 
-      {/* STATS STRATÉGIQUES */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* STATS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
-          <Card key={i} className="rounded-[2.5rem] border-white/5 bg-card/50 shadow-xl overflow-hidden group hover:border-primary/20 transition-all duration-500">
-            <CardContent className="p-8 flex items-center gap-6">
-              <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-12", stat.bg, stat.color)}>
-                <stat.icon className="w-7 h-7" />
+          <Card key={i} className="rounded-2xl border border-border/50 bg-card p-4 sm:p-5 shadow-xs hover:border-primary/20 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.bg} ${stat.color}`}>
+                <stat.icon className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{stat.label}</p>
-                <p className="text-3xl font-black italic tracking-tighter">{stat.value}</p>
+                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">{stat.value}</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ))}
       </div>
 
-      {/* FILTRES & PILOTAGE */}
-      <div className="flex flex-col lg:flex-row gap-6 items-center bg-muted/20 p-6 rounded-[2.5rem] border border-white/5 shadow-inner">
+      {/* BARRE RECHERCHE & VUES */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center bg-card border border-border/50 p-3 rounded-2xl shadow-xs">
         <div className="relative flex-1 w-full group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="Rechercher une formation..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-16 h-14 bg-white/5 border-white/10 rounded-2xl font-bold text-lg"
+            className="pl-10 h-10 bg-transparent border-none focus-visible:ring-0 font-medium text-sm"
           />
         </div>
-        <div className="flex items-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/5">
-           <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={cn("rounded-xl transition-all", viewMode === 'grid' ? "bg-primary text-white shadow-lg" : "text-muted-foreground")}><LayoutGrid className="w-5 h-5" /></Button>
-           <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={cn("rounded-xl transition-all", viewMode === 'list' ? "bg-primary text-white shadow-lg" : "text-muted-foreground")}><List className="w-5 h-5" /></Button>
+        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border/40">
+           <Button variant="ghost" size="icon" onClick={() => setViewMode('grid')} className={`w-8 h-8 rounded-lg transition-all ${viewMode === 'grid' ? "bg-primary text-white shadow-xs" : "text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></Button>
+           <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className={`w-8 h-8 rounded-lg transition-all ${viewMode === 'list' ? "bg-primary text-white shadow-xs" : "text-muted-foreground"}`}><List className="w-4 h-4" /></Button>
         </div>
       </div>
 

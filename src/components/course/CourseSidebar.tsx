@@ -1,6 +1,4 @@
 import React from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, PlayCircle, Circle, CheckCircle2, CheckCircle, HelpCircle, ChevronDown } from "lucide-react";
@@ -10,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 interface Lesson {
   id: string;
   title: string;
-  lesson_type: 'video' | 'pdf' | 'quiz';
+  lesson_type: 'video' | 'pdf';
   module_name?: string | null;
 }
 
@@ -42,7 +40,6 @@ export const CourseSidebar = ({
   isCinemaMode = false
 }: CourseSidebarProps) => {
   const isOnline = mode === 'online';
-  const progress = lessons ? Math.round((completedLessons?.size || 0) / lessons.length * 100) : 0;
 
   // Grouper les leçons par module
   const lessonsByModule = React.useMemo(() => {
@@ -67,47 +64,38 @@ export const CourseSidebar = ({
         isCinemaMode ? "bg-white/5 backdrop-blur-3xl border-white/10" : "bg-card shadow-glow-primary/5"
       )}>
         <div className={cn(
-          "border-b py-8 px-8 transition-all duration-700",
+          "border-b py-6 px-6 transition-all duration-700",
           isCinemaMode ? "bg-white/5 border-white/10" : "bg-primary/5 border-border/50"
         )}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
              <div className="flex items-center gap-3">
                 <div className={cn(
-                  "p-3 rounded-2xl shadow-glow-primary-sm transition-all",
+                  "p-2.5 rounded-2xl transition-all",
                   isCinemaMode ? "bg-white/10 text-white" : "bg-primary/10 text-primary"
                 )}>
-                  <BookOpen className="w-5 h-5" />
+                  <BookOpen className="w-4 h-4" />
                 </div>
-                <h3 className={cn(
-                  "text-xl font-black uppercase italic tracking-tighter leading-none transition-all",
-                  isCinemaMode ? "text-white" : "text-foreground"
-                )}>
-                  {isOnline ? "Progression" : "Sommaire"}
-                </h3>
+                <div>
+                  <h3 className={cn(
+                    "text-base font-bold uppercase tracking-tight leading-none transition-all",
+                    isCinemaMode ? "text-white" : "text-foreground"
+                  )}>
+                    Programme du cours
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {completedLessons?.size || 0} sur {lessons?.length || 0} leçons complétées
+                  </p>
+                </div>
              </div>
-             {hasAccess && lessons && isOnline && (
-               <Badge className={cn(
-                 "font-black uppercase text-[10px] tracking-widest px-4 py-1 rounded-full shadow-glow-primary-sm animate-pulse transition-all",
-                 isCinemaMode ? "bg-white/20 text-white" : "bg-primary text-white"
+             {hasAccess && lessons && (
+               <Badge variant="outline" className={cn(
+                 "font-bold uppercase text-[9px] tracking-wider px-2.5 py-0.5 rounded-lg border",
+                 (completedLessons?.size || 0) === lessons.length ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-primary/10 text-primary border-primary/20"
                )}>
-                 {progress}%
+                 {(completedLessons?.size || 0) === lessons.length ? "Terminé" : `${completedLessons?.size || 0}/${lessons.length}`}
                </Badge>
              )}
           </div>
-          {hasAccess && lessons && isOnline && (
-            <div className="space-y-2">
-               <Progress value={progress} className={cn(
-                 "h-2 rounded-full overflow-hidden shadow-inner transition-all",
-                 isCinemaMode ? "bg-white/10 [&>div]:bg-white" : "bg-primary/10 [&>div]:bg-primary"
-               )} />
-               <p className={cn(
-                 "text-[9px] font-black uppercase tracking-[0.2em] italic text-right transition-all",
-                 isCinemaMode ? "text-white/40" : "text-muted-foreground/60"
-               )}>
-                 {completedLessons?.size || 0} / {lessons.length} Modules acquis
-               </p>
-            </div>
-          )}
         </div>
         
         <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">

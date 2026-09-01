@@ -22,14 +22,14 @@ interface Lesson {
   video_url?: string;
   pdf_url?: string;
   order_index: number;
-  lesson_type: 'video' | 'pdf' | 'quiz';
+  lesson_type: 'video' | 'pdf';
   module_name?: string | null;
 }
 
 const lessonSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères."),
   order_index: z.coerce.number().min(0, "L'ordre doit être positif."),
-  lesson_type: z.enum(['video', 'pdf', 'quiz']),
+  lesson_type: z.enum(['video', 'pdf']),
   video_url: z.string().optional().nullable().or(z.literal('')),
   module_name: z.string().optional().nullable(),
 });
@@ -177,9 +177,8 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent className="rounded-xl border-white/10">
-                                <SelectItem value="video" className="font-bold">🎥 VIDÉO</SelectItem>
-                                <SelectItem value="pdf" className="font-bold">📂 DOCUMENT PDF</SelectItem>
-                                <SelectItem value="quiz" className="font-bold">📝 QUIZ INTERACTIF</SelectItem>
+                                <SelectItem value="video" className="font-bold">Vidéo de cours</SelectItem>
+                                <SelectItem value="pdf" className="font-bold">Document PDF</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -189,8 +188,7 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
 
             <div className={cn(
                 "p-6 rounded-3xl border-2 transition-all duration-500",
-                currentType === 'video' ? "bg-blue-500/5 border-blue-500/20" : 
-                currentType === 'pdf' ? "bg-emerald-500/5 border-emerald-500/20" : "bg-amber-500/5 border-amber-500/20"
+                currentType === 'video' ? "bg-blue-500/5 border-blue-500/20" : "bg-emerald-500/5 border-emerald-500/20"
             )}>
                 {currentType === 'video' && (
                     <FormField control={form.control} name="video_url" render={({ field }) => (
@@ -214,13 +212,6 @@ export const LessonEditorDialog = ({ isOpen, onClose, courseId, lesson }: Lesson
                         </div>
                         {lesson?.pdf_url && <p className="text-[10px] text-muted-foreground font-medium italic">Fichier actuel : {lesson.pdf_url.split('/').pop()}</p>}
                     </FormItem>
-                )}
-
-                {currentType === 'quiz' && (
-                    <div className="flex flex-col items-center justify-center py-4 gap-3 opacity-60">
-                        <HelpCircle className="w-8 h-8 text-amber-500 animate-bounce" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Module Quiz en cours de déploiement</p>
-                    </div>
                 )}
             </div>
 

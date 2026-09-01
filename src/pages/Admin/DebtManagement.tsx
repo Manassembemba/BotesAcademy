@@ -282,26 +282,24 @@ export default function DebtManagement() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-8 pb-24 max-w-7xl">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-black uppercase tracking-wider">
-              Recouvrement & Échéanciers
-            </span>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-24 max-w-7xl">
+      {/* HEADER UNIFIÉ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[11px] font-semibold">
+            Recouvrement & Échéanciers
           </div>
-          <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight text-foreground mt-2">
-            Suivi des Dettes & <span className="text-amber-500">Tranches de Paiement</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Suivi des Dettes & Tranches
           </h1>
-          <p className="text-muted-foreground text-sm font-medium">
-            Gérez les échéances planifiées, encaissez les tranches et accordez des reports en toute transparence.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Gérez les échéances, encaissez les tranches et accordez des reports en toute transparence.
           </p>
         </div>
 
         <Link to="/admin/enrollment">
-          <Button className="h-12 px-6 rounded-2xl font-black uppercase text-xs tracking-wider shadow-glow-primary bg-primary text-primary-foreground">
-            <UserPlus className="w-4 h-4 mr-2" /> Nouvelle Inscription
+          <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
+            <UserPlus className="w-4 h-4" /> Nouvelle Inscription
           </Button>
         </Link>
       </div>
@@ -462,8 +460,8 @@ export default function DebtManagement() {
                           {d.student_name}
                         </h3>
                         {isDisputed ? (
-                          <Badge className="bg-purple-600 text-white font-black text-[9px] uppercase px-2 animate-pulse">
-                            ⚖️ Litige Ouvert
+                          <Badge className="bg-purple-600 text-white font-bold text-[9px] uppercase px-2">
+                            Litige Ouvert
                           </Badge>
                         ) : isOverdue ? (
                           <Badge variant="destructive" className="font-black text-[9px] uppercase px-2">
@@ -628,7 +626,7 @@ export default function DebtManagement() {
                                       : "bg-amber-500 text-black"
                                   }`}
                                 >
-                                  {isPaid ? "✓ Payée" : isLate ? `Retard ${daysLate}j` : "À Venir"}
+                                  {isPaid ? "Payée" : isLate ? `Retard ${daysLate}j` : "À Venir"}
                                 </Badge>
                               </div>
 

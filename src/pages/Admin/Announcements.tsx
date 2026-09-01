@@ -94,41 +94,48 @@ const Announcements = () => {
   });
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-8">
-      <div>
-        <h1 className="text-4xl font-black tracking-tighter flex items-center gap-3 italic">
-          <Megaphone className="w-10 h-10 text-primary" />
-          ANNONCES & BROADCAST
-        </h1>
-        <p className="text-muted-foreground font-medium">Envoyez des messages ciblés à vos étudiants.</p>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-20 max-w-7xl">
+      {/* HEADER UNIFIÉ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
+            <Megaphone className="w-3 h-3" /> Communication Interne
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Gestion des Annonces & Broadcast
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Diffusez des messages ciblés à l'ensemble de vos étudiants ou par promotion.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Formulaire de création */}
-        <Card className="lg:col-span-1 shadow-xl border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
-            <CardTitle className="text-xl font-black uppercase italic">Nouvelle Annonce</CardTitle>
-            <CardDescription>Ciblez un cours ou une vacation spécifique.</CardDescription>
+        <Card className="lg:col-span-1 rounded-2xl border border-border/50 bg-card shadow-xs">
+          <CardHeader className="border-b border-border/40 pb-4">
+            <CardTitle className="text-base font-semibold">Nouvelle Annonce</CardTitle>
+            <CardDescription className="text-xs">Ciblez une formation ou une vacation spécifique.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest">Titre</label>
+          <CardContent className="space-y-4 pt-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">Titre de l'annonce</label>
               <Input 
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)} 
-                placeholder="Ex: Changement d'horaire"
-                className="rounded-xl border-primary/20 focus:border-primary"
+                placeholder="Ex: Changement d'horaire..."
+                className="h-10 rounded-xl font-medium text-sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest">Cours Cible</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">Formation ciblée</label>
               <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger className="rounded-xl border-primary/20">
+                <SelectTrigger className="h-10 rounded-xl font-medium text-sm">
                   <SelectValue placeholder="Tous les cours" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les cours (Global)</SelectItem>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">Toutes les formations (Global)</SelectItem>
                   {courses?.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
                   ))}
@@ -137,13 +144,13 @@ const Announcements = () => {
             </div>
 
             {selectedCourse !== "all" && (
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest">Vacation Cible</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">Vacation ciblée</label>
                 <Select value={selectedVacation} onValueChange={setSelectedVacation}>
-                  <SelectTrigger className="rounded-xl border-primary/20">
+                  <SelectTrigger className="h-10 rounded-xl font-medium text-sm">
                     <SelectValue placeholder="Toutes les vacations" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     <SelectItem value="all">Toutes les vacations</SelectItem>
                     {vacations?.map((v) => (
                       <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
@@ -153,18 +160,18 @@ const Announcements = () => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest">Message</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">Message</label>
               <Textarea 
                 value={message} 
                 onChange={(e) => setMessage(e.target.value)} 
-                placeholder="Votre message ici..."
-                className="rounded-xl border-primary/20 focus:border-primary min-h-[150px]"
+                placeholder="Rédigez votre annonce ici..."
+                className="rounded-xl font-medium text-sm min-h-[140px]"
               />
             </div>
 
             <Button 
-              className="w-full rounded-xl font-black uppercase tracking-widest gap-2 py-6"
+              className="w-full h-10 rounded-xl font-semibold text-xs gap-2 shadow-xs"
               onClick={() => createMutation.mutate()}
               disabled={!title || !message || createMutation.isPending}
             >
@@ -175,45 +182,53 @@ const Announcements = () => {
         </Card>
 
         {/* Historique des annonces */}
-        <Card className="lg:col-span-2 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl font-black uppercase italic">Historique des Diffusions</CardTitle>
-            <CardDescription>Consultez vos anciennes annonces.</CardDescription>
+        <Card className="lg:col-span-2 rounded-2xl border border-border/50 bg-card shadow-xs">
+          <CardHeader className="border-b border-border/40 pb-4">
+            <CardTitle className="text-base font-semibold">Historique des Diffusions</CardTitle>
+            <CardDescription className="text-xs">Consultez et gérez les annonces publiées.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-5">
+            <div className="space-y-3">
               {isLoading ? (
-                <p>Chargement...</p>
+                <div className="text-center py-12 text-muted-foreground text-xs">Chargement...</div>
               ) : announcements?.length === 0 ? (
-                <div className="text-center py-20 text-muted-foreground italic">
+                <div className="text-center py-12 text-muted-foreground text-xs italic">
                   Aucune annonce diffusée pour le moment.
                 </div>
               ) : (
                 announcements?.map((ann) => (
-                  <div key={ann.id} className="p-4 rounded-2xl border border-border/50 bg-muted/20 hover:bg-primary/5 transition-colors relative group">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                  <div key={ann.id} className="p-4 rounded-xl border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors relative group">
+                    <div className="flex items-start gap-3 mb-2">
+                      <div className="p-2 bg-primary/10 rounded-lg text-primary shrink-0 mt-0.5">
                         <Megaphone className="w-4 h-4" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-black text-lg uppercase tracking-tighter">{ann.title}</h3>
-                        <div className="flex flex-wrap gap-2 items-center text-[10px] font-bold text-muted-foreground uppercase">
-                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Par {ann.sender?.full_name}</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {format(new Date(ann.created_at), 'dd MMMM yyyy HH:mm', { locale: fr })}</span>
-                          {ann.course && <span className="flex items-center gap-1 text-primary"><BookOpen className="w-3 h-3" /> {ann.course.title}</span>}
-                          {ann.vacation_name && <span className="px-2 py-0.5 bg-primary/20 rounded text-primary">{ann.vacation_name}</span>}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-foreground">{ann.title}</h3>
+                        <div className="flex flex-wrap gap-2 items-center text-[11px] text-muted-foreground mt-1">
+                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Par {ann.sender?.full_name || 'Admin'}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {format(new Date(ann.created_at), 'dd MMM yyyy à HH:mm', { locale: fr })}</span>
+                          {ann.course && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-primary font-medium"><BookOpen className="w-3 h-3" /> {ann.course.title}</span>
+                            </>
+                          )}
+                          {ann.vacation_name && (
+                            <span className="px-1.5 py-0.5 bg-primary/15 rounded text-primary font-medium text-[10px]">{ann.vacation_name}</span>
+                          )}
                         </div>
                       </div>
                       <Button 
                         variant="ghost" 
-                        size="sm" 
-                        className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        size="icon" 
+                        className="w-8 h-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
                         onClick={() => deleteMutation.mutate(ann.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-sm font-medium text-foreground/80 whitespace-pre-wrap">{ann.message}</p>
+                    <p className="text-xs text-foreground/80 whitespace-pre-wrap pl-11">{ann.message}</p>
                   </div>
                 ))
               )}

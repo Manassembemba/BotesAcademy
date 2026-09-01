@@ -90,66 +90,99 @@ const Formations = () => {
       <Navbar />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 md:pt-40 pb-8 md:pb-12 overflow-hidden">
+      <section className="relative pt-24 pb-4 overflow-hidden">
         <div className="absolute top-0 right-0 w-[70vw] h-[70vw] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
         
-        <div className="container relative z-10 mx-auto px-4 md:px-6">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
+        <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center space-y-3">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-xs font-bold uppercase tracking-wider"
+              className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold"
             >
-              <GraduationCap className="w-4 h-4" />
+              <GraduationCap className="w-3.5 h-3.5" />
               Catalogue des Formations
             </motion.div>
 
             <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-4xl md:text-6xl font-bold uppercase tracking-tight italic"
+              transition={{ duration: 0.6 }}
+              className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground"
             >
-              NOS <span className="text-gradient-primary">FORMATIONS</span>
+              Nos <span className="text-gradient-primary">Formations</span>
             </motion.h1>
 
             <motion.p 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-base md:text-lg text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed"
+              transition={{ delay: 0.15 }}
+              className="text-sm md:text-base text-muted-foreground font-medium max-w-xl mx-auto leading-relaxed"
             >
-              Des programmes structurés et pratiques pour développer des compétences immédiatement valorisables sur le marché.
+              Découvrez nos programmes certifiants et développez des compétences concrètes adaptées au marché.
             </motion.p>
 
-            {/* SEARCH & FILTERS */}
+            {/* UNIFIED TOOLBAR: SEARCH + CATEGORY LISTBOX + FILTERS */}
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto pt-6"
+              transition={{ delay: 0.3 }}
+              className="flex flex-col sm:flex-row items-center gap-2.5 max-w-3xl mx-auto pt-4"
             >
-              <div className="relative flex-1 group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              {/* Search input */}
+              <div className="relative flex-1 w-full group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input 
                   placeholder="Rechercher une formation..." 
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="pl-14 h-14 bg-background/80 backdrop-blur-xl border-border/60 rounded-2xl shadow-sm focus-visible:ring-primary/20 focus-visible:border-primary font-medium text-base transition-all"
+                  className="pl-11 h-12 bg-background/80 backdrop-blur-xl border-border/60 rounded-2xl shadow-sm focus-visible:ring-primary/20 focus-visible:border-primary font-medium text-sm transition-all"
                 />
               </div>
+
+              {/* Category ListBox / Dropdown */}
+              <div className="w-full sm:w-56 shrink-0">
+                <Select value={filters.category} onValueChange={(val) => handleCategoryClick(val)}>
+                  <SelectTrigger className="h-12 rounded-2xl bg-background/80 border-border/60 font-semibold text-xs uppercase tracking-wider">
+                    <div className="flex items-center gap-2 truncate">
+                      {filters.category === 'all' ? <LayoutGrid className="w-4 h-4 text-primary shrink-0" /> : (categoryIcons[filters.category] || categoryIcons.default)}
+                      <span className="truncate">{filters.category === 'all' ? 'Toutes les catégories' : filters.category}</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl max-h-72">
+                    <SelectItem value="all" className="font-semibold text-xs uppercase tracking-wider">
+                      <div className="flex items-center gap-2">
+                        <LayoutGrid className="w-4 h-4 text-primary" />
+                        <span>Toutes les catégories</span>
+                      </div>
+                    </SelectItem>
+                    {dbCategories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name} className="font-semibold text-xs uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          {categoryIcons[cat.name] || categoryIcons.default}
+                          <span>{cat.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
+              {/* Filters Popover */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button className="h-14 px-8 rounded-2xl font-bold uppercase tracking-wider text-xs bg-primary text-white shadow-sm hover:bg-primary/90 flex items-center gap-2">
-                    <Filter className="w-4 h-4" />
-                    Filtres
+                  <Button variant="outline" className="w-full sm:w-auto h-12 px-5 rounded-2xl font-bold uppercase tracking-wider text-xs border-border/60 bg-background/80 hover:bg-muted/50 flex items-center justify-center gap-2 shrink-0">
+                    <Filter className="w-4 h-4 text-primary" />
+                    <span>Filtres</span>
+                    {(filters.mode !== 'all' || filters.price !== 'all') && (
+                      <span className="w-2 h-2 rounded-full bg-primary" />
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-6 bg-card/95 backdrop-blur-2xl rounded-2xl border-border shadow-2xl" align="end">
                   <div className="space-y-6">
                     <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                      <h4 className="font-bold text-sm uppercase tracking-wider">Filtres</h4>
+                      <h4 className="font-bold text-sm uppercase tracking-wider">Options de filtrage</h4>
                       <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 text-xs font-semibold text-muted-foreground hover:text-destructive">Réinitialiser</Button>
                     </div>
                     
@@ -186,37 +219,6 @@ const Formations = () => {
                 </PopoverContent>
               </Popover>
             </motion.div>
-
-            {/* COMPACT CATEGORIES HORIZONTAL LIST */}
-            <div className="flex items-center justify-center gap-2 overflow-x-auto pt-4 pb-2 scrollbar-hide max-w-4xl mx-auto flex-wrap">
-              <button
-                onClick={() => handleCategoryClick('all')}
-                className={cn(
-                  "px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 flex items-center gap-2 border",
-                  filters.category === 'all'
-                    ? "bg-primary text-white border-primary shadow-sm"
-                    : "bg-card/70 text-muted-foreground border-border/50 hover:border-primary/40 hover:text-foreground"
-                )}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                Toutes
-              </button>
-              {dbCategories?.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat.name)}
-                  className={cn(
-                    "px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 flex items-center gap-2 border",
-                    filters.category === cat.name
-                      ? "bg-primary text-white border-primary shadow-sm"
-                      : "bg-card/70 text-muted-foreground border-border/50 hover:border-primary/40 hover:text-foreground"
-                  )}
-                >
-                  {categoryIcons[cat.name] || categoryIcons.default}
-                  {cat.name}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </section>

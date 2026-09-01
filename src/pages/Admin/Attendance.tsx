@@ -97,7 +97,8 @@ export default function Attendance() {
             id,
             full_name,
             avatar_url,
-            phone
+            phone,
+            matricule
           )
         `)
         .eq("course_id", selectedCourseId)
@@ -259,7 +260,9 @@ export default function Attendance() {
       if (!profile) return false;
       const matchSearch =
         profile.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        profile.phone?.includes(searchTerm);
+        profile.phone?.includes(searchTerm) ||
+        profile.matricule?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.id?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchSearch;
     });
   }, [enrolledStudents, searchTerm]);
@@ -299,31 +302,29 @@ export default function Attendance() {
   const selectedCourseObj = courses.find((c) => c.id === selectedCourseId);
 
   return (
-    <div className="container mx-auto p-4 md:p-8 space-y-8 pb-24 max-w-7xl">
-      {/* EN-TÊTE TACTIQUE */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-wider">
-              Feuille d'Émargement & Recouvrement
-            </span>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-24 max-w-7xl">
+      {/* HEADER UNIFIÉ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
+            Feuille d'Émargement & Recouvrement
           </div>
-          <h1 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight text-foreground mt-2">
-            Pointage & Frais <span className="text-primary">— Sessions</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Pointage & Présences — Sessions
           </h1>
-          <p className="text-muted-foreground text-sm font-medium">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Pointez les présences et encaissez les frais restants directement à l'arrivée des élèves.
           </p>
         </div>
 
         {/* Date Selector */}
-        <div className="flex items-center gap-3 bg-card border border-border/80 p-2 rounded-2xl shadow-sm">
-          <CalendarIcon className="w-5 h-5 text-primary ml-2" />
+        <div className="flex items-center gap-2 bg-card border border-border/60 px-3 py-2 rounded-xl shadow-xs">
+          <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
           <Input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="border-none bg-transparent font-black text-sm h-10 w-40"
+            className="border-none bg-transparent font-semibold text-sm h-8 w-36 p-0 focus-visible:ring-0"
           />
         </div>
       </div>
@@ -442,7 +443,7 @@ export default function Attendance() {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un étudiant..."
+            placeholder="Vérifier par Code d'Accès, Matricule, Nom..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-11 h-11 rounded-xl bg-background/80"
@@ -523,7 +524,7 @@ export default function Attendance() {
                     }`}
                   >
                     {/* 1. Infos Étudiant */}
-                    <div className="flex items-center gap-4 min-w-[260px]">
+                    <div className="flex items-center gap-4 min-w-[280px]">
                       <div className="relative">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base shadow-sm ${
                           isDisputed ? "bg-purple-500/20 text-purple-500" : "bg-primary/20 text-primary"
@@ -536,9 +537,14 @@ export default function Attendance() {
                       </div>
 
                       <div className="space-y-1">
-                        <h4 className="font-black text-sm text-foreground uppercase tracking-tight">
-                          {profile?.full_name}
-                        </h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-foreground uppercase tracking-tight">
+                            {profile?.full_name}
+                          </h4>
+                          <span className="text-[9px] font-mono font-bold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
+                            {profile?.matricule || `BOTES-${studentId?.slice(0, 6)?.toUpperCase()}`}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           {profile?.phone && (
                             <span className="flex items-center gap-1">
@@ -546,7 +552,7 @@ export default function Attendance() {
                             </span>
                           )}
                           <span className="text-[10px] font-bold uppercase opacity-70">
-                            Créneau : {item.vacation_name || "Non défini"}
+                            Vacation : {item.vacation_name || "Matin"}
                           </span>
                         </div>
                       </div>
@@ -557,12 +563,12 @@ export default function Attendance() {
                       <div>
                         <div className="flex items-center gap-2">
                           {isDisputed ? (
-                            <Badge className="bg-purple-600 text-white font-black text-[9px] uppercase px-2 animate-pulse">
-                              ⚖️ En Litige
+                            <Badge className="bg-purple-600 text-white font-bold text-[9px] uppercase px-2">
+                              En Litige
                             </Badge>
                           ) : !isDebt ? (
-                            <Badge className="bg-emerald-500 text-white font-black text-[9px] uppercase px-2">
-                              ✓ 100% Soldé
+                            <Badge className="bg-emerald-500 text-white font-bold text-[9px] uppercase px-2">
+                              Soldé
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-[9px] font-black uppercase text-amber-500 border-amber-500/40 bg-amber-500/10">
@@ -613,7 +619,7 @@ export default function Attendance() {
                                 : "bg-rose-500 text-white"
                             }`}
                           >
-                            {isPresent ? "✓ Présent" : isLate ? "⏱ Retard" : "✕ Absent"} ({record.vacation_name})
+                            {isPresent ? "Présent" : isLate ? "Retard" : "Absent"} ({record.vacation_name})
                           </Badge>
                           {record.notes && (
                             <p className="text-[10px] text-muted-foreground italic mt-0.5 truncate max-w-xs">
@@ -710,8 +716,8 @@ export default function Attendance() {
       <Dialog open={!!paymentModalData} onOpenChange={(o) => !o && setPaymentModalData(null)}>
         <DialogContent className="rounded-3xl bg-card border-border max-w-lg shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black uppercase italic tracking-tight">
-              {paymentModalData?.is_disputed ? "⚖️ Régulariser le Litige / Complément" : "💵 Encaisser un Versement de Frais"}
+            <DialogTitle className="text-xl font-bold uppercase tracking-tight">
+              {paymentModalData?.is_disputed ? "Régulariser le Litige / Complément" : "Encaisser un Versement de Frais"}
             </DialogTitle>
             <DialogDescription>
               Étudiant : <strong>{paymentModalData?.student_name}</strong> — {paymentModalData?.course_title}

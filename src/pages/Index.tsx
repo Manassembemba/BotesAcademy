@@ -35,13 +35,15 @@ import {
   CheckCircle2,
   Filter
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSiteSettings } from "@/contexts/SiteSettingsContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user, role, loading: authLoading } = useAuth();
   const { settings } = useSiteSettings();
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -59,6 +61,7 @@ const Index = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !user, // don't fetch if already logged in and about to redirect
   });
 
   // Extract unique categories
@@ -74,6 +77,13 @@ const Index = () => {
     if (selectedCategory === "all") return allCourses.slice(0, 6);
     return allCourses.filter(c => c.category === selectedCategory);
   }, [allCourses, selectedCategory]);
+
+  if (!authLoading && user) {
+    if (role === 'admin' || role === 'receptionist' || role === 'teacher') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen">
@@ -138,17 +148,17 @@ const Index = () => {
               viewport={{ once: true }}
               className="max-w-2xl space-y-4"
             >
-              <h2 className="text-3xl md:text-5xl font-bold uppercase tracking-tight leading-none">
-                Nos <span className="text-primary italic">Formations</span>
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight">
+                Nos <span className="text-gradient-primary">Formations</span>
               </h2>
-              <p className="text-lg text-muted-foreground font-medium max-w-xl">
+              <p className="text-base text-muted-foreground font-medium max-w-xl">
                 Découvrez nos programmes disponibles et commencez votre apprentissage dès aujourd'hui.
               </p>
             </motion.div>
 
             <Link to="/formations" className="group">
-              <div className="flex items-center gap-4 px-8 py-3 bg-muted/50 hover:bg-muted border border-border rounded-2xl transition-all">
-                <span className="text-[10px] font-bold uppercase tracking-widest">Voir tout le catalogue</span>
+              <div className="flex items-center gap-3 px-6 py-2.5 bg-muted/40 hover:bg-muted/70 border border-border/60 rounded-xl transition-all">
+                <span className="text-xs font-bold uppercase tracking-wider">Voir tout le catalogue</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
             </Link>
@@ -156,21 +166,21 @@ const Index = () => {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="space-y-fluid-sm">
+            <div className="space-y-6">
               <div className="flex justify-center">
                 <Tabs defaultValue="all" className="w-full" onValueChange={setSelectedCategory}>
-                  <div className="flex items-center justify-center mb-fluid-sm overflow-x-auto pb-4 scrollbar-hide">
-                     <TabsList className="bg-muted/20 border border-border/40 p-1.5 rounded-2xl h-auto flex-nowrap gap-2 w-max mx-auto">
+                  <div className="flex items-center justify-center mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                     <TabsList className="bg-muted/30 border border-border/50 p-1 rounded-2xl h-auto flex-nowrap gap-1.5 w-max mx-auto">
                        {categories.map((cat) => (
                          <TabsTrigger 
                            key={cat} 
                            value={cat}
-                           className="rounded-xl px-8 py-3 text-[10px] font-bold uppercase tracking-[0.2em] data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-glow-primary-sm transition-all duration-300"
+                           className="rounded-xl px-5 py-2 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
                          >
-                           {cat === "all" ? "Toutes les Formations" : cat}
+                           {cat === "all" ? "Toutes" : cat}
                          </TabsTrigger>
                        ))}
                      </TabsList>

@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface FinanceTabProps {
@@ -33,8 +34,9 @@ export const FinanceTab = ({
     setIsManualPaymentOpen,
     deleteMutation
 }: FinanceTabProps) => {
+    const queryClient = useQueryClient();
     
-    // Calculs financiers robustes
+    // Calculs financiers
     const realTotalCollected = studentCoursesDetails?.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0) || 0;
     const totalRemainingDebt = studentCoursesDetails?.reduce((acc, curr) => {
         const total = Number(curr.total_amount) || 0;
@@ -44,49 +46,46 @@ export const FinanceTab = ({
     }, 0) || 0;
 
     if (isLoading) {
-        return <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-primary opacity-20" /></div>;
+        return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary opacity-40" /></div>;
     }
 
     return (
-        <div className="space-y-8 pt-8 outline-none pb-12">
-            {/* Header de Santé Financière */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                <div className="bg-emerald-500/5 border border-emerald-500/10 p-6 rounded-[2.5rem] relative overflow-hidden group shadow-inner">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600 opacity-60 mb-2">Total Recouvré</div>
-                    <div className="text-4xl font-black italic tracking-tighter text-emerald-500 leading-none">
-                        ${realTotalCollected}
-                    </div>
-                    <div className="absolute -bottom-4 -right-4 bg-emerald-500/10 w-24 h-24 rounded-full blur-3xl group-hover:scale-150 transition-transform" />
+        <div className="space-y-5 pt-1">
+            {/* KPI Financiers */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl">
+                    <div className="text-[10px] font-medium text-emerald-600 uppercase tracking-wider mb-1">Total Recouvré</div>
+                    <div className="text-2xl font-bold text-emerald-500">${realTotalCollected.toLocaleString()}</div>
                 </div>
                 
-                <div className="bg-amber-500/5 border border-amber-500/10 p-6 rounded-[2.5rem] relative overflow-hidden group shadow-inner">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-amber-600 opacity-60 mb-2">Dette Actuelle</div>
-                    <div className="text-4xl font-black italic tracking-tighter text-amber-500 leading-none">
-                        ${totalRemainingDebt}
-                    </div>
-                    <div className="absolute -bottom-4 -right-4 bg-amber-500/10 w-24 h-24 rounded-full blur-3xl group-hover:scale-150 transition-transform" />
+                <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-2xl">
+                    <div className="text-[10px] font-medium text-amber-600 uppercase tracking-wider mb-1">Dette Actuelle</div>
+                    <div className="text-2xl font-bold text-amber-500">${totalRemainingDebt.toLocaleString()}</div>
                 </div>
 
-                <div className="bg-primary/5 border border-primary/10 p-4 rounded-[2.5rem] flex items-center justify-center">
+                <div className="flex items-center justify-center bg-primary/5 border border-primary/20 p-3 rounded-2xl">
                     <Button 
                         onClick={() => setIsEnrollDialogOpen(true)} 
-                        className="w-full h-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-3xl font-black uppercase text-xs tracking-[0.1em] shadow-[0_10px_30px_-10px_rgba(var(--primary),0.5)] transition-all hover:scale-[1.02] active:scale-95 py-6"
+                        size="sm"
+                        className="w-full h-9 font-semibold text-xs rounded-xl gap-2"
                     >
-                        <Plus className="w-5 h-5 mr-2" /> Inscrire
+                        <Plus className="w-3.5 h-3.5" /> Inscrire / Payer
                     </Button>
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 mb-6">
-                <div className="w-2 h-5 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
-                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] italic opacity-80">Portefeuille Académique</h3>
+            {/* Titre section */}
+            <div className="flex items-center gap-2">
+                <div className="w-1 h-4 bg-primary rounded-full" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Portefeuille Académique</h3>
             </div>
 
-            <div className="space-y-6">
+            {/* Liste des formations */}
+            <div className="space-y-3">
                 {studentCoursesDetails?.length === 0 ? (
-                    <div className="text-center py-20 bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
-                        <Landmark className="w-12 h-12 mx-auto mb-4 opacity-10" />
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-30 italic">Aucun engagement financier</p>
+                    <div className="text-center py-12 bg-muted/30 rounded-2xl border border-dashed border-border/60">
+                        <Landmark className="w-8 h-8 mx-auto mb-2.5 text-muted-foreground/30" />
+                        <p className="text-xs text-muted-foreground">Aucun engagement financier</p>
                     </div>
                 ) : (
                     studentCoursesDetails?.map((purchase: any) => {
@@ -94,111 +93,98 @@ export const FinanceTab = ({
                         const paid = Number(purchase.paid_amount) || 0;
                         const balance = total - paid;
                         
-                        // Progression plafonnée à 100%
                         const progress = total > 0 ? Math.min((paid / total) * 100, 100) : (paid > 0 ? 100 : 0);
                         const isOverdue = purchase.due_date && new Date(purchase.due_date) < new Date() && balance > 0;
                         
                         return (
                             <motion.div 
-                                initial={{ opacity: 0, x: 20 }} 
-                                animate={{ opacity: 1, x: 0 }} 
+                                initial={{ opacity: 0, y: 8 }} 
+                                animate={{ opacity: 1, y: 0 }} 
                                 key={purchase.id} 
-                                className={`p-8 rounded-[3rem] border transition-all hover:shadow-2xl ${balance <= 0 ? 'border-emerald-500/20 bg-emerald-500/[0.03]' : 'border-amber-500/20 bg-amber-500/[0.03]'} group relative overflow-hidden`}
+                                className={`p-4 rounded-2xl border transition-colors ${balance <= 0 ? 'border-emerald-500/20 bg-emerald-500/[0.03]' : isOverdue ? 'border-destructive/20 bg-destructive/[0.02]' : 'border-amber-500/20 bg-amber-500/[0.02]'}`}
                             >
-                                {/* Statut Visuel Principal */}
-                                <div className="absolute top-0 right-0 overflow-hidden rounded-bl-[2.5rem]">
-                                    {purchase.is_disputed ? (
-                                        <div className="bg-purple-600 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 animate-pulse">
-                                            <AlertTriangle className="w-3 h-3" /> ⚖️ Litige Financier ({purchase.dispute_reason || 'En cours'})
-                                        </div>
-                                    ) : purchase.enrollment_status === 'graduated' ? (
-                                        <div className="bg-purple-600 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <CheckCircle2 className="w-3 h-3" /> 🎓 Formation Terminée & Diplômé
-                                        </div>
-                                    ) : balance === 0 ? (
-                                        <div className="bg-emerald-500 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <CheckCircle2 className="w-3 h-3" /> Dossier Soldé
-                                        </div>
-                                    ) : balance < 0 ? (
-                                        <div className="bg-blue-600 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <Landmark className="w-3 h-3" /> Trop-Perçu (${Math.abs(balance)})
-                                        </div>
-                                    ) : isOverdue ? (
-                                        <div className="bg-destructive text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 animate-pulse">
-                                            <AlertTriangle className="w-3 h-3" /> En Retard
-                                        </div>
-                                    ) : (
-                                        <div className="bg-amber-500 text-white px-8 py-2 text-[9px] font-black uppercase tracking-[0.2em]">
-                                            Versement en cours
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10 mt-2">
-                                    <div className="flex items-center gap-5">
-                                        <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-xl transition-all group-hover:scale-110 ${balance <= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                            <Landmark className="w-7 h-7" />
+                                {/* Header formation */}
+                                <div className="flex items-start justify-between gap-3 mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${balance <= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                            <Landmark className="w-4 h-4" />
                                         </div>
                                         <div>
-                                            <h4 className="font-black uppercase italic tracking-tighter text-2xl leading-none group-hover:text-primary transition-colors">{purchase.courses?.title}</h4>
-                                            <div className="flex items-center gap-3 mt-3">
-                                                <Badge variant="outline" className="text-[8px] font-black tracking-widest border-white/10 uppercase bg-white/5">{purchase.course_sessions?.session_name}</Badge>
-                                                <div className="flex items-center gap-1.5 opacity-40">
-                                                    <Clock className="w-3.5 h-3.5 text-primary" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest italic">
-                                                        {purchase.due_date ? format(new Date(purchase.due_date), 'dd MMM yyyy', { locale: fr }) : 'Sans échéance'}
-                                                    </span>
-                                                </div>
+                                            <h4 className="font-semibold text-sm text-foreground leading-tight">{purchase.courses?.title}</h4>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                {purchase.course_sessions?.session_name && (
+                                                    <Badge variant="outline" className="text-[9px] font-medium h-4 px-1.5">{purchase.course_sessions.session_name}</Badge>
+                                                )}
+                                                {purchase.due_date && (
+                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                                        <Clock className="w-3 h-3" />
+                                                        {format(new Date(purchase.due_date), 'dd MMM yyyy', { locale: fr })}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="flex flex-col items-end gap-1">
-                                        <div className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">Recouvrement</div>
-                                        <div className="text-4xl font-black italic tracking-tighter text-primary">{Math.round(progress)}%</div>
+                                    <div className="text-right shrink-0">
+                                        <div className="text-xs text-muted-foreground">Recouvrement</div>
+                                        <div className="text-lg font-bold text-primary">{Math.round(progress)}%</div>
                                     </div>
                                 </div>
 
-                                {/* Panneau de Vision Financière */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative z-10">
-                                    <div className="bg-white/5 backdrop-blur-md p-6 rounded-[2rem] border border-white/5 shadow-inner">
-                                        <div className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-2">Valeur Formation</div>
-                                        <div className="text-3xl font-black italic tracking-tighter">${total}</div>
+                                {/* Barre de progression */}
+                                <Progress value={progress} className="h-1.5 mb-3" />
+
+                                {/* Chiffres clés */}
+                                <div className="grid grid-cols-3 gap-2 mb-3">
+                                    <div className="bg-muted/40 p-2.5 rounded-xl text-center border border-border/40">
+                                        <div className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">Total</div>
+                                        <div className="text-sm font-bold">${total.toLocaleString()}</div>
                                     </div>
-                                    <div className="bg-emerald-500/5 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-500/10 shadow-inner">
-                                        <div className="text-[10px] font-black uppercase text-emerald-600 opacity-60 mb-2">Montant Perçu</div>
-                                        <div className="text-3xl font-black italic tracking-tighter text-emerald-500">${paid}</div>
+                                    <div className="bg-emerald-500/5 p-2.5 rounded-xl text-center border border-emerald-500/15">
+                                        <div className="text-[9px] text-emerald-600 uppercase tracking-wide mb-0.5">Perçu</div>
+                                        <div className="text-sm font-bold text-emerald-500">${paid.toLocaleString()}</div>
                                     </div>
-                                    <div className={`${balance > 0 ? 'bg-amber-500/10 border-amber-500/20' : balance < 0 ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/5'} backdrop-blur-md p-6 rounded-[2rem] border shadow-inner transition-colors`}>
-                                        <div className={`text-[10px] font-black uppercase tracking-widest mb-2 ${balance > 0 ? 'text-amber-600 opacity-80' : balance < 0 ? 'text-blue-600' : 'text-emerald-600 opacity-60'}`}>
-                                            {balance < 0 ? 'Surplus (Trop-perçu)' : 'Reste à Payer'}
+                                    <div className={`p-2.5 rounded-xl text-center border ${balance > 0 ? 'bg-amber-500/5 border-amber-500/15' : balance < 0 ? 'bg-blue-500/5 border-blue-500/15' : 'bg-muted/40 border-border/40'}`}>
+                                        <div className={`text-[9px] uppercase tracking-wide mb-0.5 ${balance > 0 ? 'text-amber-600' : balance < 0 ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                                            {balance < 0 ? 'Surplus' : 'Reste'}
                                         </div>
-                                        <div className={`text-3xl font-black italic tracking-tighter ${balance > 0 ? 'text-amber-500' : balance < 0 ? 'text-blue-500' : 'text-emerald-500 opacity-40'}`}>
-                                            ${Math.abs(balance)}
+                                        <div className={`text-sm font-bold ${balance > 0 ? 'text-amber-500' : balance < 0 ? 'text-blue-500' : 'text-muted-foreground'}`}>
+                                            ${Math.abs(balance).toLocaleString()}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Barre de Progression Stylisée */}
-                                <div className="mt-8 px-2">
-                                    <Progress value={progress} className={`h-2.5 rounded-full ${balance > 0 ? 'bg-amber-500/10' : 'bg-emerald-500/10'} overflow-hidden shadow-inner`} />
+                                {/* Badge statut */}
+                                <div className="mb-3">
+                                    {purchase.is_disputed ? (
+                                        <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] gap-1"><AlertTriangle className="w-3 h-3" /> Litige financier</Badge>
+                                    ) : purchase.enrollment_status === 'graduated' ? (
+                                        <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20 text-[10px] gap-1"><CheckCircle2 className="w-3 h-3" /> Diplômé</Badge>
+                                    ) : balance === 0 ? (
+                                        <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] gap-1"><CheckCircle2 className="w-3 h-3" /> Soldé</Badge>
+                                    ) : isOverdue ? (
+                                        <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] gap-1"><AlertTriangle className="w-3 h-3" /> En retard</Badge>
+                                    ) : (
+                                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px]">Versement en cours</Badge>
+                                    )}
                                 </div>
 
-                                {/* Actions Spécifiques */}
-                                <div className="flex items-center gap-4 mt-10 pt-8 border-t border-white/5 relative z-10">
+                                {/* Actions */}
+                                <div className="flex items-center gap-2 pt-3 border-t border-border/30">
                                     <Button 
-                                        variant="ghost" 
-                                        className="flex-1 rounded-[1.5rem] h-14 font-black uppercase tracking-widest text-[10px] hover:bg-white/5 gap-3 border border-white/5" 
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 h-8 rounded-xl text-xs font-medium gap-1.5 border-border/60" 
                                         onClick={() => { setSelectedPurchase(purchase); setIsInstallmentsOpen(true); }}
                                     >
-                                        <FileText className="w-4 h-4 opacity-60" /> Historique Tranches
+                                        <FileText className="w-3.5 h-3.5" /> Historique
                                     </Button>
                                     
                                     {purchase.is_disputed ? (
                                         <Button 
-                                            className="flex-1 rounded-[1.5rem] h-14 bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg gap-2" 
+                                            size="sm"
+                                            className="flex-1 h-8 rounded-xl text-xs font-medium gap-1.5 bg-purple-600 hover:bg-purple-700 text-white" 
                                             onClick={async () => {
-                                                const notes = prompt("Note de régularisation / Accord amiable :", "Régularisation litige validée par la direction");
+                                                const notes = prompt("Note de régularisation :", "Régularisation validée par la direction");
                                                 if (notes !== null) {
                                                     const { error } = await supabase.rpc('resolve_student_dispute_and_pay', { 
                                                         p_purchase_id: purchase.id,
@@ -206,55 +192,69 @@ export const FinanceTab = ({
                                                         p_payment_method: 'cash',
                                                         p_resolution_notes: notes
                                                     });
-                                                    if (error) toast.error(error.message);
-                                                    else toast.success("Litige régularisé et dossier remis en règle !");
+                                                    if (error) {
+                                                        toast.error(error.message);
+                                                    } else {
+                                                        toast.success("Litige régularisé !");
+                                                        queryClient.invalidateQueries({ queryKey: ['student-courses'] });
+                                                        queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+                                                    }
                                                 }
                                             }}
                                         >
-                                            <CheckCircle2 className="w-4 h-4" /> Régulariser le Litige
+                                            <CheckCircle2 className="w-3.5 h-3.5" /> Régulariser
                                         </Button>
                                     ) : balance > 0 ? (
                                         <Button 
-                                            className="flex-1 rounded-[1.5rem] h-14 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-glow-primary gap-3 hover:scale-[1.02] transition-transform" 
+                                            size="sm"
+                                            className="flex-1 h-8 rounded-xl text-xs font-medium gap-1.5" 
                                             onClick={() => {
                                                 setSelectedPurchase(purchase);
                                                 setManualPaymentAmount(balance);
                                                 setIsManualPaymentOpen(true);
                                             }}
                                         >
-                                            <Landmark className="w-4 h-4" /> Solder (${balance})
+                                            <Landmark className="w-3.5 h-3.5" /> Solder (${balance.toLocaleString()})
                                         </Button>
                                     ) : purchase.enrollment_status !== 'graduated' ? (
                                         <Button 
-                                            className="flex-1 rounded-[1.5rem] h-14 bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg gap-2" 
+                                            size="sm"
+                                            className="flex-1 h-8 rounded-xl text-xs font-medium gap-1.5 bg-purple-600 hover:bg-purple-700 text-white" 
                                             onClick={async () => {
-                                                if (confirm(`Confirmer la réussite et la fin de formation de cet étudiant pour ${purchase.courses?.title} ?`)) {
+                                                if (confirm(`Confirmer la réussite et délivrer le diplôme à cet étudiant pour ${purchase.courses?.title} ?`)) {
                                                     const { error } = await supabase.rpc('graduate_student', { p_purchase_id: purchase.id });
-                                                    if (error) toast.error(error.message);
-                                                    else toast.success("Étudiant diplômé et formation clôturée !");
+                                                    if (error) {
+                                                        toast.error(error.message);
+                                                    } else {
+                                                        toast.success("Étudiant diplômé et certificat délivré avec succès !");
+                                                        queryClient.invalidateQueries({ queryKey: ['student-courses'] });
+                                                        queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+                                                    }
                                                 }
                                             }}
                                         >
-                                            <CheckCircle2 className="w-4 h-4" /> Clôturer & Diplômer
+                                            <CheckCircle2 className="w-3.5 h-3.5" /> Diplômer
                                         </Button>
                                     ) : null}
 
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl text-white/10 hover:text-destructive hover:bg-destructive/10 transition-colors">
-                                                <Trash2 className="w-5 h-5" />
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10">
+                                                <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </AlertDialogTrigger>
-                                        <AlertDialogContent className="rounded-[2.5rem] bg-card border-white/10 shadow-2xl">
+                                        <AlertDialogContent className="rounded-2xl border-border/50">
                                             <AlertDialogHeader>
-                                                <AlertDialogTitle className="font-black uppercase italic text-2xl">Résilier le contrat ?</AlertDialogTitle>
-                                                <AlertDialogDescription className="text-muted-foreground italic font-medium py-4">
-                                                    Cette action retirera l'étudiant de la formation <span className="text-primary font-bold">{purchase.courses?.title}</span>. Les versements déjà effectués seront conservés en historique mais l'accès sera coupé.
+                                                <AlertDialogTitle className="font-bold text-lg">Résilier le contrat ?</AlertDialogTitle>
+                                                <AlertDialogDescription className="text-sm text-muted-foreground pt-1">
+                                                    Cette action retirera l'étudiant de la formation <span className="font-semibold text-foreground">{purchase.courses?.title}</span>. Les versements effectués seront conservés en historique.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
-                                            <AlertDialogFooter className="gap-4">
-                                                <AlertDialogCancel className="rounded-2xl h-14 font-bold border-white/5 uppercase text-xs tracking-widest">Garder l'engagement</AlertDialogCancel>
-                                                <AlertDialogAction className="bg-destructive text-white rounded-2xl h-14 font-black uppercase tracking-widest text-xs px-8" onClick={() => deleteMutation.mutate({ type: 'course', id: purchase.id })}>Résilier l'accès</AlertDialogAction>
+                                            <AlertDialogFooter className="gap-2">
+                                                <AlertDialogCancel className="rounded-xl h-9 text-xs font-semibold">Garder l'engagement</AlertDialogCancel>
+                                                <AlertDialogAction className="bg-destructive text-destructive-foreground rounded-xl h-9 text-xs font-semibold px-6 hover:bg-destructive/90" onClick={() => deleteMutation.mutate({ type: 'course', id: purchase.id })}>
+                                                    Résilier l'accès
+                                                </AlertDialogAction>
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>

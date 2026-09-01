@@ -2,11 +2,39 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 
 export const SupportCard = () => {
+  const { settings } = useSiteSettings();
+
   const handleWhatsApp = () => {
-    window.open("https://wa.me/243000000000", "_blank"); // À remplacer par le vrai numéro
-    toast.info("Redirection vers WhatsApp...");
+    const supportLink = settings?.academy_info?.support_link;
+    const phone = settings?.academy_info?.phone;
+
+    if (supportLink && supportLink.trim().length > 0) {
+      if (supportLink.startsWith("http://") || supportLink.startsWith("https://")) {
+        window.open(supportLink, "_blank");
+      } else {
+        const cleanNumber = supportLink.replace(/\D/g, "");
+        window.open(`https://wa.me/${cleanNumber}?text=Bonjour%2C%20j%27ai%20une%20question%20concernant%20Botes%20Academy`, "_blank");
+      }
+      toast.info("Redirection vers WhatsApp...");
+      return;
+    }
+
+    if (phone && phone.trim().length > 0) {
+      const cleanNumber = phone.replace(/\D/g, "");
+      window.open(`https://wa.me/${cleanNumber}?text=Bonjour%2C%20j%27ai%20une%20question%20concernant%20Botes%20Academy`, "_blank");
+      toast.info("Redirection vers WhatsApp...");
+      return;
+    }
+
+    toast.error("Le contact WhatsApp n'a pas encore été configuré par l'administration.");
+  };
+
+  const handleEmail = () => {
+    const email = settings?.academy_info?.email || "contact@botesacademy.com";
+    window.location.href = `mailto:${email}?subject=Demande%20d%27assistance%20-%20Botes%20Academy`;
   };
 
   return (
@@ -26,7 +54,7 @@ export const SupportCard = () => {
       <div className="flex gap-2 mt-6">
         <Button 
           size="sm" 
-          className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 h-10 font-black uppercase text-[9px] tracking-widest gap-2"
+          className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 h-10 font-black uppercase text-[9px] tracking-widest gap-2 text-white shadow-sm"
           onClick={handleWhatsApp}
         >
           <Phone className="w-3 h-3" />
@@ -35,10 +63,11 @@ export const SupportCard = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="flex-1 rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 h-10 font-black uppercase text-[9px] tracking-widest"
-          onClick={() => window.location.href = "mailto:support@nguma.academy"}
+          className="flex-1 rounded-xl border-indigo-200/40 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 h-10 font-black uppercase text-[9px] tracking-widest gap-1"
+          onClick={handleEmail}
+          title={settings?.academy_info?.email || "Email de support"}
         >
-          <Mail className="w-3 h-3" />
+          <Mail className="w-3 h-3" /> Email
         </Button>
       </div>
     </Card>

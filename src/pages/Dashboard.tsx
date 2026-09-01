@@ -2,7 +2,6 @@ import { motion, animate } from "framer-motion";
 import { useState, useMemo, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Award, TrendingUp, Clock, AlertCircle, Download, Wallet, AlertTriangle, Megaphone, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -109,12 +108,6 @@ const Dashboard = () => {
 
   const [selectedStrategy, setSelectedStrategy] = useState<any>(null);
   const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
-
-  const totalProgress = useMemo(() => {
-    if (!enrolledCourses || enrolledCourses.length === 0) return 0;
-    const total = enrolledCourses.reduce((acc, course) => acc + (course.progress || 0), 0);
-    return total / enrolledCourses.length;
-  }, [enrolledCourses]);
 
   const financialSummary = useMemo(() => {
     if (!enrolledCourses) return { totalDebt: 0, hasOverdue: false };
@@ -342,11 +335,18 @@ const Dashboard = () => {
 
     if (!hasTools) {
       return (
-        <Card className="p-12 text-center bg-muted/10 border-dashed border-2 rounded-[3rem] group">
-          <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-10 group-hover:opacity-20 transition-opacity" />
-          <p className="text-muted-foreground mb-4 font-medium italic">Vous n'avez pas encore d'outils ou de stratégies.</p>
+        <Card className="p-8 text-center bg-card/30 backdrop-blur-xl border border-dashed border-border/60 rounded-3xl group">
+          <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <h4 className="font-bold text-base mb-1">Boostez votre apprentissage avec nos outils</h4>
+          <p className="text-muted-foreground text-xs max-w-md mx-auto mb-5 leading-relaxed">
+            Retrouvez des indicateurs MT4/MT5 et des stratégies exclusives créés par nos experts pour vous entraîner dans les conditions réelles du marché.
+          </p>
           <Link to="/marketplace">
-            <Button variant="outline" className="border-accent text-accent hover:bg-accent/10 rounded-2xl px-8 h-12 font-black uppercase tracking-widest text-[10px]">Explorer la Marketplace</Button>
+            <Button className="rounded-xl px-6 h-10 font-bold uppercase text-xs tracking-wider shadow-sm">
+              Découvrir la Marketplace
+            </Button>
           </Link>
         </Card>
       );
@@ -416,33 +416,23 @@ const Dashboard = () => {
     <div className="min-h-screen bg-mesh-gradient relative overflow-hidden flex flex-col">
       <Navbar />
       
-      <main className="flex-1 container mx-auto px-4 pt-32 pb-24 relative z-10">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 relative z-10">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
+          className="mb-6"
         >
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic leading-[0.85]">
-                Mon <span className="text-gradient-primary">Espace</span>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                Tableau de <span className="text-gradient-primary">Bord</span>
               </h1>
-              <p className="text-muted-foreground font-medium italic text-lg ml-1">Bienvenue, <span className="text-primary font-black uppercase tracking-tight">{user?.user_metadata.full_name || 'Étudiant'}</span>. Prêt pour l'excellence ?</p>
+              <p className="text-muted-foreground text-xs sm:text-sm">
+                Bienvenue, <span className="text-primary font-bold">{user?.user_metadata.full_name || 'Étudiant'}</span>. Retrouvez vos formations et ressources pédagogiques.
+              </p>
             </div>
-            
           </div>
         </motion.div>
-
-        {/* Search floating for easier access */}
-        <div className="relative mb-8 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Rechercher une formation..." 
-            className="pl-11 h-14 rounded-2xl bg-card/40 backdrop-blur-xl border-border/10 focus:ring-primary/20 shadow-premium italic font-medium"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
 
         <StatsSection 
           enrolledCourses={enrolledCourses}
@@ -451,18 +441,29 @@ const Dashboard = () => {
           isLoading={isLoading}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 mt-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 lg:gap-10 mt-6">
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-12">
-            <div className="flex items-center gap-3 pb-4 border-b border-border/10">
-              <div className="p-2 bg-primary/10 rounded-xl"><BookOpen className="w-6 h-6 text-primary" /></div>
-              <h2 className="text-3xl font-black uppercase tracking-tighter italic">Mes Formations</h2>
+          <div className="lg:col-span-3 space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/40">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-primary/10 rounded-xl"><BookOpen className="w-4 h-4 text-primary" /></div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">Mes Formations</h2>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Rechercher une formation..." 
+                  className="pl-10 h-10 rounded-xl bg-card/60 backdrop-blur-md border-border/50 focus:ring-primary/20 font-medium text-xs"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
             {renderContent()}
 
-            <div className="flex items-center gap-3 pt-12 pb-4 border-b border-border/10">
-              <div className="p-2 bg-emerald-500/10 rounded-xl"><TrendingUp className="w-6 h-6 text-emerald-600" /></div>
-              <h2 className="text-3xl font-black uppercase tracking-tighter italic">Mes Stratégies & Outils</h2>
+            <div className="flex items-center gap-3 pt-8 pb-4 border-b border-border/20">
+              <div className="p-2 bg-emerald-500/10 rounded-xl"><TrendingUp className="w-5 h-5 text-emerald-600" /></div>
+              <h2 className="text-2xl font-bold tracking-tight">Outils & Supports Pédagogiques</h2>
             </div>
             {renderTools()}
           </div>
@@ -473,7 +474,7 @@ const Dashboard = () => {
               <div className="space-y-6">
                 <div className="flex items-center gap-2">
                   <Megaphone className="w-5 h-5 text-primary" />
-                  <h2 className="text-xl font-black uppercase tracking-tight italic">Annonces</h2>
+                  <h2 className="text-lg font-bold tracking-tight">Annonces</h2>
                 </div>
                 <AnnouncementsWidget />
               </div>

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, CheckCircle2, Users, Trophy, Download, Calendar, CreditCard, 
   Target, Rocket, Brain, Zap, Briefcase, Compass, MapPin, Timer, Settings,
-  BarChart, ArrowRight, BookOpen, ShoppingCart, Clock, Award
+  BarChart, ArrowRight, BookOpen, ShoppingCart, Clock, Award, GraduationCap
 } from "lucide-react";
 import { pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -316,9 +316,31 @@ const CourseDetail = () => {
                   {course.title}
                 </h1>
 
-                <p className="text-sm md:text-base text-muted-foreground font-medium max-w-xl leading-relaxed italic border-l-2 border-primary/20 pl-5 py-2 bg-primary/5 rounded-r-xl">
+                <p className="text-sm md:text-base text-muted-foreground font-medium max-w-xl leading-relaxed border-l-2 border-primary/20 pl-5 py-2 bg-primary/5 rounded-r-xl">
                   {course.description || "Devenez un expert, apprenez à concevoir des solutions de bout en bout."}
                 </p>
+
+                {/* Prochaine Session Highlight for Presential Courses */}
+                {sessions && sessions.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 shrink-0">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Prochaine Session Disponible</p>
+                        <p className="text-sm font-bold text-foreground">
+                          {sessions[0].vacation_name || 'Session'} — Début le {format(new Date(sessions[0].start_date), 'dd MMMM yyyy', { locale: fr })}
+                        </p>
+                      </div>
+                    </div>
+                    {sessions[0].campus && (
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-emerald-500/30 text-emerald-700 px-3 py-1 self-start sm:self-auto shrink-0">
+                        <MapPin className="w-3 h-3 mr-1" /> {sessions[0].campus}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">

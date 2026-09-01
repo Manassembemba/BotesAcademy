@@ -188,32 +188,41 @@ const SiteSettings = () => {
     }
 
     return (
-        <div className="container mx-auto p-4 md:p-8 space-y-8 pb-12">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-black uppercase tracking-tighter italic">Tableau de Bord <span className="text-primary">Configuration</span></h1>
-                    <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest">
-                        Gérez l'identité et les fonctionnalités de Botes Academy.
+        <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-20 max-w-7xl">
+            {/* HEADER UNIFIÉ */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+                <div className="space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
+                        <Settings className="w-3 h-3" /> Administration Système
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                        Configuration de la Plateforme
+                    </h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                        Gérez l'identité de marque, les contacts du support et les paramètres globaux de Botes Academy.
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Badge variant="outline" className="px-3 py-1 bg-primary/5 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px]">Système Actif</Badge>
+                <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-semibold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Système Opérationnel
+                    </span>
                 </div>
             </div>
 
-            <Tabs defaultValue="general" className="space-y-8">
-                <TabsList className="bg-background border border-border p-1 h-auto flex-wrap justify-start gap-1 rounded-2xl">
-                    <TabsTrigger value="general" className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white transition-all gap-2">
-                        <Settings className="w-4 h-4" /> Général
+            <Tabs defaultValue="general" className="space-y-6">
+                <TabsList className="bg-muted/50 border border-border/50 p-1 h-auto flex-wrap justify-start gap-1 rounded-xl">
+                    <TabsTrigger value="general" className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all gap-2">
+                        <Settings className="w-3.5 h-3.5" /> Général
                     </TabsTrigger>
-                    <TabsTrigger value="appearance" className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white transition-all gap-2">
-                        <Monitor className="w-4 h-4" /> Apparence
+                    <TabsTrigger value="appearance" className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all gap-2">
+                        <Monitor className="w-3.5 h-3.5" /> Apparence
                     </TabsTrigger>
-                    <TabsTrigger value="content" className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white transition-all gap-2">
-                        <BarChart3 className="w-4 h-4" /> Contenu & Stats
+                    <TabsTrigger value="content" className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all gap-2">
+                        <BarChart3 className="w-3.5 h-3.5" /> Contenu & Stats
                     </TabsTrigger>
-                    <TabsTrigger value="logistics" className="rounded-xl px-6 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white transition-all gap-2">
-                        <Wallet className="w-4 h-4" /> Logistique
+                    <TabsTrigger value="logistics" className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all gap-2">
+                        <Wallet className="w-3.5 h-3.5" /> Logistique & Paiement
                     </TabsTrigger>
                 </TabsList>
 
@@ -504,16 +513,16 @@ const SiteSettings = () => {
                             </CardHeader>
                             <CardContent className="space-y-4 pt-6">
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-black uppercase tracking-tighter flex items-center gap-2 italic"><Mail className="w-3 h-3 text-primary" /> Email</Label>
-                                    <Input value={localSettings['academy_info']?.email || ''} onChange={(e) => handleLocalChange('academy_info', 'email', e.target.value)} />
+                                    <Label className="text-xs font-black uppercase tracking-tighter flex items-center gap-2 italic"><Mail className="w-3 h-3 text-primary" /> Email de Contact / Support</Label>
+                                    <Input value={localSettings['academy_info']?.email || ''} onChange={(e) => handleLocalChange('academy_info', 'email', e.target.value)} placeholder="support@botesacademy.com" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-black uppercase tracking-tighter flex items-center gap-2 italic"><Phone className="w-3 h-3 text-primary" /> Téléphone</Label>
-                                    <Input value={localSettings['academy_info']?.phone || ''} onChange={(e) => handleLocalChange('academy_info', 'phone', e.target.value)} />
+                                    <Label className="text-xs font-black uppercase tracking-tighter flex items-center gap-2 italic"><Phone className="w-3 h-3 text-primary" /> Téléphone Principal</Label>
+                                    <Input value={localSettings['academy_info']?.phone || ''} onChange={(e) => handleLocalChange('academy_info', 'phone', e.target.value)} placeholder="+243..." />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-xs font-black uppercase tracking-tighter flex items-center gap-2 italic"><Tag className="w-3 h-3 text-primary" /> Support Link</Label>
-                                    <Input value={localSettings['academy_info']?.support_link || ''} onChange={(e) => handleLocalChange('academy_info', 'support_link', e.target.value)} />
+                                    <Label className="text-xs font-black uppercase tracking-tighter flex items-center gap-2 italic"><Phone className="w-3 h-3 text-emerald-500" /> WhatsApp / Lien d'Assistance Direct</Label>
+                                    <Input value={localSettings['academy_info']?.support_link || ''} onChange={(e) => handleLocalChange('academy_info', 'support_link', e.target.value)} placeholder="+243... ou https://wa.me/243..." />
                                 </div>
                                 <Button className="w-full rounded-xl" onClick={() => handleSave('academy_info')} disabled={updateSettingMutation.isPending}>
                                     <Save className="mr-2 h-4 w-4" /> Sauvegarder les Contacts

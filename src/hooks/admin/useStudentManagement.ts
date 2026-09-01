@@ -8,11 +8,15 @@ export interface StudentData {
     full_name: string;
     email: string;
     avatar_url: string | null;
+    matricule: string | null;
+    registration_source: string | null;
+    profile_completed: boolean | null;
     banned_until: string | null;
     enrolled_courses_count: number;
     purchased_strategies_count: number;
     purchased_indicators_count: number;
     course_titles: string[];
+    course_ids: string[];
     course_purchase_ids: string[];
     strategy_titles: string[];
     strategy_purchase_ids: string[];
@@ -20,6 +24,8 @@ export interface StudentData {
     indicator_purchase_ids: string[];
     total_spent: number;
     last_enrollment_date: string | null;
+    financial_status: 'completed' | 'partial' | 'overdue' | null;
+    average_progress: number;
 }
 
 export const useStudentManagement = (
@@ -32,35 +38,46 @@ export const useStudentManagement = (
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
-    // Fetch students with server-side filtering and pagination
+    // Build a reusable base query builder
+    const buildBaseQuery = (search: string, f: typeof filters) => {
+        let query = supabase
+            .from('student_management_view' as any)
+            .select('*', { count: 'exact' });
+
+        if (search) {
+            query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+        }
+
+        if (f.courseId && f.courseId !== 'all') {
+            query = query.contains('course_ids', [f.courseId]);
+        }
+
+        // Filtre de statut — corrigé pour couvrir tous les cas
+        if (f.status && f.status !== 'all') {
+            if (f.status === 'banned') {
+                query = query.not('banned_until', 'is', null).gt('banned_until', new Date().toISOString());
+            } else if (f.status === 'active') {
+                query = query.or('banned_until.is.null,banned_until.lte.' + new Date().toISOString());
+            } else if (f.status === 'completed') {
+                query = (query as any).eq('financial_status', 'completed');
+            } else if (f.status === 'partial') {
+                query = (query as any).eq('financial_status', 'partial');
+            } else if (f.status === 'overdue') {
+                query = (query as any).eq('financial_status', 'overdue');
+            }
+        }
+
+        return query;
+    };
+
+    // Fetch students with server-side filtering, sorting and pagination
     const { data: studentsData, isLoading, error } = useQuery({
         queryKey: ['admin-students', searchTerm, page, pageSize, filters, sortConfig],
         queryFn: async () => {
-            let query = supabase
-                .from('student_management_view' as any)
-                .select('*', { count: 'exact' });
-
-            if (searchTerm) {
-                query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
-            }
-
-            if (filters.courseId && filters.courseId !== 'all') {
-                query = query.contains('course_ids', [filters.courseId]);
-            }
-
-            // Application du filtre de statut
-            if (filters.status && filters.status !== 'all') {
-                if (filters.status === 'banned') {
-                    query = query.not('banned_until', 'is', null).gt('banned_until', new Date().toISOString());
-                } else if (filters.status === 'active') {
-                    query = query.or('banned_until.is.null,banned_until.lte.' + new Date().toISOString());
-                }
-            }
-
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
-            const { data, error, count } = await query
+            const { data, error, count } = await buildBaseQuery(searchTerm, filters)
                 .range(from, to)
                 .order(sortConfig.column, { ascending: sortConfig.ascending });
 
@@ -68,6 +85,14 @@ export const useStudentManagement = (
             return { students: data as StudentData[], totalCount: count || 0 };
         },
     });
+
+    // Export all — no pagination, returns full dataset as CSV string
+    const exportAll = async (): Promise<StudentData[]> => {
+        const { data, error } = await (buildBaseQuery(searchTerm, filters) as any)
+            .order(sortConfig.column, { ascending: sortConfig.ascending });
+        if (error) throw error;
+        return (data as StudentData[]) || [];
+    };
 
     const addStudentMutation = useMutation({
         mutationFn: async ({ student, shouldNotify }: { student: any, shouldNotify: boolean }) => {
@@ -87,7 +112,6 @@ export const useStudentManagement = (
             if (error || response?.error) throw new Error(error?.message || response?.error);
 
             if (shouldNotify) {
-                // Fetch course title for email
                 const { data: course } = await supabase.from('courses').select('title').eq('id', student.course_id).single();
                 
                 await supabase.functions.invoke('welcome-email', {
@@ -151,7 +175,6 @@ export const useStudentManagement = (
 
     const bulkEmailMutation = useMutation({
         mutationFn: async ({ userIds, subject, message }: { userIds: string[], subject: string, message: string }) => {
-            // Utilise l'Edge Function pour envoyer des emails groupés
             const { data, error } = await supabase.functions.invoke('admin-bulk-email', {
                 body: { userIds, subject, message }
             });
@@ -188,6 +211,7 @@ export const useStudentManagement = (
         totalCount: studentsData?.totalCount || 0,
         isLoading,
         error,
+        exportAll,
         addStudentMutation,
         userActionMutation,
         bulkDeleteMutation,

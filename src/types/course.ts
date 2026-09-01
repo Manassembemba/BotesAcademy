@@ -50,7 +50,7 @@ export interface Lesson {
   video_url: string | null;
   pdf_url: string | null;
   order_index: number;
-  lesson_type: 'video' | 'pdf' | 'quiz';
+  lesson_type: 'video' | 'pdf';
   module_name?: string | null;
   created_at: string;
 }

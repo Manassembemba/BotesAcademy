@@ -225,24 +225,28 @@ const PaymentValidation = () => {
 
     return (
         <div className="min-h-screen bg-mesh-gradient relative overflow-hidden flex flex-col pb-20">
-            <div className="container mx-auto p-4 md:p-8 space-y-12 relative z-10 pt-32">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
-                <div className="space-y-2">
-                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic leading-[0.85]">
-                        Payment <span className="text-gradient-primary">Validation</span>
+            <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 relative z-10 pt-4 md:pt-6">
+            {/* HEADER UNIFIÉ */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40 mb-4">
+                <div className="space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[11px] font-semibold">
+                        <Clock className="w-3 h-3" /> Contrôle Financier
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                        Validation des Paiements
                     </h1>
-                    <p className="text-muted-foreground font-medium italic text-lg ml-1">Contrôle financier des inscriptions et achats.</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                        Contrôle financier des inscriptions et achats.
+                    </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Card className="px-6 py-4 bg-card/40 backdrop-blur-xl border-amber-500/20 shadow-premium rounded-[2rem] flex items-center gap-4">
-                        <div className="p-3 bg-amber-500/20 rounded-xl">
-                            <Clock className="w-6 h-6 text-amber-600" />
-                        </div>
+                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <Clock className="w-4 h-4 text-amber-600" />
                         <div>
-                            <div className="text-3xl font-black text-amber-600 leading-none mb-1">{paymentProofs?.filter(p => p.status === 'pending').length || 0}</div>
-                            <div className="text-[10px] font-black text-amber-600/70 uppercase tracking-[0.2em] leading-none">À Traiter</div>
+                            <div className="text-xl font-bold text-amber-600 leading-none">{paymentProofs?.filter(p => p.status === 'pending').length || 0}</div>
+                            <div className="text-[10px] font-medium text-amber-600/70">À traiter</div>
                         </div>
-                    </Card>
+                    </div>
                 </div>
             </div>
 

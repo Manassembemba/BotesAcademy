@@ -87,19 +87,19 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
-    letter-spacing: -0.03em;
-    font-weight: 900;
-    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    line-height: 1.2;
   }
 }
 
 @layer utilities {
   .text-gradient-primary {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-primary via-primary/90 to-blue-500 font-black italic;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-primary via-primary/90 to-blue-500 font-bold;
   }
 
   .text-gradient-accent {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-accent via-accent/90 to-orange-500 font-black italic;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-accent via-accent/90 to-orange-500 font-bold;
   }
   
   .bg-glass {
@@ -129,15 +129,15 @@
   }
 
   .bento-card {
-    @apply bg-card relative overflow-hidden rounded-4xl border border-border/40 shadow-sm transition-all duration-700 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15)] hover:-translate-y-3;
+    @apply bg-card relative overflow-hidden rounded-4xl border border-border/40 shadow-sm transition-all duration-500 hover:shadow-md hover:-translate-y-1;
   }
 
   .shadow-glow-primary {
-    box-shadow: 0 0 30px -5px oklch(var(--primary) / 0.4), 0 0 60px -10px oklch(var(--primary) / 0.15);
+    box-shadow: 0 4px 20px -2px oklch(var(--primary) / 0.25);
   }
 
   .shadow-glow-accent {
-    box-shadow: 0 0 30px -5px oklch(var(--accent) / 0.4), 0 0 60px -10px oklch(var(--accent) / 0.15);
+    box-shadow: 0 4px 20px -2px oklch(var(--accent) / 0.25);
   }
 
   .shadow-premium {

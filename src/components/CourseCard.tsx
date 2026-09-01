@@ -65,50 +65,36 @@ const CourseCard = ({
             <motion.img
               src={image || "/placeholder.svg"}
               alt={title}
-              className="w-full h-full object-cover transition-transform duration-[3000ms] ease-out group-hover/img:scale-110 group-hover/img:rotate-1"
+              className="w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover/img:scale-105"
             />
             
-            {/* Technical Overlays */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-90 group-hover/img:opacity-70 transition-opacity duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-80" />
             
-            <div className="absolute top-6 left-6 flex flex-wrap gap-2 z-10">
-              <Badge className="bg-primary/90 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md">
+            <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
+              <Badge className="bg-primary/90 backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider px-3 py-1 rounded-lg border-0 shadow-sm">
                 {category}
               </Badge>
             </div>
 
             {isPromoActive && discount > 0 && (
-              <div className="absolute top-6 right-6 z-10">
-                <Badge className="bg-emerald-500 text-white font-bold uppercase text-[10px] tracking-wider px-3 py-1 rounded-full shadow-md">
+              <div className="absolute top-4 right-4 z-10">
+                <Badge className="bg-emerald-500 text-white font-bold uppercase text-[10px] tracking-wider px-2.5 py-1 rounded-lg shadow-sm">
                   -{discount}%
                 </Badge>
               </div>
             )}
-
-            <div className="absolute bottom-6 left-6 right-6 z-10 flex items-center justify-between">
-               <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-white drop-shadow-md">Inscriptions Ouvertes</span>
-               </div>
-               {isSpecialSession && (
-                  <Badge className="bg-destructive text-white border-none font-bold uppercase text-[9px] tracking-wider px-2.5 py-0.5 shadow-sm">
-                    Session Spéciale
-                  </Badge>
-               )}
-            </div>
           </CardHeader>
 
-          <CardContent className="p-6 md:p-8 flex-1 space-y-5 relative z-10">
-            <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+          <CardContent className="p-6 flex-1 space-y-4 relative z-10">
+            <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-primary" />
+                <Clock className="w-3.5 h-3.5 text-primary" />
                 <span>{duration}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-primary text-lg font-bold">
+              <div className="flex items-center gap-1.5 text-primary text-base font-bold">
                  <span>{totalPrice}$</span>
                  {fullPrice && isPromoActive && (
-                   <span className="text-xs text-muted-foreground line-through opacity-50">{fullPrice + registrationFee}$</span>
+                   <span className="text-xs text-muted-foreground line-through opacity-50 font-normal">{fullPrice + registrationFee}$</span>
                  )}
               </div>
             </div>

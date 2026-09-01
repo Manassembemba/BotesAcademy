@@ -194,9 +194,9 @@ export const AddStudentDialog = ({
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="rounded-xl border-primary/10">
-                                            <SelectItem value="MATIN">☀️ Matin (08h00 - 11h00)</SelectItem>
-                                            <SelectItem value="MIDI">🌅 Midi (11h30 - 14h30)</SelectItem>
-                                            <SelectItem value="SOIR">🌙 Soir (16h00 - 19h00)</SelectItem>
+                                            <SelectItem value="MATIN">Matin (08h00 - 11h00)</SelectItem>
+                                            <SelectItem value="MIDI">Midi (11h30 - 14h30)</SelectItem>
+                                            <SelectItem value="SOIR">Soir (16h00 - 19h00)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage className="text-[10px]" />

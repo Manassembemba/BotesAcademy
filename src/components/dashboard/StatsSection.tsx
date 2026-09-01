@@ -2,7 +2,7 @@ import { motion, animate } from "framer-motion";
 import { useEffect, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, TrendingUp } from "lucide-react";
+import { BookOpen, ShieldCheck } from "lucide-react";
 
 interface CountUpProps {
   value: number;
@@ -43,12 +43,6 @@ export const StatsSection = ({
   isLoading 
 }: StatsSectionProps) => {
 
-  const totalProgress = useMemo(() => {
-    if (!enrolledCourses || enrolledCourses.length === 0) return 0;
-    const total = enrolledCourses.reduce((acc, course) => acc + (course.progress || 0), 0);
-    return total / enrolledCourses.length;
-  }, [enrolledCourses]);
-
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -69,35 +63,35 @@ export const StatsSection = ({
       variants={container}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+      className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
     >
       <motion.div variants={item}>
-        <Card className="bento-card-compact p-6 bg-card/40 backdrop-blur-xl border-white/5 shadow-premium group rounded-3xl">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shadow-glow-primary transition-transform group-hover:scale-110 duration-500">
-              <BookOpen className="w-7 h-7 text-primary" />
+        <Card className="p-4 sm:p-5 bg-card border border-border/50 rounded-2xl shadow-xs group hover:border-primary/30 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-3xl font-black tracking-tighter italic">
-                {isLoading ? <Skeleton className="h-8 w-8" /> : <CountUp value={enrolledCourses?.length || 0} />}
+              <p className="text-xs text-muted-foreground font-medium">Formations Inscrites</p>
+              <div className="text-2xl font-bold tracking-tight text-foreground">
+                {isLoading ? <Skeleton className="h-7 w-8" /> : <CountUp value={enrolledCourses?.length || 0} />}
               </div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic opacity-60">Cours actifs</p>
             </div>
           </div>
         </Card>
       </motion.div>
 
       <motion.div variants={item}>
-        <Card className="bento-card-compact p-6 bg-card/40 backdrop-blur-xl border-white/5 shadow-premium group rounded-3xl">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center shadow-glow-accent transition-transform group-hover:scale-110 duration-500">
-              <TrendingUp className="w-7 h-7 text-amber-500" />
+        <Card className="p-4 sm:p-5 bg-card border border-border/50 rounded-2xl shadow-xs group hover:border-emerald-500/30 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 group-hover:scale-105 transition-transform">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-3xl font-black tracking-tighter italic">
-                {isLoading ? <Skeleton className="h-8 w-12" /> : <CountUp value={totalProgress} suffix="%" />}
+              <p className="text-xs text-muted-foreground font-medium">Statut Dossier Académique</p>
+              <div className="text-2xl font-bold tracking-tight text-emerald-600">
+                {enrolledCourses && enrolledCourses.length > 0 ? "Actif" : "En attente"}
               </div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] italic opacity-60">Progression</p>
             </div>
           </div>
         </Card>

@@ -115,8 +115,8 @@ const PaymentStatus = () => {
                 return {
                     icon: <CheckCircle className="w-12 h-12 text-emerald-500" />,
                     title: "Paiement Validé",
-                    description: "Félicitations ! Votre accès a été activé. Vous pouvez commencer votre apprentissage dès maintenant.",
-                    badge: <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-black uppercase text-[10px] tracking-widest px-4 py-1">Accès Débloqué 🚀</Badge>,
+                    description: "Votre accès a été validé. Vous pouvez accéder à votre formation dès maintenant.",
+                    badge: <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-bold uppercase text-[10px] tracking-wider px-3 py-1">Accès Validé</Badge>,
                     colorClass: "from-emerald-500/20 to-transparent",
                     borderClass: "border-emerald-500/20",
                     glowClass: "shadow-emerald-500/20",
@@ -125,8 +125,8 @@ const PaymentStatus = () => {
                 return {
                     icon: <XCircle className="w-12 h-12 text-destructive" />,
                     title: "Reçu non conforme",
-                    description: "Malheureusement, votre preuve de paiement n'a pas pu être validée par nos services.",
-                    badge: <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-black uppercase text-[10px] tracking-widest px-4 py-1">Action Requise ⚠️</Badge>,
+                    description: "Votre preuve de paiement n'a pas pu être validée par nos services.",
+                    badge: <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-bold uppercase text-[10px] tracking-wider px-3 py-1">Action Requise</Badge>,
                     colorClass: "from-destructive/20 to-transparent",
                     borderClass: "border-destructive/20",
                     glowClass: "shadow-destructive/20",
@@ -272,9 +272,9 @@ const PaymentStatus = () => {
                             {paymentProof.status === 'pending' && (
                                 <div className="space-y-6">
                                     <div className="p-8 rounded-[2rem] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 space-y-4">
-                                        <h4 className="text-lg font-black uppercase italic tracking-tighter">🚀 Rejoignez l'élite en attendant</h4>
+                                        <h4 className="text-lg font-bold uppercase tracking-tight">Rejoignez la communauté</h4>
                                         <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                                            Votre accès sera activé sous peu. Profitez de ce temps pour rejoindre notre communauté exclusive et commencer à networker avec d'autres traders.
+                                            Votre accès sera activé sous peu. Profitez de ce temps pour rejoindre notre canal d'information et échanger avec d'autres étudiants.
                                         </p>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                                             <Button variant="outline" className="h-12 rounded-xl border-primary/20 gap-2 font-bold uppercase text-[10px] tracking-widest" onClick={() => window.open('https://t.me/botesacademy', '_blank')}>
@@ -302,16 +302,16 @@ const PaymentStatus = () => {
                                 {paymentProof.status === 'approved' && course && (
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <Button
-                                            className="h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase italic tracking-widest shadow-glow-primary group"
-                                            onClick={() => navigate(`/formations/${course.id}`)}
+                                            className="h-14 sm:h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold uppercase text-xs tracking-wider shadow-glow-primary group"
+                                            onClick={() => navigate(`/formations/${course.id}/content`)}
                                         >
-                                            Commencer la formation
+                                            Accéder à la formation
                                             <ArrowRight className="ml-3 w-5 h-5 transition-transform group-hover:translate-x-1" />
                                         </Button>
                                         <div className="grid grid-cols-2 gap-3">
                                             <Button
                                                 variant="outline"
-                                                className="h-16 rounded-2xl border-primary/20 hover:border-primary/50 font-bold uppercase text-[10px] tracking-widest gap-2 bg-background/50"
+                                                className="h-14 sm:h-16 rounded-2xl border-primary/20 hover:border-primary/50 font-bold uppercase text-[10px] tracking-widest gap-2 bg-background/50"
                                                 onClick={() => generateInvoice({
                                                     studentName: (paymentProof.profiles as any)?.full_name || user.email || 'Étudiant',
                                                     courseTitle: course.title,
@@ -322,30 +322,39 @@ const PaymentStatus = () => {
                                                     invoiceNumber: paymentProof.id.slice(0, 8).toUpperCase()
                                                 })}
                                             >
-                                                <FileDown className="w-5 h-5 text-primary" /> Facture
+                                                <FileDown className="w-4 h-4 text-primary" /> Facture PDF
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                className="h-16 rounded-2xl border-primary/20 hover:border-primary/50 font-bold uppercase text-[10px] tracking-widest gap-2 bg-background/50"
+                                                className="h-14 sm:h-16 rounded-2xl border-primary/20 hover:border-primary/50 font-bold uppercase text-[10px] tracking-widest gap-2 bg-background/50"
                                                 onClick={() => generateBadge({
                                                     studentName: (paymentProof.profiles as any)?.full_name || user.email || 'Étudiant',
                                                     courseTitle: course.title,
                                                     date: paymentProof.validated_at || paymentProof.created_at
                                                 })}
                                             >
-                                                <Award className="w-5 h-5 text-primary" /> Badge
+                                                <Award className="w-4 h-4 text-primary" /> Badge d'Accès
                                             </Button>
                                         </div>
                                     </div>
                                 )}
 
                                 {paymentProof.status === 'rejected' && course && (
-                                    <Button
-                                        className="h-16 rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-black uppercase italic tracking-widest shadow-glow-destructive"
-                                        onClick={() => navigate(`/checkout/${course.id}`)}
-                                    >
-                                        Soumettre à nouveau
-                                    </Button>
+                                    <div className="grid sm:grid-cols-2 gap-4">
+                                        <Button
+                                            className="h-14 rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-bold uppercase text-xs tracking-wider shadow-sm"
+                                            onClick={() => navigate(`/checkout/${course.id}`)}
+                                        >
+                                            Soumettre un nouveau reçu
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="h-14 rounded-2xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold uppercase text-xs tracking-wider gap-2"
+                                            onClick={() => window.open(`https://wa.me/243000000000?text=Bonjour%20Botes%20Academy%2C%20mon%20reçu%20N°${paymentProof.id.slice(0, 8)}%20a%20été%20rejeté.%20Pouvez-vous%20m%27aider%20%3F`, '_blank')}
+                                        >
+                                            <MessageSquare className="w-4 h-4 text-emerald-600" /> Contacter le Support
+                                        </Button>
+                                    </div>
                                 )}
 
                                 <div className="flex gap-4">
