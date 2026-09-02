@@ -1,12 +1,14 @@
 -- Migration: Fix Unified Payment Trigger and Validation
 -- Description: Updates handle_payment_approval() and validate_payment() to use the unified public.purchases table.
 -- Eliminates all references to the non-existent public.indicator_purchases and public.strategy_purchases tables.
+-- Uses explicit IF EXISTS / UPDATE / INSERT logic to avoid any ON CONFLICT constraint mismatch.
 
 -- 1. Create or replace handle_payment_approval() trigger function
 CREATE OR REPLACE FUNCTION public.handle_payment_approval()
 RETURNS TRIGGER AS $$
 DECLARE
     v_expires_at TIMESTAMP WITH TIME ZONE;
+    v_existing_id UUID;
 BEGIN
     -- Only act when payment proof status transitions to 'approved'
     IF (NEW.status = 'approved' AND (OLD.status IS NULL OR OLD.status != 'approved')) THEN
@@ -22,136 +24,169 @@ BEGIN
             v_expires_at := NULL;
         END IF;
 
+        -- =========================================================================
         -- CASE 1: COURSE
+        -- =========================================================================
         IF NEW.course_id IS NOT NULL THEN
-            INSERT INTO public.purchases (
-                user_id, 
-                course_id, 
-                product_type,
-                amount, 
-                total_amount,
-                paid_amount,
-                payment_status, 
-                validation_status, 
-                validated_at, 
-                validated_by, 
-                payment_proof_id,
-                session_id,
-                vacation_name
-            )
-            VALUES (
-                NEW.user_id, 
-                NEW.course_id, 
-                'course',
-                NEW.amount, 
-                NEW.amount,
-                NEW.amount,
-                'completed', 
-                'approved', 
-                NOW(), 
-                NEW.validated_by,
-                NEW.id,
-                NEW.session_id,
-                NEW.vacation_name
-            )
-            ON CONFLICT (user_id, course_id) DO UPDATE
-            SET 
-                validation_status = 'approved',
-                payment_status = 'completed',
-                paid_amount = COALESCE(public.purchases.paid_amount, 0) + EXCLUDED.amount,
-                validated_at = NOW(),
-                validated_by = NEW.validated_by,
-                payment_proof_id = NEW.id,
-                session_id = COALESCE(NEW.session_id, public.purchases.session_id),
-                vacation_name = COALESCE(NEW.vacation_name, public.purchases.vacation_name);
+            SELECT id INTO v_existing_id 
+            FROM public.purchases 
+            WHERE user_id = NEW.user_id AND course_id = NEW.course_id 
+            LIMIT 1;
+
+            IF v_existing_id IS NOT NULL THEN
+                UPDATE public.purchases
+                SET 
+                    validation_status = 'approved',
+                    payment_status = 'completed',
+                    paid_amount = COALESCE(public.purchases.paid_amount, 0) + COALESCE(NEW.amount, 0),
+                    validated_at = NOW(),
+                    validated_by = NEW.validated_by,
+                    payment_proof_id = NEW.id,
+                    session_id = COALESCE(NEW.session_id, public.purchases.session_id),
+                    vacation_name = COALESCE(NEW.vacation_name, public.purchases.vacation_name)
+                WHERE id = v_existing_id;
+            ELSE
+                INSERT INTO public.purchases (
+                    user_id, 
+                    course_id, 
+                    product_type,
+                    amount, 
+                    total_amount,
+                    paid_amount,
+                    payment_status, 
+                    validation_status, 
+                    validated_at, 
+                    validated_by, 
+                    payment_proof_id,
+                    session_id,
+                    vacation_name
+                )
+                VALUES (
+                    NEW.user_id, 
+                    NEW.course_id, 
+                    'course',
+                    COALESCE(NEW.amount, 0), 
+                    COALESCE(NEW.amount, 0),
+                    COALESCE(NEW.amount, 0),
+                    'completed', 
+                    'approved', 
+                    NOW(), 
+                    NEW.validated_by,
+                    NEW.id,
+                    NEW.session_id,
+                    NEW.vacation_name
+                );
+            END IF;
             
             -- Increment session student count if applicable
             IF NEW.session_id IS NOT NULL THEN
                 PERFORM public.increment_session_students(NEW.session_id);
             END IF;
 
+        -- =========================================================================
         -- CASE 2: STRATEGY
+        -- =========================================================================
         ELSIF NEW.strategy_id IS NOT NULL THEN
-            INSERT INTO public.purchases (
-                user_id,
-                strategy_id,
-                product_type,
-                amount,
-                total_amount,
-                paid_amount,
-                payment_status,
-                validation_status,
-                validated_at,
-                validated_by,
-                payment_proof_id
-            )
-            VALUES (
-                NEW.user_id,
-                NEW.strategy_id,
-                'strategy',
-                COALESCE(NEW.amount, 0),
-                COALESCE(NEW.amount, 0),
-                COALESCE(NEW.amount, 0),
-                'completed',
-                'approved',
-                NOW(),
-                NEW.validated_by,
-                NEW.id
-            )
-            ON CONFLICT (user_id, strategy_id) DO UPDATE
-            SET
-                validation_status = 'approved',
-                payment_status = 'completed',
-                validated_at = NOW(),
-                validated_by = NEW.validated_by,
-                payment_proof_id = NEW.id;
+            SELECT id INTO v_existing_id 
+            FROM public.purchases 
+            WHERE user_id = NEW.user_id AND strategy_id = NEW.strategy_id 
+            LIMIT 1;
 
+            IF v_existing_id IS NOT NULL THEN
+                UPDATE public.purchases
+                SET
+                    validation_status = 'approved',
+                    payment_status = 'completed',
+                    validated_at = NOW(),
+                    validated_by = NEW.validated_by,
+                    payment_proof_id = NEW.id
+                WHERE id = v_existing_id;
+            ELSE
+                INSERT INTO public.purchases (
+                    user_id,
+                    strategy_id,
+                    product_type,
+                    amount,
+                    total_amount,
+                    paid_amount,
+                    payment_status,
+                    validation_status,
+                    validated_at,
+                    validated_by,
+                    payment_proof_id
+                )
+                VALUES (
+                    NEW.user_id,
+                    NEW.strategy_id,
+                    'strategy',
+                    COALESCE(NEW.amount, 0),
+                    COALESCE(NEW.amount, 0),
+                    COALESCE(NEW.amount, 0),
+                    'completed',
+                    'approved',
+                    NOW(),
+                    NEW.validated_by,
+                    NEW.id
+                );
+            END IF;
+
+        -- =========================================================================
         -- CASE 3: INDICATOR
+        -- =========================================================================
         ELSIF NEW.indicator_id IS NOT NULL THEN
-            INSERT INTO public.purchases (
-                user_id,
-                indicator_id,
-                product_type,
-                amount,
-                total_amount,
-                paid_amount,
-                payment_status,
-                validation_status,
-                delivery_status,
-                mt5_id,
-                subscription_duration,
-                expires_at,
-                validated_at,
-                validated_by,
-                payment_proof_id
-            )
-            VALUES (
-                NEW.user_id,
-                NEW.indicator_id,
-                'indicator',
-                COALESCE(NEW.amount, 0),
-                COALESCE(NEW.amount, 0),
-                COALESCE(NEW.amount, 0),
-                'completed',
-                'approved',
-                'pending',
-                NEW.mt5_id,
-                NEW.subscription_duration,
-                v_expires_at,
-                NOW(),
-                NEW.validated_by,
-                NEW.id
-            )
-            ON CONFLICT (user_id, indicator_id) DO UPDATE
-            SET
-                validation_status = 'approved',
-                payment_status = 'completed',
-                mt5_id = COALESCE(EXCLUDED.mt5_id, public.purchases.mt5_id),
-                subscription_duration = COALESCE(EXCLUDED.subscription_duration, public.purchases.subscription_duration),
-                expires_at = COALESCE(EXCLUDED.expires_at, public.purchases.expires_at),
-                validated_at = NOW(),
-                validated_by = NEW.validated_by,
-                payment_proof_id = NEW.id;
+            SELECT id INTO v_existing_id 
+            FROM public.purchases 
+            WHERE user_id = NEW.user_id AND indicator_id = NEW.indicator_id 
+            LIMIT 1;
+
+            IF v_existing_id IS NOT NULL THEN
+                UPDATE public.purchases
+                SET
+                    validation_status = 'approved',
+                    payment_status = 'completed',
+                    mt5_id = COALESCE(NEW.mt5_id, public.purchases.mt5_id),
+                    subscription_duration = COALESCE(NEW.subscription_duration, public.purchases.subscription_duration),
+                    expires_at = COALESCE(v_expires_at, public.purchases.expires_at),
+                    validated_at = NOW(),
+                    validated_by = NEW.validated_by,
+                    payment_proof_id = NEW.id
+                WHERE id = v_existing_id;
+            ELSE
+                INSERT INTO public.purchases (
+                    user_id,
+                    indicator_id,
+                    product_type,
+                    amount,
+                    total_amount,
+                    paid_amount,
+                    payment_status,
+                    validation_status,
+                    delivery_status,
+                    mt5_id,
+                    subscription_duration,
+                    expires_at,
+                    validated_at,
+                    validated_by,
+                    payment_proof_id
+                )
+                VALUES (
+                    NEW.user_id,
+                    NEW.indicator_id,
+                    'indicator',
+                    COALESCE(NEW.amount, 0),
+                    COALESCE(NEW.amount, 0),
+                    COALESCE(NEW.amount, 0),
+                    'completed',
+                    'approved',
+                    'pending',
+                    NEW.mt5_id,
+                    NEW.subscription_duration,
+                    v_expires_at,
+                    NOW(),
+                    NEW.validated_by,
+                    NEW.id
+                );
+            END IF;
         END IF;
 
     END IF;
