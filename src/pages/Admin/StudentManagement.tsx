@@ -185,10 +185,16 @@ const StudentManagement = () => {
                 });
                 if (error) throw error;
             } else if (data.type === 'indicator') {
-                const { error } = await supabase.from('indicator_purchases').insert({
+                const { error } = await supabase.from('purchases').insert({
                     user_id: selectedStudentId,
-                    indicator_id: data.itemId
-                });
+                    indicator_id: data.itemId,
+                    product_type: 'indicator',
+                    amount: 0,
+                    total_amount: 0,
+                    paid_amount: 0,
+                    payment_status: 'completed',
+                    delivery_status: 'pending'
+                } as any);
                 if (error) throw error;
             }
         },
@@ -210,7 +216,7 @@ const StudentManagement = () => {
                 const { error } = await supabase.from('strategy_purchases').delete().eq('id', id);
                 if (error) throw error;
             } else if (type === 'indicator') {
-                const { error } = await supabase.from('indicator_purchases').delete().eq('id', id);
+                const { error } = await supabase.from('purchases').delete().eq('id', id);
                 if (error) throw error;
             }
         },
@@ -271,12 +277,26 @@ const StudentManagement = () => {
     const { data: studentIndicatorsDetails, isLoading: isLoadingIndicators } = useQuery({
         queryKey: ['student-indicators', selectedStudentId],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('indicator_purchases')
-                .select(`id, created_at, indicators (name, price)`)
-                .eq('user_id', selectedStudentId);
-            if (error) throw error;
-            return data;
+            const { data: purchasesData, error: purchasesError } = await supabase
+                .from('purchases')
+                .select('id, created_at, indicator_id')
+                .eq('user_id', selectedStudentId)
+                .eq('product_type', 'indicator');
+
+            if (purchasesError) throw purchasesError;
+            if (!purchasesData || purchasesData.length === 0) return [];
+
+            const indicatorIds = purchasesData.map(p => p.indicator_id).filter(Boolean);
+            const { data: indicatorsData } = indicatorIds.length > 0
+                ? await supabase.from('indicators').select('id, name, price').in('id', indicatorIds)
+                : { data: [] };
+
+            const indMap = new Map((indicatorsData || []).map(i => [i.id, i]));
+            return purchasesData.map(p => ({
+                id: p.id,
+                created_at: p.created_at,
+                indicators: indMap.get(p.indicator_id) || { name: 'Indicateur', price: 0 }
+            }));
         },
         enabled: !!selectedStudentId && isDetailsOpen
     });

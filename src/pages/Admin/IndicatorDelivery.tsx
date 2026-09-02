@@ -44,19 +44,39 @@ const IndicatorDelivery = () => {
     const { data: purchases, isLoading } = useQuery({
         queryKey: ['adminIndicatorPurchasesUnified'],
         queryFn: async () => {
-            const { data, error } = await supabase
+            const { data: purchasesData, error: purchasesError } = await supabase
                 .from('purchases')
-                .select(`
-                    *,
-                    profiles:user_id (full_name),
-                    admin_profile:validated_by (full_name),
-                    indicators:indicator_id (name)
-                `)
+                .select('*')
                 .eq('product_type', 'indicator')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            return data as any[];
+            if (purchasesError) throw purchasesError;
+            if (!purchasesData || purchasesData.length === 0) return [];
+
+            const userIds = Array.from(new Set(purchasesData.map(p => p.user_id).filter(Boolean)));
+            const adminIds = Array.from(new Set(purchasesData.map(p => p.validated_by).filter(Boolean)));
+            const indicatorIds = Array.from(new Set(purchasesData.map(p => p.indicator_id).filter(Boolean)));
+
+            const allProfileIds = Array.from(new Set([...userIds, ...adminIds]));
+
+            const [profilesRes, indicatorsRes] = await Promise.all([
+                allProfileIds.length > 0
+                    ? supabase.from('profiles').select('id, full_name').in('id', allProfileIds)
+                    : Promise.resolve({ data: [] }),
+                indicatorIds.length > 0
+                    ? supabase.from('indicators').select('id, name, price').in('id', indicatorIds)
+                    : Promise.resolve({ data: [] })
+            ]);
+
+            const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p.full_name]));
+            const indicatorMap = new Map((indicatorsRes.data || []).map(i => [i.id, i.name]));
+
+            return purchasesData.map(p => ({
+                ...p,
+                profiles: { full_name: profileMap.get(p.user_id) || null },
+                admin_profile: { full_name: profileMap.get(p.validated_by) || null },
+                indicators: { name: indicatorMap.get(p.indicator_id) || 'Indicateur' }
+            })) as any[];
         },
     });
 
