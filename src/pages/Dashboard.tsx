@@ -353,61 +353,87 @@ const Dashboard = () => {
     }
 
     return (
-      <div className="bento-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {purchasedTools?.strategies.map((p: any) => (
-          <Card key={p.id} className="bento-card border-none bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-500/20 rounded-2xl group-hover:rotate-12 transition-transform duration-500">
-                <TrendingUp className="w-6 h-6 text-emerald-600" />
+          <Card key={p.id} className="rounded-2xl border border-border/50 bg-card p-4 sm:p-5 shadow-xs space-y-3 hover:border-emerald-500/30 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-600">
+                <TrendingUp className="w-5 h-5" />
               </div>
-              {p.strategies?.content ? (
+              <Badge variant="outline" className="text-[10px] font-semibold border-emerald-500/20 text-emerald-600 bg-emerald-500/5 rounded-full px-2.5 py-0.5">
+                Stratégie
+              </Badge>
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm text-foreground leading-snug">{p.strategies?.title || 'Stratégie de Trading'}</h4>
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.strategies?.description || 'Ressource pédagogique et guide.'}</p>
+            </div>
+            {p.strategies?.content && (
+              <Button 
+                variant="outline"
+                size="sm"
+                className="w-full h-8 rounded-xl text-xs font-semibold border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 gap-1.5"
+                onClick={() => {
+                  setSelectedStrategy(p.strategies);
+                  setIsStrategyModalOpen(true);
+                }}
+              >
+                <BookOpen className="w-3.5 h-3.5" /> Consulter la stratégie
+              </Button>
+            )}
+          </Card>
+        ))}
+
+        {purchasedTools?.indicators.map((p: any) => {
+          const downloadUrl = p.delivered_file_url || p.indicators?.file_url;
+          const isDelivered = !!p.delivered_file_url || p.delivery_status === 'delivered';
+
+          return (
+            <Card key={p.id} className="rounded-2xl border border-border/50 bg-card p-4 sm:p-5 shadow-xs space-y-3 hover:border-primary/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                  <Download className="w-5 h-5" />
+                </div>
+                <Badge variant="outline" className={cn(
+                  "text-[10px] font-semibold rounded-full px-2.5 py-0.5",
+                  isDelivered 
+                    ? "border-emerald-500/20 text-emerald-600 bg-emerald-500/5" 
+                    : "border-amber-500/20 text-amber-600 bg-amber-500/5"
+                )}>
+                  {isDelivered ? 'Prêt au téléchargement' : 'En configuration'}
+                </Badge>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-sm text-foreground leading-snug">{p.indicators?.name || 'Indicateur MT4/MT5'}</h4>
+                {p.mt5_id && (
+                  <p className="text-[11px] font-mono text-muted-foreground mt-1">
+                    Compte lié : <span className="font-semibold text-primary">{p.mt5_id}</span>
+                  </p>
+                )}
+              </div>
+
+              {downloadUrl ? (
                 <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-2xl bg-background/50 h-10 w-10"
+                  size="sm"
+                  className="w-full h-8 rounded-xl text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                   onClick={() => {
-                      setSelectedStrategy(p.strategies);
-                      setIsStrategyModalOpen(true);
+                    toast.success("Téléchargement de votre indicateur...");
+                    window.open(downloadUrl, '_blank');
                   }}
                 >
-                  <BookOpen className="w-5 h-5 text-emerald-600" />
+                  <Download className="w-3.5 h-3.5" /> Télécharger mon outil (.ex5)
                 </Button>
               ) : (
-                <Badge variant="secondary" className="text-[8px] opacity-50 px-2 py-0.5 rounded-full font-black uppercase">VOD Incluse</Badge>
+                <div className="p-2 bg-muted/40 rounded-xl text-center">
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Configuration MT5 en cours par l'académie...
+                  </p>
+                </div>
               )}
-            </div>
-            <div>
-              <h4 className="font-bold text-lg mb-1 leading-tight">{p.strategies?.title}</h4>
-              <Badge variant="outline" className="text-[10px] uppercase font-black tracking-widest border-emerald-500/20 text-emerald-600 px-3 py-1 rounded-full">Stratégie Gold</Badge>
-            </div>
-          </Card>
-        ))}
-        {purchasedTools?.indicators.map((p: any) => (
-          <Card key={p.id} className="bento-card border-none bg-gradient-to-br from-primary/10 to-primary/5 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-primary/20 rounded-2xl group-hover:-rotate-12 transition-transform duration-500">
-                <Download className="w-6 h-6 text-primary" />
-              </div>
-              {p.indicators?.file_url && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-2xl bg-background/50 h-10 w-10"
-                  onClick={() => {
-                      toast.success("Téléchargement lancé...");
-                      window.open(p.indicators.file_url, '_blank');
-                  }}
-                >
-                  <Download className="w-5 h-5 text-primary" />
-                </Button>
-              )}
-            </div>
-            <div>
-              <h4 className="font-bold text-lg mb-1 leading-tight">{p.indicators?.name}</h4>
-              <Badge variant="outline" className="text-[10px] uppercase font-black tracking-widest border-primary/20 text-primary px-3 py-1 rounded-full">Indicateur Pro</Badge>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
     );
   };
