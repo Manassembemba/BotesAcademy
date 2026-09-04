@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Users, Plus, TrendingUp, DollarSign, UserCheck } from "lucide-react";
+import { Users, Plus, TrendingUp, DollarSign, UserCheck, BookOpen, Clock, Award } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface StudentManagementHeaderProps {
     studentCount: number;
@@ -14,6 +16,10 @@ export const StudentManagementHeader = ({
     financialStats,
     onAddStudent
 }: StudentManagementHeaderProps) => {
+    const { role } = useAuth();
+    const navigate = useNavigate();
+    const isTeacher = role === 'teacher';
+
     // Valeurs extraites du RPC ou valeurs par défaut
     const totalRevenue = financialStats?.total_revenue || 0;
     const monthlyNetProfit = financialStats?.monthly_net_profit || 0;
@@ -26,59 +32,104 @@ export const StudentManagementHeader = ({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
                 <div className="space-y-1">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
-                        <Users className="w-3 h-3" /> Ressources Humaines
+                        <Users className="w-3 h-3" /> {isTeacher ? "Espace Pédagogique" : "Ressources Humaines"}
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                        Gestion des Étudiants
+                        {isTeacher ? "Mes Apprenants & Classes" : "Gestion des Étudiants"}
                     </h1>
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                        Pilotez et suivez le parcours académique de vos apprenants.
+                        {isTeacher 
+                            ? "Suivez l'assiduité, les notes et la progression de vos apprenants."
+                            : "Pilotez et suivez le parcours académique de vos apprenants."
+                        }
                     </p>
                 </div>
-                <Button 
-                    onClick={onAddStudent} 
-                    size="sm"
-                    className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs"
-                >
-                    <Plus className="w-4 h-4" />
-                    Inscrire un étudiant
-                </Button>
+                {isTeacher ? (
+                    <Button 
+                        onClick={() => navigate("/admin/attendance")} 
+                        size="sm"
+                        className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                        <Clock className="w-4 h-4" />
+                        Faire l'appel
+                    </Button>
+                ) : (
+                    <Button 
+                        onClick={onAddStudent} 
+                        size="sm"
+                        className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Inscrire un étudiant
+                    </Button>
+                )}
             </div>
 
-            {/* KPI FINANCIERS */}
+            {/* KPI STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCard 
                     icon={Users} 
-                    label="Total Apprenants" 
+                    label={isTeacher ? "Mes Apprenants" : "Total Apprenants"} 
                     value={studentCount} 
-                    subValue="Inscrits en base"
+                    subValue={isTeacher ? "Dans vos cursus" : "Inscrits en base"}
                     color="primary"
                     delay={0.1}
                 />
-                <StatsCard 
-                    icon={DollarSign} 
-                    label="Profit Net (Mois)" 
-                    value={`$${monthlyNetProfit.toLocaleString()}`} 
-                    subValue="Après dépenses"
-                    color="emerald"
-                    delay={0.2}
-                />
-                <StatsCard 
-                    icon={TrendingUp} 
-                    label="Dette Globale" 
-                    value={`$${totalDebt.toLocaleString()}`} 
-                    subValue="Reste à percevoir"
-                    color="amber"
-                    delay={0.3}
-                />
-                <StatsCard 
-                    icon={UserCheck} 
-                    label="Impayés" 
-                    value={overdueCount} 
-                    subValue="Élèves en retard"
-                    color="blue"
-                    delay={0.4}
-                />
+                {isTeacher ? (
+                    <>
+                        <StatsCard 
+                            icon={BookOpen} 
+                            label="Cursus Pris en Charge" 
+                            value="Actifs" 
+                            subValue="Formations assignées"
+                            color="emerald"
+                            delay={0.2}
+                        />
+                        <StatsCard 
+                            icon={Clock} 
+                            label="Pointage Quotidien" 
+                            value="Matin / Midi / Soir" 
+                            subValue="Vacations actives"
+                            color="amber"
+                            delay={0.3}
+                        />
+                        <StatsCard 
+                            icon={Award} 
+                            label="Statut Pédagogique" 
+                            value="En cours" 
+                            subValue="Progression académique"
+                            color="blue"
+                            delay={0.4}
+                        />
+                    </>
+                ) : (
+                    <>
+                        <StatsCard 
+                            icon={DollarSign} 
+                            label="Profit Net (Mois)" 
+                            value={`$${monthlyNetProfit.toLocaleString()}`} 
+                            subValue="Après dépenses"
+                            color="emerald"
+                            delay={0.2}
+                        />
+                        <StatsCard 
+                            icon={TrendingUp} 
+                            label="Dette Globale" 
+                            value={`$${totalDebt.toLocaleString()}`} 
+                            subValue="Reste à percevoir"
+                            color="amber"
+                            delay={0.3}
+                        />
+                        <StatsCard 
+                            icon={UserCheck} 
+                            label="Impayés" 
+                            value={overdueCount} 
+                            subValue="Élèves en retard"
+                            color="blue"
+                            delay={0.4}
+                        />
+                    </>
+                )}
             </div>
         </div>
     );

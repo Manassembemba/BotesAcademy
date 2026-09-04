@@ -32,10 +32,14 @@ import {
   Sun,
   Sunset,
   Moon,
-  Target
+  Target,
+  Users,
+  UserCheck,
+  Shield
 } from "lucide-react";
 import { LessonEditorDialog } from "./LessonEditorDialog";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
 
@@ -110,6 +114,71 @@ export default function FormationEditor() {
       return data || [];
     },
     enabled: isEditMode
+  });
+
+  // 4. Charger tous les formateurs disponibles
+  const { data: availableTeachers = [] } = useQuery({
+    queryKey: ["available-teachers"],
+    queryFn: async () => {
+      const { data: teacherRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["teacher", "admin"]);
+      if (rolesError) throw rolesError;
+      if (!teacherRoles || teacherRoles.length === 0) return [];
+
+      const userIds = Array.from(new Set(teacherRoles.map(r => r.user_id)));
+      const { data: profiles, error: profError } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds);
+      if (profError) throw profError;
+      return profiles || [];
+    }
+  });
+
+  // 5. Charger les formateurs déjà assignés à cette formation
+  const { data: assignedTeacherIds = [], refetch: refetchAssignedTeachers } = useQuery({
+    queryKey: ["course-teachers", courseId],
+    queryFn: async () => {
+      if (!courseId) return [];
+      const { data, error } = await supabase
+        .from("course_teachers")
+        .select("teacher_id")
+        .eq("course_id", courseId);
+      if (error) throw error;
+      return (data || []).map(d => d.teacher_id);
+    },
+    enabled: isEditMode
+  });
+
+  // Mutation pour assigner / retirer un formateur
+  const toggleTeacherMutation = useMutation({
+    mutationFn: async (teacherId: string) => {
+      if (!courseId) return;
+      const isAssigned = assignedTeacherIds.includes(teacherId);
+      if (isAssigned) {
+        const { error } = await supabase
+          .from("course_teachers")
+          .delete()
+          .eq("course_id", courseId)
+          .eq("teacher_id", teacherId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("course_teachers")
+          .insert({ course_id: courseId, teacher_id: teacherId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      refetchAssignedTeachers();
+      queryClient.invalidateQueries({ queryKey: ["course-teachers", courseId] });
+      toast.success("Assignation du formateur mise à jour !");
+    },
+    onError: (err: any) => {
+      toast.error(`Erreur lors de l'assignation : ${err.message}`);
+    }
   });
 
   const form = useForm<FormationFormValues>({
@@ -271,6 +340,13 @@ export default function FormationEditor() {
             disabled={!isEditMode}
           >
             <BookOpen className="w-3.5 h-3.5 mr-2" /> Programme & Modules ({lessons.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="teachers"
+            className="rounded-xl px-6 font-bold uppercase text-xs tracking-wider"
+            disabled={!isEditMode}
+          >
+            <Users className="w-3.5 h-3.5 mr-2" /> Formateurs Assignés ({assignedTeacherIds.length})
           </TabsTrigger>
         </TabsList>
 
@@ -745,6 +821,90 @@ export default function FormationEditor() {
                     ))}
                   </TableBody>
                 </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3 : FORMATEURS & ÉQUIPE PÉDAGOGIQUE */}
+        <TabsContent value="teachers" className="space-y-6">
+          <Card className="rounded-3xl border-border bg-card shadow-sm">
+            <CardHeader className="p-6 pb-4 border-b border-border/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-base font-black uppercase italic tracking-tight">
+                    Corps Enseignant & Formateurs Assignés
+                  </CardTitle>
+                  <CardDescription className="text-xs font-bold text-muted-foreground mt-0.5">
+                    Sélectionnez les enseignants autorisés à dispenser ce cours, faire l'appel et suivre les élèves.
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold px-3 py-1 self-start sm:self-auto">
+                  {assignedTeacherIds.length} formateur(s) assigné(s)
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              {availableTeachers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground text-xs font-bold">
+                  Aucun formateur enregistré avec le rôle "teacher" ou "admin" en base.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableTeachers.map((teacher: any) => {
+                    const isAssigned = assignedTeacherIds.includes(teacher.id);
+                    return (
+                      <div
+                        key={teacher.id}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                          isAssigned
+                            ? "bg-primary/5 border-primary/40 shadow-xs"
+                            : "bg-card border-border/60 hover:border-border"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-10 h-10 border border-border/80">
+                            <AvatarImage src={teacher.avatar_url || ""} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                              {teacher.full_name?.charAt(0) || "F"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-bold text-foreground">
+                              {teacher.full_name || "Enseignant sans nom"}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <Shield className="w-3 h-3 text-primary" /> Formateur Botes Academy
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={isAssigned ? "default" : "outline"}
+                          className={`rounded-xl text-xs font-semibold h-9 px-3 gap-1.5 ${
+                            isAssigned 
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                              : "border-border/80 hover:bg-muted"
+                          }`}
+                          disabled={toggleTeacherMutation.isPending}
+                          onClick={() => toggleTeacherMutation.mutate(teacher.id)}
+                        >
+                          {isAssigned ? (
+                            <>
+                              <UserCheck className="w-3.5 h-3.5" /> Assigné
+                            </>
+                          ) : (
+                            <>
+                              <PlusCircle className="w-3.5 h-3.5" /> Assigner
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

@@ -41,8 +41,9 @@ const VACATIONS = [
 ];
 
 export default function Attendance() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const queryClient = useQueryClient();
+  const isTeacher = role === 'teacher';
 
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedVacation, setSelectedVacation] = useState<string>("MATIN");
@@ -59,17 +60,29 @@ export default function Attendance() {
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentNotes, setPaymentNotes] = useState<string>("");
 
-  // 1. Charger la liste des formations
+  // 1. Charger la liste des formations (filtrée pour les formateurs)
   const { data: courses = [] } = useQuery({
-    queryKey: ["admin-attendance-courses"],
+    queryKey: ["admin-attendance-courses", user?.id, role],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("courses")
         .select("id, title, category, mode, price")
         .order("title");
+
+      if (isTeacher && user?.id) {
+        const { data: assignments } = await supabase
+          .from("course_teachers")
+          .select("course_id")
+          .eq("teacher_id", user.id);
+        const assignedCourseIds = assignments?.map((a: any) => a.course_id) || [];
+        query = query.in("id", assignedCourseIds);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: !!user
   });
 
   if (courses.length > 0 && !selectedCourseId) {
@@ -307,13 +320,16 @@ export default function Attendance() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
-            Feuille d'Émargement & Recouvrement
+            {isTeacher ? "Espace Pédagogique — Émargement" : "Feuille d'Émargement & Recouvrement"}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Pointage & Présences — Sessions
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Pointez les présences et encaissez les frais restants directement à l'arrivée des élèves.
+            {isTeacher 
+              ? "Pointez les présences quotidiennes des apprenants de vos formations par vacation."
+              : "Pointez les présences et encaissez les frais restants directement à l'arrivée des élèves."
+            }
           </p>
         </div>
 

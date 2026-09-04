@@ -140,36 +140,38 @@ const AdminNavbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Pôle Finances */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors outline-none cursor-pointer",
-                    isFinanceActive
-                      ? "text-primary bg-primary/10 font-bold"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}>
-                    <CreditCard className="w-3.5 h-3.5" />
-                    Finances
-                    <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-54 p-1.5 rounded-xl border-border/80 shadow-md">
-                  <DropdownMenuItem onClick={() => navigate("/admin/debts")} className="gap-2.5 text-xs font-medium cursor-pointer">
-                    <CreditCard className="w-4 h-4 text-amber-500" /> Dettes & Échéanciers
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/admin/payment-validation")} className="gap-2.5 text-xs font-medium cursor-pointer">
-                    <Clock className="w-4 h-4 text-primary" /> Validation des Paiements
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/admin/accounting")} className="gap-2.5 text-xs font-medium cursor-pointer">
-                      <TrendingUp className="w-4 h-4 text-emerald-500" /> Comptabilité & Flux
+              {/* Pôle Finances (Masqué pour les enseignants) */}
+              {!isTeacher && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors outline-none cursor-pointer",
+                      isFinanceActive
+                        ? "text-primary bg-primary/10 font-bold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}>
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Finances
+                      <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-54 p-1.5 rounded-xl border-border/80 shadow-md">
+                    <DropdownMenuItem onClick={() => navigate("/admin/debts")} className="gap-2.5 text-xs font-medium cursor-pointer">
+                      <CreditCard className="w-4 h-4 text-amber-500" /> Dettes & Échéanciers
                     </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem onClick={() => navigate("/admin/payments")} className="gap-2.5 text-xs font-medium cursor-pointer">
+                      <Clock className="w-4 h-4 text-primary" /> Validation des Paiements
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin/accounting")} className="gap-2.5 text-xs font-medium cursor-pointer">
+                        <TrendingUp className="w-4 h-4 text-emerald-500" /> Comptabilité & Flux
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
-              {/* Pôle Outils & Système (Admin) */}
+              {/* Pôle Outils & Système (Admin uniquement) */}
               {isAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -204,15 +206,24 @@ const AdminNavbar = () => {
             </nav>
           </div>
 
-          {/* DROITE : CTA INSCRIPTION + THEME + PROFIL */}
+          {/* DROITE : CTA + THEME + PROFIL */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Bouton Action Rapide Inscription */}
-            <Link to="/admin/enrollment">
-              <Button size="sm" className="h-9 px-3 sm:px-4 rounded-xl font-semibold text-xs gap-1.5 shadow-xs">
-                <UserPlus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Nouvelle</span> Inscription
-              </Button>
-            </Link>
+            {/* Bouton Action Rapide selon le rôle */}
+            {isTeacher ? (
+              <Link to="/admin/attendance">
+                <Button size="sm" className="h-9 px-3 sm:px-4 rounded-xl font-semibold text-xs gap-1.5 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Faire</span> l'Appel
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/admin/enrollment">
+                <Button size="sm" className="h-9 px-3 sm:px-4 rounded-xl font-semibold text-xs gap-1.5 shadow-xs">
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Nouvelle</span> Inscription
+                </Button>
+              </Link>
+            )}
 
             <ThemeToggle />
 
@@ -298,20 +309,22 @@ const AdminNavbar = () => {
                   </Link>
                 </div>
 
-                <div className="pt-2">
-                  <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Finances</p>
-                  <Link to="/admin/debts" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
-                    <CreditCard className="w-4 h-4 text-amber-500" /> Dettes & Échéanciers
-                  </Link>
-                  <Link to="/admin/payment-validation" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
-                    <Clock className="w-4 h-4 text-primary" /> Validation des Paiements
-                  </Link>
-                  {isAdmin && (
-                    <Link to="/admin/accounting" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
-                      <TrendingUp className="w-4 h-4 text-emerald-500" /> Comptabilité & Flux
+                {!isTeacher && (
+                  <div className="pt-2">
+                    <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Finances</p>
+                    <Link to="/admin/debts" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
+                      <CreditCard className="w-4 h-4 text-amber-500" /> Dettes & Échéanciers
                     </Link>
-                  )}
-                </div>
+                    <Link to="/admin/payments" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
+                      <Clock className="w-4 h-4 text-primary" /> Validation des Paiements
+                    </Link>
+                    {isAdmin && (
+                      <Link to="/admin/accounting" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
+                        <TrendingUp className="w-4 h-4 text-emerald-500" /> Comptabilité & Flux
+                      </Link>
+                    )}
+                  </div>
+                )}
 
                 {isAdmin && (
                   <div className="pt-2">

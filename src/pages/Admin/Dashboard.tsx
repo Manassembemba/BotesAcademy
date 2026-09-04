@@ -110,7 +110,12 @@ const AdminDashboard = () => {
     queryFn: () => fetchStats(role || '', user?.id || ''),
   });
 
-  const commandCenterItems = [
+  const commandCenterItems = isTeacher ? [
+    { title: "Feuille de Présence", desc: "Pointage Matin / Midi / Soir", icon: Clock, path: "/admin/attendance", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+    { title: "Mes Formations", desc: "Catalogue & Programmes assignés", icon: BookOpen, path: "/admin/formations", color: "text-blue-600", bg: "bg-blue-500/10", count: stats?.courseCount },
+    { title: "Mes Étudiants", desc: "Profils & Progression académique", icon: Users, path: "/admin/students", color: "text-indigo-600", bg: "bg-indigo-500/10", count: stats?.userCount },
+    { title: "Annonces & Devoirs", desc: "Communications aux apprenants", icon: Bell, path: "/admin/announcements", color: "text-teal-600", bg: "bg-teal-500/10" },
+  ] : [
     { title: "Nouvelle Inscription", desc: "Admission étudiant & tranches", icon: Users, path: "/admin/enrollment", color: "text-primary", bg: "bg-primary/10" },
     { title: "Feuille de Présence", desc: "Pointage Matin / Midi / Soir", icon: Clock, path: "/admin/attendance", color: "text-emerald-600", bg: "bg-emerald-500/10" },
     { title: "Paiements & Tranches", desc: "Suivi des dettes & relances", icon: CreditCard, path: "/admin/debts", color: "text-amber-600", bg: "bg-amber-500/10" },
@@ -130,21 +135,32 @@ const AdminDashboard = () => {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[11px] font-semibold">
             <CheckCircle2 className="w-3 h-3" />
-            Système Opérationnel
+            {isTeacher ? "Espace Formateur Actif" : "Système Opérationnel"}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            Tableau de Bord Administrateur
+            {isTeacher ? "Tableau de Bord Pédagogique" : "Tableau de Bord Administrateur"}
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm">
-            Pilotage pédagogique, financier et académique de Botes Academy.
+            {isTeacher 
+              ? "Pilotage des classes, assiduité et progression académique de vos apprenants."
+              : "Pilotage pédagogique, financier et académique de Botes Academy."
+            }
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/admin/formations/new">
-            <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
-              <PlusCircle className="w-4 h-4" /> Nouvelle Formation
-            </Button>
-          </Link>
+          {isTeacher ? (
+            <Link to="/admin/attendance">
+              <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Clock className="w-4 h-4" /> Faire l'Appel du Jour
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/admin/formations/new">
+              <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
+                <PlusCircle className="w-4 h-4" /> Nouvelle Formation
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -156,7 +172,7 @@ const AdminDashboard = () => {
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Cursus Actifs</p>
+              <p className="text-xs font-medium text-muted-foreground">{isTeacher ? "Mes Formations" : "Cursus Actifs"}</p>
               <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.courseCount || 0}</p>
             </div>
           </div>
@@ -168,54 +184,86 @@ const AdminDashboard = () => {
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Étudiants Inscrits</p>
+              <p className="text-xs font-medium text-muted-foreground">{isTeacher ? "Mes Apprenants" : "Étudiants Inscrits"}</p>
               <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.userCount || 0}</p>
             </div>
           </div>
         </Card>
 
-        {(isAdmin || role === 'receptionist') && (
-          <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-emerald-500/30 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
-                <TrendingUp className="w-5 h-5" />
+        {isTeacher ? (
+          <>
+            <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-emerald-500/30 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-emerald-600">Assiduité Aujourd'hui</p>
+                  <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.attendanceRateToday || 100}%</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-medium text-emerald-600">Encaissé Aujourd'hui</p>
-                <p className="text-2xl font-bold tracking-tight text-foreground">${stats?.todayRevenue || 0}</p>
-              </div>
-            </div>
-          </Card>
-        )}
+            </Card>
 
-        <Card className={cn(
-          "rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-orange-500/30 transition-colors",
-          stats?.pendingPayments ? "border-orange-500/40 bg-orange-500/5 ring-1 ring-orange-500/20" : ""
-        )}>
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-              stats?.pendingPayments ? "bg-orange-500 text-white shadow-xs animate-pulse" : "bg-orange-500/10 text-orange-600"
+            <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-teal-500/30 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-600 shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Séances Pointées</p>
+                  <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.todayAttendanceCount || 0}</p>
+                </div>
+              </div>
+            </Card>
+          </>
+        ) : (
+          <>
+            {(isAdmin || role === 'receptionist') && (
+              <Card className="rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-emerald-500/30 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-emerald-600">Encaissé Aujourd'hui</p>
+                    <p className="text-2xl font-bold tracking-tight text-foreground">${stats?.todayRevenue || 0}</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            <Card className={cn(
+              "rounded-2xl border border-border/50 bg-card p-5 shadow-xs hover:border-orange-500/30 transition-colors",
+              stats?.pendingPayments ? "border-orange-500/40 bg-orange-500/5 ring-1 ring-orange-500/20" : ""
             )}>
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Paiements à Valider</p>
-              <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.pendingPayments || 0}</p>
-            </div>
-          </div>
-        </Card>
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                  stats?.pendingPayments ? "bg-orange-500 text-white shadow-xs animate-pulse" : "bg-orange-500/10 text-orange-600"
+                )}>
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Paiements à Valider</p>
+                  <p className="text-2xl font-bold tracking-tight text-foreground">{stats?.pendingPayments || 0}</p>
+                </div>
+              </div>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* TERMINAL DE PILOTAGE */}
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-foreground tracking-tight">Terminal de Pilotage</h2>
+        <h2 className="text-sm font-semibold text-foreground tracking-tight">
+          {isTeacher ? "Modules Formateur" : "Terminal de Pilotage"}
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {commandCenterItems.filter(item => !item.adminOnly || isAdmin).map((item, idx) => (
+          {commandCenterItems.filter(item => !(item as any).adminOnly || isAdmin).map((item, idx) => (
             <Link key={idx} to={item.path} className="group">
               <Card className={cn(
                 "h-full rounded-2xl border border-border/50 bg-card/60 p-4 sm:p-5 transition-all duration-200 hover:border-primary/40 hover:bg-card hover:shadow-xs",
-                item.alert && "border-orange-500/40 bg-orange-500/5"
+                (item as any).alert && "border-orange-500/40 bg-orange-500/5"
               )}>
                 <div className="flex flex-col h-full space-y-3">
                   <div className="flex justify-between items-start">
@@ -225,7 +273,7 @@ const AdminDashboard = () => {
                     {item.count !== undefined && (
                       <Badge className={cn(
                         "font-semibold px-2 py-0.5 rounded-md text-xs",
-                        item.alert ? "bg-orange-500 text-white animate-bounce" : "bg-muted text-muted-foreground"
+                        (item as any).alert ? "bg-orange-500 text-white animate-bounce" : "bg-muted text-muted-foreground"
                       )}>
                         {item.count}
                       </Badge>
@@ -248,31 +296,33 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* OPERATIONS CRITIQUES */}
-      {stats?.pendingPayments ? (
-        <div className="bg-orange-500/10 border border-orange-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shrink-0 animate-pulse">
-              <AlertCircle className="w-5 h-5" />
+      {/* OPERATIONS CRITIQUES (Admin uniquement) */}
+      {!isTeacher && (
+        stats?.pendingPayments ? (
+          <div className="bg-orange-500/10 border border-orange-500/30 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shrink-0 animate-pulse">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Vérification de Paiements en Attente</h3>
+                <p className="text-xs text-muted-foreground">
+                  Vous avez <span className="text-orange-600 font-bold">{stats.pendingPayments} reçu(s)</span> à vérifier pour activer les accès étudiants.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Vérification de Paiements en Attente</h3>
-              <p className="text-xs text-muted-foreground">
-                Vous avez <span className="text-orange-600 font-bold">{stats.pendingPayments} reçu(s)</span> à vérifier pour activer les accès étudiants.
-              </p>
-            </div>
+            <Link to="/admin/payments" className="w-full sm:w-auto shrink-0">
+              <Button size="sm" className="w-full sm:w-auto h-10 px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs shadow-xs">
+                Valider les reçus
+              </Button>
+            </Link>
           </div>
-          <Link to="/admin/payments" className="w-full sm:w-auto shrink-0">
-            <Button size="sm" className="w-full sm:w-auto h-10 px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs shadow-xs">
-              Valider les reçus
-            </Button>
-          </Link>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center py-4 text-muted-foreground text-xs font-medium gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Tous les paiements et flux administratifs sont à jour.</span>
-        </div>
+        ) : (
+          <div className="flex items-center justify-center py-4 text-muted-foreground text-xs font-medium gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Tous les paiements et flux administratifs sont à jour.</span>
+          </div>
+        )
       )}
     </div>
   );

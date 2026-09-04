@@ -22,6 +22,7 @@ import { fr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { StudentData } from "@/hooks/admin/useStudentManagement";
 import { toast } from "sonner";
 
@@ -81,6 +82,8 @@ export const StudentTable = ({
     exportAll
 }: StudentTableProps) => {
     const navigate = useNavigate();
+    const { role } = useAuth();
+    const isTeacher = role === 'teacher';
     const totalPages = Math.ceil(totalCount / pageSize);
     const [isExporting, setIsExporting] = useState(false);
 
@@ -402,9 +405,11 @@ export const StudentTable = ({
                                                                         <DropdownMenuItem className="rounded-lg text-xs font-medium py-2 cursor-pointer" onClick={() => navigate('/admin/attendance')}>
                                                                             <Clock className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Émargement / Présence
                                                                         </DropdownMenuItem>
-                                                                        <DropdownMenuItem className="rounded-lg text-xs font-medium py-2 cursor-pointer" onClick={() => navigate('/admin/debts')}>
-                                                                            <TrendingUp className="w-3.5 h-3.5 mr-2 text-amber-500" /> Dettes & Tranches
-                                                                        </DropdownMenuItem>
+                                                                        {!isTeacher && (
+                                                                            <DropdownMenuItem className="rounded-lg text-xs font-medium py-2 cursor-pointer" onClick={() => navigate('/admin/debts')}>
+                                                                                <TrendingUp className="w-3.5 h-3.5 mr-2 text-amber-500" /> Dettes & Tranches
+                                                                            </DropdownMenuItem>
+                                                                        )}
                                                                         <DropdownMenuItem className="rounded-lg text-xs font-medium py-2 cursor-pointer" onClick={() => window.open(`mailto:${student.email}`)}>
                                                                             <Mail className="w-3.5 h-3.5 mr-2 text-muted-foreground" /> Contacter par email
                                                                         </DropdownMenuItem>

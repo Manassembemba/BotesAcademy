@@ -35,14 +35,35 @@ export const useStudentManagement = (
     filters: { courseId?: string, status?: string } = {},
     sortConfig: { column: string, ascending: boolean } = { column: 'last_enrollment_date', ascending: false }
 ) => {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const queryClient = useQueryClient();
+    const isTeacher = role === 'teacher';
+
+    // Helper pour récupérer les cours assignés au formateur
+    const getTeacherCourseIds = async (): Promise<string[]> => {
+        if (!isTeacher || !user?.id) return [];
+        const { data: assignments } = await supabase
+            .from('course_teachers')
+            .select('course_id')
+            .eq('teacher_id', user.id);
+        return assignments?.map(a => a.course_id) || [];
+    };
 
     // Build a reusable base query builder
-    const buildBaseQuery = (search: string, f: typeof filters) => {
+    const buildBaseQuery = async (search: string, f: typeof filters) => {
         let query = supabase
             .from('student_management_view' as any)
             .select('*', { count: 'exact' });
+
+        if (isTeacher) {
+            const teacherCourseIds = await getTeacherCourseIds();
+            if (teacherCourseIds.length === 0) {
+                // Aucun cours assigné, filtre impossible
+                query = query.in('student_id', ['00000000-0000-0000-0000-000000000000']);
+            } else {
+                query = query.overlaps('course_ids', teacherCourseIds);
+            }
+        }
 
         if (search) {
             query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -72,12 +93,13 @@ export const useStudentManagement = (
 
     // Fetch students with server-side filtering, sorting and pagination
     const { data: studentsData, isLoading, error } = useQuery({
-        queryKey: ['admin-students', searchTerm, page, pageSize, filters, sortConfig],
+        queryKey: ['admin-students', searchTerm, page, pageSize, filters, sortConfig, user?.id, role],
         queryFn: async () => {
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
-            const { data, error, count } = await buildBaseQuery(searchTerm, filters)
+            const baseQuery = await buildBaseQuery(searchTerm, filters);
+            const { data, error, count } = await baseQuery
                 .range(from, to)
                 .order(sortConfig.column, { ascending: sortConfig.ascending });
 
@@ -88,7 +110,8 @@ export const useStudentManagement = (
 
     // Export all — no pagination, returns full dataset as CSV string
     const exportAll = async (): Promise<StudentData[]> => {
-        const { data, error } = await (buildBaseQuery(searchTerm, filters) as any)
+        const baseQuery = await buildBaseQuery(searchTerm, filters);
+        const { data, error } = await (baseQuery as any)
             .order(sortConfig.column, { ascending: sortConfig.ascending });
         if (error) throw error;
         return (data as StudentData[]) || [];
