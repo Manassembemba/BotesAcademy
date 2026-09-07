@@ -58,27 +58,30 @@ export const useStudentManagement = (
         if (isTeacher) {
             const teacherCourseIds = await getTeacherCourseIds();
             if (teacherCourseIds.length === 0) {
-                // Aucun cours assigné, filtre impossible
-                query = query.in('student_id', ['00000000-0000-0000-0000-000000000000']);
+                // Aucun cours assigné — retourne un ensemble vide
+                query = (query as any).eq('student_id', '00000000-0000-0000-0000-000000000000');
             } else {
-                query = query.overlaps('course_ids', teacherCourseIds);
+                query = (query as any).overlaps('course_ids', teacherCourseIds);
             }
         }
 
         if (search) {
-            query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+            query = (query as any).or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
         }
 
         if (f.courseId && f.courseId !== 'all') {
-            query = query.contains('course_ids', [f.courseId]);
+            query = (query as any).contains('course_ids', [f.courseId]);
         }
 
-        // Filtre de statut — corrigé pour couvrir tous les cas
+        // Filtre de statut
         if (f.status && f.status !== 'all') {
+            const now = new Date().toISOString();
             if (f.status === 'banned') {
-                query = query.not('banned_until', 'is', null).gt('banned_until', new Date().toISOString());
+                // banned_until > maintenant (donc suspendu)
+                query = (query as any).gt('banned_until', now);
             } else if (f.status === 'active') {
-                query = query.or('banned_until.is.null,banned_until.lte.' + new Date().toISOString());
+                // Soit pas de date de ban, soit date de ban passée
+                query = (query as any).or(`banned_until.is.null,banned_until.lte.${now}`);
             } else if (f.status === 'completed') {
                 query = (query as any).eq('financial_status', 'completed');
             } else if (f.status === 'partial') {
@@ -91,6 +94,7 @@ export const useStudentManagement = (
         return query;
     };
 
+
     // Fetch students with server-side filtering, sorting and pagination
     const { data: studentsData, isLoading, error } = useQuery({
         queryKey: ['admin-students', searchTerm, page, pageSize, filters, sortConfig, user?.id, role],
@@ -99,7 +103,7 @@ export const useStudentManagement = (
             const to = from + pageSize - 1;
 
             const baseQuery = await buildBaseQuery(searchTerm, filters);
-            const { data, error, count } = await baseQuery
+            const { data, error, count } = await (baseQuery as any)
                 .range(from, to)
                 .order(sortConfig.column, { ascending: sortConfig.ascending });
 
@@ -107,6 +111,7 @@ export const useStudentManagement = (
             return { students: data as StudentData[], totalCount: count || 0 };
         },
     });
+
 
     // Export all — no pagination, returns full dataset as CSV string
     const exportAll = async (): Promise<StudentData[]> => {
