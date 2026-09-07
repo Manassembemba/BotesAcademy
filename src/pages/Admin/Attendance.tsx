@@ -87,9 +87,11 @@ export default function Attendance() {
     enabled: !!user
   });
 
-  if (courses.length > 0 && !selectedCourseId) {
-    setSelectedCourseId(courses[0].id);
-  }
+  useEffect(() => {
+    if (courses.length > 0 && (!selectedCourseId || !courses.some(c => c.id === selectedCourseId))) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, selectedCourseId]);
 
   // 2. Charger TOUS les étudiants inscrits à la formation sélectionnée avec leur état financier
   const { data: enrolledStudents = [], isLoading: isLoadingStudents } = useQuery({
