@@ -47,6 +47,7 @@ const AdminNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isAdmin = role === 'admin';
+  const isTeacher = role === 'teacher';
 
   // Fetch profile
   const { data: profile } = useQuery({
