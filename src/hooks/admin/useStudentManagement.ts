@@ -39,88 +39,120 @@ export const useStudentManagement = (
     const queryClient = useQueryClient();
     const isTeacher = role === 'teacher';
 
-    // Helper pour récupérer les cours assignés au formateur
-    const getTeacherCourseIds = async (): Promise<string[]> => {
-        if (!isTeacher || !user?.id) return [];
-        const { data: assignments } = await supabase
-            .from('course_teachers')
-            .select('course_id')
-            .eq('teacher_id', user.id);
-        return assignments?.map(a => a.course_id) || [];
-    };
-
-    // Build a reusable base query builder
-    const buildBaseQuery = async (search: string, f: typeof filters) => {
-        let query = supabase
-            .from('student_management_view' as any)
-            .select('*', { count: 'exact' });
-
-        if (isTeacher) {
-            const teacherCourseIds = await getTeacherCourseIds();
-            if (teacherCourseIds.length === 0) {
-                // Aucun cours assigné — retourne un ensemble vide
-                query = (query as any).eq('student_id', '00000000-0000-0000-0000-000000000000');
-            } else {
-                query = (query as any).overlaps('course_ids', teacherCourseIds);
-            }
-        }
-
-        if (search) {
-            query = (query as any).or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
-        }
-
-        if (f.courseId && f.courseId !== 'all') {
-            query = (query as any).contains('course_ids', [f.courseId]);
-        }
-
-        // Filtre de statut
-        if (f.status && f.status !== 'all') {
-            const now = new Date().toISOString();
-            if (f.status === 'banned') {
-                // banned_until > maintenant (donc suspendu)
-                query = (query as any).gt('banned_until', now);
-            } else if (f.status === 'active') {
-                // Soit pas de date de ban, soit date de ban passée
-                query = (query as any).or(`banned_until.is.null,banned_until.lte.${now}`);
-            } else if (f.status === 'completed') {
-                query = (query as any).eq('financial_status', 'completed');
-            } else if (f.status === 'partial') {
-                query = (query as any).eq('financial_status', 'partial');
-            } else if (f.status === 'overdue') {
-                query = (query as any).eq('financial_status', 'overdue');
-            }
-        }
-
-        return query;
-    };
-
-
     // Fetch students with server-side filtering, sorting and pagination
     const { data: studentsData, isLoading, error } = useQuery({
         queryKey: ['admin-students', searchTerm, page, pageSize, filters, sortConfig, user?.id, role],
         queryFn: async () => {
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
+            const now = new Date().toISOString();
 
-            const baseQuery = await buildBaseQuery(searchTerm, filters);
-            const { data, error, count } = await (baseQuery as any)
-                .range(from, to)
-                .order(sortConfig.column, { ascending: sortConfig.ascending });
+            // 1. Résoudre les cours du formateur AVANT de construire la query
+            let teacherCourseIds: string[] = [];
+            if (isTeacher && user?.id) {
+                const { data: assignments } = await supabase
+                    .from('course_teachers')
+                    .select('course_id')
+                    .eq('teacher_id', user.id);
+                teacherCourseIds = assignments?.map((a: any) => a.course_id) || [];
+            }
 
-            if (error) throw error;
-            return { students: data as StudentData[], totalCount: count || 0 };
+            // 2. Construire la query de façon SYNCHRONE
+            let q = supabase
+                .from('student_management_view' as any)
+                .select('*', { count: 'exact' });
+
+            if (isTeacher) {
+                if (teacherCourseIds.length === 0) {
+                    // Aucun cours → résultat vide garanti
+                    q = (q as any).eq('student_id', '00000000-0000-0000-0000-000000000000');
+                } else {
+                    q = (q as any).overlaps('course_ids', teacherCourseIds);
+                }
+            }
+
+            if (searchTerm) {
+                q = (q as any).or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+            }
+
+            if (filters.courseId && filters.courseId !== 'all') {
+                q = (q as any).contains('course_ids', [filters.courseId]);
+            }
+
+            if (filters.status && filters.status !== 'all') {
+                if (filters.status === 'banned') {
+                    q = (q as any).gt('banned_until', now);
+                } else if (filters.status === 'active') {
+                    q = (q as any).or(`banned_until.is.null,banned_until.lte.${now}`);
+                } else if (filters.status === 'completed') {
+                    q = (q as any).eq('financial_status', 'completed');
+                } else if (filters.status === 'partial') {
+                    q = (q as any).eq('financial_status', 'partial');
+                } else if (filters.status === 'overdue') {
+                    q = (q as any).eq('financial_status', 'overdue');
+                }
+            }
+
+            // 3. Pagination + tri — sur un builder frais, jamais awaitté avant
+            const { data, error: qError, count } = await (q as any)
+                .order(sortConfig.column, { ascending: sortConfig.ascending })
+                .range(from, to);
+
+            if (qError) throw new Error(qError.message);
+            return { students: (data || []) as StudentData[], totalCount: count || 0 };
         },
     });
 
-
     // Export all — no pagination, returns full dataset as CSV string
     const exportAll = async (): Promise<StudentData[]> => {
-        const baseQuery = await buildBaseQuery(searchTerm, filters);
-        const { data, error } = await (baseQuery as any)
+        const now = new Date().toISOString();
+
+        let teacherCourseIds: string[] = [];
+        if (isTeacher && user?.id) {
+            const { data: assignments } = await supabase
+                .from('course_teachers')
+                .select('course_id')
+                .eq('teacher_id', user.id);
+            teacherCourseIds = assignments?.map((a: any) => a.course_id) || [];
+        }
+
+        let q = supabase
+            .from('student_management_view' as any)
+            .select('*');
+
+        if (isTeacher) {
+            if (teacherCourseIds.length === 0) {
+                q = (q as any).eq('student_id', '00000000-0000-0000-0000-000000000000');
+            } else {
+                q = (q as any).overlaps('course_ids', teacherCourseIds);
+            }
+        }
+
+        if (searchTerm) {
+            q = (q as any).or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        }
+
+        if (filters.courseId && filters.courseId !== 'all') {
+            q = (q as any).contains('course_ids', [filters.courseId]);
+        }
+
+        if (filters.status && filters.status !== 'all') {
+            if (filters.status === 'banned') {
+                q = (q as any).gt('banned_until', now);
+            } else if (filters.status === 'active') {
+                q = (q as any).or(`banned_until.is.null,banned_until.lte.${now}`);
+            } else if (['completed', 'partial', 'overdue'].includes(filters.status)) {
+                q = (q as any).eq('financial_status', filters.status);
+            }
+        }
+
+        const { data, error: qError } = await (q as any)
             .order(sortConfig.column, { ascending: sortConfig.ascending });
-        if (error) throw error;
-        return (data as StudentData[]) || [];
+
+        if (qError) throw new Error(qError.message);
+        return (data || []) as StudentData[];
     };
+
 
     const addStudentMutation = useMutation({
         mutationFn: async ({ student, shouldNotify }: { student: any, shouldNotify: boolean }) => {
