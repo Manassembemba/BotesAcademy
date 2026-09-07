@@ -218,14 +218,20 @@ export const StudentTable = ({
                                     
                                     <DropdownMenuSeparator className="my-1.5" />
                                     
-                                    <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1.5">Statut Paiement</DropdownMenuLabel>
+                                    <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1.5">
+                                        {isTeacher ? "Statut Compte" : "Statut Paiement"}
+                                    </DropdownMenuLabel>
                                     <DropdownMenuRadioGroup value={statusFilter} onValueChange={setStatusFilter}>
                                         <DropdownMenuRadioItem value="all" className="rounded-lg text-xs py-2">Tous les statuts</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="active" className="rounded-lg text-xs py-2">Actif (non banni)</DropdownMenuRadioItem>
                                         <DropdownMenuRadioItem value="banned" className="rounded-lg text-xs py-2">Banni</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="completed" className="rounded-lg text-xs py-2">Soldé uniquement</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="partial" className="rounded-lg text-xs py-2">Paiement partiel</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="overdue" className="rounded-lg text-xs py-2">En retard</DropdownMenuRadioItem>
+                                        {!isTeacher && (
+                                            <>
+                                                <DropdownMenuRadioItem value="completed" className="rounded-lg text-xs py-2">Soldé uniquement</DropdownMenuRadioItem>
+                                                <DropdownMenuRadioItem value="partial" className="rounded-lg text-xs py-2">Paiement partiel</DropdownMenuRadioItem>
+                                                <DropdownMenuRadioItem value="overdue" className="rounded-lg text-xs py-2">En retard</DropdownMenuRadioItem>
+                                            </>
+                                        )}
                                     </DropdownMenuRadioGroup>
 
                                     {(courseFilter !== 'all' || statusFilter !== 'all') && (
@@ -577,45 +583,48 @@ export const StudentTable = ({
                                 {bulkEmailMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
                                 Email
                             </Button>
-                            
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
+                             {!isTeacher && (
+                                <>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-8 rounded-lg text-xs font-medium gap-1.5"
+                                                disabled={bulkStatusUpdateMutation.isPending}
+                                            >
+                                                {bulkStatusUpdateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                                Statut
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="rounded-xl p-1.5 shadow-lg min-w-[180px]" align="end">
+                                            <DropdownMenuItem className="font-medium text-xs py-2 rounded-lg cursor-pointer" onClick={() => bulkStatusUpdateMutation.mutate({ userIds: selectedIds, action: 'RESTORE_USER' }, { onSuccess: () => setSelectedIds([]) })}>
+                                                <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Activer / Restaurer
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="font-medium text-xs py-2 rounded-lg cursor-pointer text-destructive hover:bg-destructive/10" onClick={() => bulkStatusUpdateMutation.mutate({ userIds: selectedIds, action: 'SUSPEND_USER' }, { onSuccess: () => setSelectedIds([]) })}>
+                                                <X className="w-3.5 h-3.5 mr-2" /> Suspendre l'accès
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+
                                     <Button 
                                         variant="ghost" 
-                                        size="sm"
-                                        className="h-8 rounded-lg text-xs font-medium gap-1.5"
-                                        disabled={bulkStatusUpdateMutation.isPending}
+                                        size="sm" 
+                                        className="h-8 rounded-lg text-xs font-medium gap-1.5 text-destructive hover:bg-destructive/10"
+                                        onClick={() => {
+                                            if (confirm(`Supprimer ces ${selectedIds.length} étudiants ? Action irréversible.`)) {
+                                                bulkDeleteMutation.mutate(selectedIds, {
+                                                    onSuccess: () => setSelectedIds([])
+                                                });
+                                            }
+                                        }}
+                                        disabled={bulkDeleteMutation.isPending}
                                     >
-                                        {bulkStatusUpdateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                        Statut
+                                        {bulkDeleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                        Supprimer
                                     </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="rounded-xl p-1.5 shadow-lg min-w-[180px]" align="end">
-                                    <DropdownMenuItem className="font-medium text-xs py-2 rounded-lg cursor-pointer" onClick={() => bulkStatusUpdateMutation.mutate({ userIds: selectedIds, action: 'RESTORE_USER' }, { onSuccess: () => setSelectedIds([]) })}>
-                                        <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" /> Activer / Restaurer
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="font-medium text-xs py-2 rounded-lg cursor-pointer text-destructive hover:bg-destructive/10" onClick={() => bulkStatusUpdateMutation.mutate({ userIds: selectedIds, action: 'SUSPEND_USER' }, { onSuccess: () => setSelectedIds([]) })}>
-                                        <X className="w-3.5 h-3.5 mr-2" /> Suspendre l'accès
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-
-                            <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="h-8 rounded-lg text-xs font-medium gap-1.5 text-destructive hover:bg-destructive/10"
-                                onClick={() => {
-                                    if (confirm(`Supprimer ces ${selectedIds.length} étudiants ? Action irréversible.`)) {
-                                        bulkDeleteMutation.mutate(selectedIds, {
-                                            onSuccess: () => setSelectedIds([])
-                                        });
-                                    }
-                                }}
-                                disabled={bulkDeleteMutation.isPending}
-                            >
-                                {bulkDeleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                Supprimer
-                            </Button>
+                                </>
+                            )}
                         </div>
 
                         <Button 

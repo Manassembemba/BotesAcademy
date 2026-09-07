@@ -19,26 +19,44 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const FormationManagement = () => {
+  const { user, role } = useAuth();
+  const isTeacher = role === 'teacher';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { data: courses, isLoading } = useQuery({
-    queryKey: ['adminCourses'],
+    queryKey: ['adminCourses', user?.id, role],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('courses')
         .select(`
           *,
           purchases:purchases(count)
         `)
         .order('created_at', { ascending: false });
+
+      if (isTeacher && user?.id) {
+        const { data: assignments } = await supabase
+          .from('course_teachers')
+          .select('course_id')
+          .eq('teacher_id', user.id);
+        const assignedCourseIds = assignments?.map((a: any) => a.course_id) || [];
+        if (assignedCourseIds.length === 0) {
+          return [];
+        }
+        query = query.in('id', assignedCourseIds);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      return data;
-    }
+      return data || [];
+    },
+    enabled: !!user
   });
 
   const deleteMutation = useMutation({
@@ -73,7 +91,12 @@ const FormationManagement = () => {
     c.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const stats = [
+  const stats = isTeacher ? [
+    { label: "Mes Formations", value: courses?.length || 0, icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Mes Apprenants", value: courses?.reduce((acc, c) => acc + (c.purchases?.[0]?.count || 0), 0) || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-500/10" },
+    { label: "Cursus Actifs", value: courses?.filter(c => c.status === 'published').length || 0, icon: Globe, color: "text-emerald-600", bg: "bg-emerald-500/10" },
+    { label: "Apprenants Moy./Cours", value: courses?.length ? Math.round(courses.reduce((acc, c) => acc + (c.purchases?.[0]?.count || 0), 0) / courses.length) : 0, icon: Star, color: "text-amber-600", bg: "bg-amber-500/10" }
+  ] : [
     { label: "Formations", value: courses?.length || 0, icon: BookOpen, color: "text-primary", bg: "bg-primary/10" },
     { label: "Élèves Inscrits", value: courses?.reduce((acc, c) => acc + (c.purchases?.[0]?.count || 0), 0) || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-500/10" },
     { label: "Catalogues Actifs", value: courses?.filter(c => c.status === 'published').length || 0, icon: Globe, color: "text-emerald-600", bg: "bg-emerald-500/10" },
@@ -86,20 +109,24 @@ const FormationManagement = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold">
-            <BookOpen className="w-3 h-3" /> Catalogue Pédagogique
+            <BookOpen className="w-3 h-3" /> {isTeacher ? "Espace Pédagogique" : "Catalogue Pédagogique"}
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            Gestion des Formations
+            {isTeacher ? "Mes Formations Assignées" : "Gestion des Formations"}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Pilotage du catalogue, des sessions et des programmes d'élite.
+            {isTeacher 
+              ? "Accédez aux programmes, modules et apprenants des formations que vous dispensez." 
+              : "Pilotage du catalogue, des sessions et des programmes d'élite."}
           </p>
         </div>
-        <Link to="/admin/formations/new">
-          <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
-            <Plus className="w-4 h-4" /> Nouvelle Formation
-          </Button>
-        </Link>
+        {!isTeacher && (
+          <Link to="/admin/formations/new">
+            <Button size="sm" className="h-10 px-4 rounded-xl font-semibold text-xs gap-2 shadow-xs">
+              <Plus className="w-4 h-4" /> Nouvelle Formation
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* STATS */}
@@ -189,7 +216,13 @@ const FormationManagement = () => {
                             <Badge variant="outline" className="text-[9px] font-black uppercase tracking-[0.2em] border-primary/20 text-primary">
                                 {course.category || "FORMATION"}
                             </Badge>
-                            <span className="text-xl font-black italic text-foreground">{course.is_paid ? `${course.price}$` : "Libre"}</span>
+                            {!isTeacher ? (
+                                <span className="text-xl font-black italic text-foreground">{course.is_paid ? `${course.price}$` : "Libre"}</span>
+                            ) : (
+                                <Badge variant="outline" className="text-[10px] font-bold border-emerald-500/30 text-emerald-600 bg-emerald-500/5">
+                                    Assigné
+                                </Badge>
+                            )}
                         </div>
                         <h3 className="text-xl font-black uppercase tracking-tight italic group-hover:text-primary transition-colors leading-tight mb-2">{course.title}</h3>
                         <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{course.description}</p>
@@ -204,20 +237,31 @@ const FormationManagement = () => {
                           </div>
                         </div>
 
-                        {/* ACTION RAPIDE VOIR LES ÉTUDIANTS */}
+                        {/* ACTION RAPIDE ACCÈS COURS & ÉMARGEMENT */}
                         <div className="mt-auto pt-4 border-t border-white/5 space-y-3">
-                            <Link to={`/admin/attendance`} className="w-full">
-                              <Button variant="outline" size="sm" className="w-full h-10 rounded-xl font-black text-[10px] uppercase tracking-wider border-primary/30 text-primary hover:bg-primary/10">
-                                <Users className="w-3.5 h-3.5 mr-2" /> Voir les {course.purchases?.[0]?.count || 0} Inscrits & Présences
-                              </Button>
-                            </Link>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Link to={`/admin/attendance`} className="w-full">
+                                <Button variant="outline" size="sm" className="w-full h-10 rounded-xl font-black text-[10px] uppercase tracking-wider border-primary/30 text-primary hover:bg-primary/10">
+                                  <Users className="w-3.5 h-3.5 mr-1.5" /> Appel ({course.purchases?.[0]?.count || 0})
+                                </Button>
+                              </Link>
+                              <Link to={`/formations/${course.id}/content`} className="w-full">
+                                <Button size="sm" className="w-full h-10 rounded-xl font-black text-[10px] uppercase tracking-wider bg-primary text-primary-foreground shadow-xs hover:bg-primary/90">
+                                  <BookOpen className="w-3.5 h-3.5 mr-1.5" /> Espace Cours
+                                </Button>
+                              </Link>
+                            </div>
 
                             <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-2">
-                                    <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/formations/${course.id}/edit`)} className="rounded-xl hover:bg-primary/10 hover:text-primary" title="Modifier le cours"><Edit className="w-4 h-4" /></Button>
-                                    <Button size="icon" variant="ghost" onClick={() => togglePublishMutation.mutate({ id: course.id, status: course.status })} className="rounded-xl hover:bg-blue-500/10 hover:text-blue-500" title={course.status === 'published' ? 'Dépublier' : 'Publier'}>
-                                        {course.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                    </Button>
+                                    {!isTeacher && (
+                                      <>
+                                        <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/formations/${course.id}/edit`)} className="rounded-xl hover:bg-primary/10 hover:text-primary" title="Modifier le cours"><Edit className="w-4 h-4" /></Button>
+                                        <Button size="icon" variant="ghost" onClick={() => togglePublishMutation.mutate({ id: course.id, status: course.status })} className="rounded-xl hover:bg-blue-500/10 hover:text-blue-500" title={course.status === 'published' ? 'Dépublier' : 'Publier'}>
+                                            {course.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </Button>
+                                      </>
+                                    )}
                                 </div>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -227,23 +271,30 @@ const FormationManagement = () => {
                                         <DropdownMenuItem onClick={() => navigate(`/formations/${course.id}`)} className="gap-3 p-3 rounded-xl cursor-pointer">
                                             <Globe className="w-4 h-4" /> Voir sur le site
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => navigate(`/admin/enrollment`)} className="gap-3 p-3 rounded-xl cursor-pointer">
-                                            <Users className="w-4 h-4" /> Inscrire un étudiant
+                                        <DropdownMenuItem onClick={() => navigate(`/formations/${course.id}/content`)} className="gap-3 p-3 rounded-xl cursor-pointer">
+                                            <BookOpen className="w-4 h-4" /> Espace de cours & Vidéos
                                         </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem 
-                                            onClick={() => { 
-                                              const count = course.purchases?.[0]?.count || 0;
-                                              if (count > 0) {
-                                                alert(`Impossible de supprimer cette formation car ${count} étudiant(s) y sont actuellement inscrit(s).`);
-                                                return;
-                                              }
-                                              if(confirm("Supprimer cette formation ?")) deleteMutation.mutate(course.id);
-                                            }} 
-                                            className="gap-3 p-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10"
-                                        >
-                                            <Trash2 className="w-4 h-4" /> Supprimer
-                                        </DropdownMenuItem>
+                                        {!isTeacher && (
+                                            <>
+                                                <DropdownMenuItem onClick={() => navigate(`/admin/enrollment`)} className="gap-3 p-3 rounded-xl cursor-pointer">
+                                                    <Users className="w-4 h-4" /> Inscrire un étudiant
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem 
+                                                    onClick={() => { 
+                                                      const count = course.purchases?.[0]?.count || 0;
+                                                      if (count > 0) {
+                                                        alert(`Impossible de supprimer cette formation car ${count} étudiant(s) y sont actuellement inscrit(s).`);
+                                                        return;
+                                                      }
+                                                      if(confirm("Supprimer cette formation ?")) deleteMutation.mutate(course.id);
+                                                    }} 
+                                                    className="gap-3 p-3 rounded-xl cursor-pointer text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <Trash2 className="w-4 h-4" /> Supprimer
+                                                </DropdownMenuItem>
+                                            </>
+                                        )}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -260,7 +311,7 @@ const FormationManagement = () => {
                         <h4 className="font-black uppercase tracking-tight italic truncate text-sm">{course.title}</h4>
                         <div className="flex items-center gap-4 mt-1">
                             <span className="text-[9px] font-bold text-muted-foreground uppercase">{course.category}</span>
-                            <span className="text-[9px] font-black text-primary italic">{course.price}$</span>
+                            {!isTeacher && <span className="text-[9px] font-black text-primary italic">{course.price}$</span>}
                         </div>
                     </div>
                     <div className="flex items-center gap-8 px-6 border-x border-white/5">
@@ -273,23 +324,31 @@ const FormationManagement = () => {
                         </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/formations/${course.id}/edit`)} className="w-10 h-10 rounded-xl"><Edit className="w-4 h-4" /></Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl">
-                                <DropdownMenuItem onClick={() => togglePublishMutation.mutate({ id: course.id, status: course.status })} className="gap-3 p-3 rounded-xl">
-                                    {course.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {course.status === 'published' ? 'Dépublier' : 'Publier'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                    onClick={() => { if(confirm("Supprimer ?")) deleteMutation.mutate(course.id) }} 
-                                    className="gap-3 p-3 rounded-xl text-destructive"
-                                >
-                                    <Trash2 className="w-4 h-4" /> Supprimer
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {isTeacher ? (
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/formations/${course.id}/content`)} className="rounded-xl font-bold text-xs gap-1.5 h-9">
+                                <BookOpen className="w-4 h-4" /> Accéder au cours
+                            </Button>
+                        ) : (
+                            <>
+                                <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/formations/${course.id}/edit`)} className="w-10 h-10 rounded-xl"><Edit className="w-4 h-4" /></Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl"><MoreVertical className="w-4 h-4" /></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl">
+                                        <DropdownMenuItem onClick={() => togglePublishMutation.mutate({ id: course.id, status: course.status })} className="gap-3 p-3 rounded-xl">
+                                            {course.status === 'published' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {course.status === 'published' ? 'Dépublier' : 'Publier'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                            onClick={() => { if(confirm("Supprimer ?")) deleteMutation.mutate(course.id) }} 
+                                            className="gap-3 p-3 rounded-xl text-destructive"
+                                        >
+                                            <Trash2 className="w-4 h-4" /> Supprimer
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </>
+                        )}
                     </div>
                   </div>
                 )}

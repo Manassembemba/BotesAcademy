@@ -14,7 +14,8 @@ import { BulkEmailDialog } from "@/components/admin/students/BulkEmailDialog";
 import { useStudentManagement } from "@/hooks/admin/useStudentManagement";
 
 const StudentManagement = () => {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
+    const isTeacher = role === 'teacher';
     const queryClient = useQueryClient();
     
     // UI States
@@ -72,7 +73,8 @@ const StudentManagement = () => {
             const { data, error } = await supabase.rpc('get_admin_financial_dashboard');
             if (error) throw error;
             return data;
-        }
+        },
+        enabled: !isTeacher
     });
 
     const { data: installments, isLoading: isLoadingInstallments } = useQuery({
@@ -90,15 +92,26 @@ const StudentManagement = () => {
             if (error) throw error;
             return data;
         },
-        enabled: isInstallmentsOpen && !!selectedPurchase?.id
+        enabled: !isTeacher && isInstallmentsOpen && !!selectedPurchase?.id
     });
 
     const { data: allCourses } = useQuery({
-        queryKey: ['admin-all-courses'],
+        queryKey: ['admin-all-courses', user?.id, role],
         queryFn: async () => {
-            const { data } = await supabase.from('courses').select('id, title, price');
+            let query = supabase.from('courses').select('id, title, price');
+            if (isTeacher && user?.id) {
+                const { data: assignments } = await supabase
+                    .from('course_teachers')
+                    .select('course_id')
+                    .eq('teacher_id', user.id);
+                const assignedCourseIds = assignments?.map((a: any) => a.course_id) || [];
+                if (assignedCourseIds.length === 0) return [];
+                query = query.in('id', assignedCourseIds);
+            }
+            const { data } = await query;
             return data || [];
-        }
+        },
+        enabled: !!user
     });
 
     const { data: allStrategies } = useQuery({
@@ -106,7 +119,8 @@ const StudentManagement = () => {
         queryFn: async () => {
             const { data } = await supabase.from('strategies').select('id, title, price');
             return data || [];
-        }
+        },
+        enabled: !isTeacher
     });
 
     const { data: allIndicators } = useQuery({
@@ -114,7 +128,8 @@ const StudentManagement = () => {
         queryFn: async () => {
             const { data } = await supabase.from('indicators').select('id, name, price');
             return data || [];
-        }
+        },
+        enabled: !isTeacher
     });
 
     const { data: courseSessions } = useQuery({
