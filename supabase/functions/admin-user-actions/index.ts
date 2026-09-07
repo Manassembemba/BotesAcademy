@@ -36,6 +36,16 @@ async function isStaff(userId: string) {
     return roles.includes("admin") || roles.includes("receptionist");
 }
 
+async function isAdmin(userId: string) {
+    const { data: roleData, error } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+    if (error || !roleData) return false;
+    const roles = roleData.map(r => r.role);
+    return roles.includes("admin");
+}
+
 serve(async (req) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -174,6 +184,128 @@ serve(async (req) => {
                     target_id: targetUserId,
                     target_type: "user",
                     details: data
+                });
+                break;
+
+            case "UPDATE_ROLE":
+                if (!(await isAdmin(callerStaffId))) {
+                    throw new Error("Seul un administrateur peut modifier les rôles.");
+                }
+                if (!data?.role) {
+                    throw new Error("Rôle requis pour l'action UPDATE_ROLE.");
+                }
+                if (targetUserId === callerStaffId && data.role !== "admin") {
+                    throw new Error("Vous ne pouvez pas révoquer votre propre statut administrateur.");
+                }
+
+                // Mettre à jour user_roles
+                const { error: upsertRoleErr } = await supabaseAdmin
+                    .from("user_roles")
+                    .upsert({ user_id: targetUserId, role: data.role }, { onConflict: "user_id,role" });
+                if (upsertRoleErr) {
+                    // Si conflit sur la contrainte UNIQUE, supprimer l'ancien rôle d'abord
+                    await supabaseAdmin.from("user_roles").delete().eq("user_id", targetUserId);
+                    const { error: insertRoleErr } = await supabaseAdmin.from("user_roles").insert({
+                        user_id: targetUserId,
+                        role: data.role
+                    });
+                    if (insertRoleErr) throw insertRoleErr;
+                } else {
+                    // Nettoyer les autres rôles pour garder un rôle principal
+                    await supabaseAdmin
+                        .from("user_roles")
+                        .delete()
+                        .eq("user_id", targetUserId)
+                        .neq("role", data.role);
+                }
+
+                // Si des cours assignés sont spécifiés (pour un formateur)
+                if (Array.isArray(data.courseIds)) {
+                    // Supprimer les assignations existantes
+                    await supabaseAdmin.from("course_teachers").delete().eq("teacher_id", targetUserId);
+                    if (data.courseIds.length > 0 && data.role === "teacher") {
+                        const assignments = data.courseIds.map((cId: string) => ({
+                            teacher_id: targetUserId,
+                            course_id: cId
+                        }));
+                        const { error: assignErr } = await supabaseAdmin.from("course_teachers").insert(assignments);
+                        if (assignErr) throw assignErr;
+                    }
+                }
+
+                await supabaseAdmin.from("admin_audit_logs").insert({
+                    admin_id: callerStaffId,
+                    action: "role_updated",
+                    target_id: targetUserId,
+                    target_type: "user",
+                    details: { new_role: data.role, assigned_courses: data.courseIds || [] }
+                });
+                break;
+
+            case "CREATE_STAFF_USER":
+                if (!(await isAdmin(callerStaffId))) {
+                    throw new Error("Seul un administrateur peut créer des membres du personnel.");
+                }
+                if (!data?.email || !data?.fullName || !data?.role) {
+                    throw new Error("Email, nom complet et rôle sont requis.");
+                }
+
+                const staffPassword = data.password || Math.random().toString(36).slice(-10) + "Aa1!";
+                const { data: newAuthData, error: newAuthErr } = await supabaseAdmin.auth.admin.createUser({
+                    email: data.email.trim().toLowerCase(),
+                    password: staffPassword,
+                    email_confirm: true,
+                    user_metadata: { full_name: data.fullName.trim(), phone: data.phone?.trim() || null }
+                });
+
+                if (newAuthErr) throw newAuthErr;
+                const newUserId = newAuthData.user.id;
+
+                // Mise à jour de profiles
+                await supabaseAdmin.from("profiles").upsert({
+                    id: newUserId,
+                    full_name: data.fullName.trim(),
+                    phone: data.phone?.trim() || null,
+                    profile_completed: true,
+                    registration_source: "admin_staff"
+                });
+
+                // Attribution du rôle
+                await supabaseAdmin.from("user_roles").upsert({
+                    user_id: newUserId,
+                    role: data.role
+                });
+
+                // Cours assignés si formateur
+                if (data.role === "teacher" && Array.isArray(data.courseIds) && data.courseIds.length > 0) {
+                    const assignments = data.courseIds.map((cId: string) => ({
+                        teacher_id: newUserId,
+                        course_id: cId
+                    }));
+                    await supabaseAdmin.from("course_teachers").insert(assignments);
+                }
+
+                // Génération éventuelle du lien de réinitialisation pour le staff
+                let staffResetLink: string | null = null;
+                const { data: staffLink } = await supabaseAdmin.auth.admin.generateLink({
+                    type: "recovery",
+                    email: data.email.trim().toLowerCase(),
+                    options: { redirectTo: `${Deno.env.get('SITE_URL') || 'https://botes.academy'}/update-password` }
+                });
+                if (staffLink?.properties?.action_link) {
+                    staffResetLink = staffLink.properties.action_link;
+                }
+
+                responsePayload.newUserId = newUserId;
+                responsePayload.resetLink = staffResetLink;
+                responsePayload.initialPassword = staffPassword;
+
+                await supabaseAdmin.from("admin_audit_logs").insert({
+                    admin_id: callerStaffId,
+                    action: "staff_created",
+                    target_id: newUserId,
+                    target_type: "user",
+                    details: { email: data.email, role: data.role, fullName: data.fullName }
                 });
                 break;
 

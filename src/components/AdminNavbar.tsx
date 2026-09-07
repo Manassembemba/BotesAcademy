@@ -24,7 +24,8 @@ import {
   Clock, 
   Target, 
   Megaphone,
-  CheckCheck
+  CheckCheck,
+  Shield
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -75,7 +76,7 @@ const AdminNavbar = () => {
 
   const isPedagogyActive = ["/admin/students", "/admin/attendance", "/admin/formations", "/admin/announcements"].some(p => location.pathname.startsWith(p));
   const isFinanceActive = ["/admin/debts", "/admin/payment-validation", "/admin/accounting"].some(p => location.pathname.startsWith(p));
-  const isSystemActive = ["/admin/tools", "/admin/indicator-delivery", "/admin/analytics", "/admin/settings"].some(p => location.pathname.startsWith(p));
+  const isSystemActive = ["/admin/users", "/admin/tools", "/admin/indicator-delivery", "/admin/analytics", "/admin/settings"].some(p => location.pathname.startsWith(p));
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/85 backdrop-blur-md border-b border-border/50 shadow-xs">
@@ -187,7 +188,11 @@ const AdminNavbar = () => {
                       <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-54 p-1.5 rounded-xl border-border/80 shadow-md">
+                  <DropdownMenuContent align="start" className="w-56 p-1.5 rounded-xl border-border/80 shadow-md">
+                    <DropdownMenuItem onClick={() => navigate("/admin/users")} className="gap-2.5 text-xs font-medium cursor-pointer">
+                      <Shield className="w-4 h-4 text-primary" /> Utilisateurs & Rôles
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate("/admin/tools")} className="gap-2.5 text-xs font-medium cursor-pointer">
                       <ShoppingBag className="w-4 h-4 text-primary" /> Gestion du Marketplace
                     </DropdownMenuItem>
@@ -330,6 +335,9 @@ const AdminNavbar = () => {
                 {isAdmin && (
                   <div className="pt-2">
                     <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Système</p>
+                    <Link to="/admin/users" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
+                      <Shield className="w-4 h-4 text-purple-500" /> Utilisateurs & Rôles
+                    </Link>
                     <Link to="/admin/tools" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/50">
                       <ShoppingBag className="w-4 h-4 text-primary" /> Marketplace
                     </Link>

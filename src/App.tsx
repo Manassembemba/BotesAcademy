@@ -42,6 +42,7 @@ const Finance = lazy(() => import("./pages/Finance"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const EnrollmentWizard = lazy(() => import("./pages/Admin/EnrollmentWizard"));
 const DebtManagement = lazy(() => import("./pages/Admin/DebtManagement"));
+const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,7 @@ const App = () => (
                   <Route path="/admin/indicator-delivery" element={<IndicatorDelivery />} />
                   <Route path="/admin/announcements" element={<Announcements />} />
                   <Route path="/admin/analytics" element={<Analytics />} />
+                  <Route path="/admin/users" element={<UserManagement />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />
