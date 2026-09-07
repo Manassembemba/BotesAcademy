@@ -30,11 +30,24 @@ import {
   Scale,
   Gavel,
   GraduationCap,
-  UserX
+  UserX,
+  FileText,
+  FileDown,
+  Printer,
+  ChevronDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { generateAttendanceReport } from "@/lib/pdfService";
 
 const VACATIONS = [
   { id: "MATIN", label: "Matin", time: "08h00 - 11h00", icon: Sun, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/30" },
@@ -318,6 +331,131 @@ export default function Attendance() {
 
   const selectedCourseObj = courses.find((c) => c.id === selectedCourseId);
 
+  // Récupérer le nom du formateur connecté pour l'en-tête du PDF
+  const { data: userProfile } = useQuery({
+    queryKey: ["attendance-current-user-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  // Génération du rapport PDF officiel
+  const handleExportAttendancePdf = (blank: boolean = false, vacationFilter?: string) => {
+    if (!selectedCourseObj) {
+      toast.error("Veuillez sélectionner une formation.");
+      return;
+    }
+
+    if (enrolledStudents.length === 0) {
+      toast.error("Aucun étudiant inscrit dans ce cours pour générer un rapport.");
+      return;
+    }
+
+    const targetVacation = vacationFilter || selectedVacation;
+    const targetStudents = targetVacation === 'ALL'
+      ? enrolledStudents
+      : enrolledStudents.filter(s => !s.vacation_name || s.vacation_name.toUpperCase() === targetVacation.toUpperCase());
+
+    const studentListToExport = targetStudents.length > 0 ? targetStudents : enrolledStudents;
+
+    const studentList = studentListToExport.map(st => {
+      const p = st.profiles as any;
+      const attRecord = attendanceMap.get(st.user_id);
+      return {
+        matricule: p?.matricule || "N/A",
+        fullName: p?.full_name || "Apprenant",
+        phone: p?.phone || "",
+        vacation: st.vacation_name || (targetVacation !== 'ALL' ? targetVacation : "Standard"),
+        status: (attRecord?.status || 'unrecorded') as 'present' | 'late' | 'absent' | 'unrecorded',
+        notes: attRecord?.notes || ""
+      };
+    });
+
+    const vacationLabel = targetVacation === 'ALL'
+      ? "Toutes Vacations (Matin, Midi, Soir)"
+      : targetVacation === 'MATIN'
+        ? "Matin (08h00 - 11h00)"
+        : targetVacation === 'MIDI'
+          ? "Midi (11h30 - 14h30)"
+          : targetVacation === 'SOIR'
+            ? "Soir (16h00 - 19h00)"
+            : targetVacation;
+
+    generateAttendanceReport({
+      courseTitle: selectedCourseObj.title,
+      courseCategory: selectedCourseObj.category,
+      courseMode: selectedCourseObj.mode,
+      date: selectedDate,
+      vacation: vacationLabel,
+      teacherName: userProfile?.full_name || (user?.user_metadata as any)?.full_name || user?.email,
+      stats: {
+        total: stats.total,
+        presentCount: stats.presentCount,
+        lateCount: stats.lateCount,
+        absentCount: stats.absentCount,
+        rate: stats.rate
+      },
+      students: studentList,
+      isPrintBlankSheet: blank
+    });
+
+    toast.success(blank ? "Feuille d'émargement vierge générée avec succès !" : "Rapport de présence PDF généré avec succès !");
+  };
+
+  const ExportPdfDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          size="sm"
+          className="h-10 px-3.5 rounded-xl font-black uppercase text-xs tracking-wider gap-2 shadow-xs bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Rapport PDF</span>
+          <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 p-2 rounded-2xl shadow-2xl bg-card border border-border">
+        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground px-2 py-1.5">
+          Documents PDF Officiels
+        </DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() => handleExportAttendancePdf(false, selectedVacation)}
+          className="gap-2.5 p-2.5 rounded-xl cursor-pointer font-bold text-xs"
+        >
+          <FileDown className="w-4 h-4 text-emerald-500 shrink-0" />
+          <div>
+            <p>Rapport Session {selectedVacation}</p>
+            <p className="text-[10px] text-muted-foreground font-normal">Pointages et présences du créneau actif</p>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleExportAttendancePdf(false, 'ALL')}
+          className="gap-2.5 p-2.5 rounded-xl cursor-pointer font-bold text-xs"
+        >
+          <FileSpreadsheet className="w-4 h-4 text-blue-500 shrink-0" />
+          <div>
+            <p>Rapport Journée Complète</p>
+            <p className="text-[10px] text-muted-foreground font-normal">Tous les créneaux et inscrits du jour</p>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="my-1.5" />
+        <DropdownMenuItem
+          onClick={() => handleExportAttendancePdf(true, selectedVacation)}
+          className="gap-2.5 p-2.5 rounded-xl cursor-pointer font-bold text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+        >
+          <Printer className="w-4 h-4 shrink-0" />
+          <div>
+            <p>Feuille d'Émargement Vierge</p>
+            <p className="text-[10px] text-muted-foreground font-normal">À imprimer pour signature papier en classe</p>
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 pb-24 max-w-7xl">
       {/* HEADER UNIFIÉ */}
@@ -337,15 +475,19 @@ export default function Attendance() {
           </p>
         </div>
 
-        {/* Date Selector */}
-        <div className="flex items-center gap-2 bg-card border border-border/60 px-3 py-2 rounded-xl shadow-xs">
-          <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border-none bg-transparent font-semibold text-sm h-8 w-36 p-0 focus-visible:ring-0"
-          />
+        {/* Date Selector & Export Rapide */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2 bg-card border border-border/60 px-3 py-2 rounded-xl shadow-xs">
+            <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="border-none bg-transparent font-semibold text-sm h-8 w-36 p-0 focus-visible:ring-0"
+            />
+          </div>
+
+          <ExportPdfDropdown />
         </div>
       </div>
 
@@ -500,7 +642,8 @@ export default function Attendance() {
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+          <ExportPdfDropdown />
           <Button
             variant="outline"
             size="sm"
