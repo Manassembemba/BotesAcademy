@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, Loader2, MessageSquare, User } from "lucide-react";
+import { Send, Loader2, MessageSquare, User, GraduationCap, BadgeCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -46,6 +47,28 @@ export const CourseChat = ({ courseId }: CourseChatProps) => {
       if (error) throw error;
       return data as unknown as Message[];
     },
+  });
+
+  // Fetch teacher & admin IDs for this course to display certified badges
+  const { data: teacherIds = [] } = useQuery({
+    queryKey: ['course-chat-teacher-ids', courseId],
+    queryFn: async () => {
+      const { data: assignments } = await supabase
+        .from('course_teachers')
+        .select('teacher_id')
+        .eq('course_id', courseId);
+      
+      const { data: adminRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+
+      const set = new Set<string>();
+      assignments?.forEach((a: any) => set.add(a.teacher_id));
+      adminRoles?.forEach((a: any) => set.add(a.user_id));
+      return Array.from(set);
+    },
+    enabled: !!courseId,
   });
 
   // Subscribe to new messages
@@ -131,26 +154,35 @@ export const CourseChat = ({ courseId }: CourseChatProps) => {
         ) : (
           messages?.map((msg) => {
             const isOwn = msg.user_id === user?.id;
+            const isTeacherSender = teacherIds.includes(msg.user_id);
             return (
               <div key={msg.id} className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
-                <Avatar className="h-8 w-8 shrink-0 border border-primary/10">
+                <Avatar className={`h-8 w-8 shrink-0 ${isTeacherSender ? 'ring-2 ring-emerald-500/50 border-2 border-emerald-500' : 'border border-primary/10'}`}>
                   <AvatarImage src={msg.profiles?.avatar_url || ''} />
-                  <AvatarFallback className="text-[10px] font-bold">
+                  <AvatarFallback className={`text-[10px] font-bold ${isTeacherSender ? 'bg-emerald-500/20 text-emerald-600' : ''}`}>
                     {msg.profiles?.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className={`flex flex-col max-w-[80%] ${isOwn ? 'items-end' : ''}`}>
-                  <div className="flex items-center gap-2 mb-1 px-1">
-                    <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
+                  <div className="flex items-center gap-1.5 mb-1 px-1 flex-wrap">
+                    <span className="text-[11px] font-bold tracking-tight text-foreground">
                       {msg.profiles?.full_name}
                     </span>
-                    <span className="text-[9px] font-bold text-muted-foreground/50">
+                    {isTeacherSender && (
+                      <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0 bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1">
+                        <GraduationCap className="w-2.5 h-2.5" />
+                        Formateur Référent
+                      </Badge>
+                    )}
+                    <span className="text-[9px] font-medium text-muted-foreground/60">
                       {format(new Date(msg.created_at), 'HH:mm', { locale: fr })}
                     </span>
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm font-medium shadow-sm ${
-                    isOwn 
-                      ? 'bg-primary text-white rounded-tr-none' 
+                  <div className={`p-3 rounded-2xl text-sm font-medium shadow-xs ${
+                    isTeacherSender
+                      ? 'bg-emerald-500/10 text-foreground border border-emerald-500/30 rounded-tl-none'
+                      : isOwn 
+                      ? 'bg-primary text-primary-foreground rounded-tr-none' 
                       : 'bg-muted/50 text-foreground rounded-tl-none border border-border/50'
                   }`}>
                     {msg.content}

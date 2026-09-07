@@ -10,8 +10,11 @@ import { toast } from "sonner";
 import { Megaphone, Send, Users, BookOpen, Clock, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Announcements = () => {
+  const { user, role } = useAuth();
+  const isTeacher = role === 'teacher';
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
@@ -19,12 +22,22 @@ const Announcements = () => {
   const [selectedVacation, setSelectedVacation] = useState<string>("all");
 
   const { data: courses } = useQuery({
-    queryKey: ["courses-list"],
+    queryKey: ["courses-list", user?.id, role],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("id, title");
+      let query = supabase.from("courses").select("id, title").order("title");
+      if (isTeacher && user?.id) {
+        const { data: assignments } = await supabase
+          .from("course_teachers")
+          .select("course_id")
+          .eq("teacher_id", user.id);
+        const courseIds = assignments?.map((a: any) => a.course_id) || [];
+        query = query.in("id", courseIds);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 
   const { data: vacations } = useQuery({

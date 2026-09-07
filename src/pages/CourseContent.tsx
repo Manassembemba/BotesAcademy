@@ -23,10 +23,13 @@ import { CourseChat } from "@/components/course/CourseChat";
 
 const CourseContent = () => {
   const { id: courseId } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { width, height } = useWindowSize();
+
+  const isAdmin = role === 'admin' || role === 'receptionist';
+  const isTeacher = role === 'teacher';
 
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -48,6 +51,38 @@ const CourseContent = () => {
     enabled: !!user,
   });
 
+  // Check if current user is an assigned teacher for this course
+  const { data: isAssignedTeacher = false } = useQuery({
+    queryKey: ['check-assigned-teacher', courseId, user?.id],
+    queryFn: async () => {
+      if (!user?.id || !courseId || !isTeacher) return false;
+      const { data } = await supabase
+        .from('course_teachers')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('teacher_id', user.id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user?.id && !!courseId && isTeacher,
+  });
+
+  // Fetch course metadata directly for teachers and admins
+  const { data: directCourse } = useQuery({
+    queryKey: ['direct-course-details', courseId],
+    queryFn: async () => {
+      if (!courseId) return null;
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!courseId && (isAdmin || isTeacher),
+  });
+
   // 1. Fetch Course & Enrollment details (including payment status)
   const { data: enrollmentData, isLoading: isLoadingEnrollment } = useQuery({
     queryKey: ['user-course-access', courseId, user?.id],
@@ -58,7 +93,7 @@ const CourseContent = () => {
         .select('*, courses(*)')
         .eq('user_id', user.id)
         .eq('course_id', courseId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
@@ -66,9 +101,11 @@ const CourseContent = () => {
     enabled: !!user && !!courseId,
   });
 
-  const hasAccess = enrollmentData?.validation_status === 'approved';
-  const isOverdue = enrollmentData?.payment_status === 'overdue';
-  const isPresentialOnly = enrollmentData?.courses?.mode === 'presentiel';
+  const isStaffOrTeacher = isAdmin || isAssignedTeacher;
+  const hasAccess = isStaffOrTeacher || enrollmentData?.validation_status === 'approved';
+  const isOverdue = isStaffOrTeacher ? false : enrollmentData?.payment_status === 'overdue';
+  const currentCourse = directCourse || enrollmentData?.courses;
+  const isPresentialOnly = currentCourse?.mode === 'presentiel';
 
   // 2. Fetch Lessons
   const { data: lessons, isLoading: isLoadingLessons, error: lessonsError } = useQuery({
@@ -239,10 +276,10 @@ const CourseContent = () => {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold uppercase tracking-tight leading-none">{enrollmentData?.courses?.title}</h1>
+                <h1 className="text-2xl font-bold uppercase tracking-tight leading-none">{currentCourse?.title}</h1>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${isCinemaMode ? 'text-white/60' : 'text-muted-foreground'}`}>
-                    {enrollmentData?.courses?.category}
+                    {currentCourse?.category}
                   </span>
                   {enrollmentData?.vacation_name && (
                     <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md flex items-center gap-1">
@@ -250,9 +287,9 @@ const CourseContent = () => {
                       Vacation : {enrollmentData.vacation_name}
                     </Badge>
                   )}
-                  {enrollmentData?.courses?.mode && (
+                  {currentCourse?.mode && (
                     <Badge variant="outline" className="bg-muted border-border/50 text-muted-foreground text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-md">
-                      {enrollmentData.courses.mode === 'online' ? 'En ligne' : enrollmentData.courses.mode === 'presentiel' ? 'Présentiel Campus' : 'Hybride'}
+                      {currentCourse.mode === 'online' ? 'En ligne' : currentCourse.mode === 'presentiel' ? 'Présentiel Campus' : 'Hybride'}
                     </Badge>
                   )}
                 </div>
@@ -290,7 +327,7 @@ const CourseContent = () => {
                       {userProfile?.full_name || user?.user_metadata?.full_name || "Étudiant Botes Academy"}
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Formation : <span className="text-foreground font-semibold">{enrollmentData?.courses?.title}</span>
+                      Formation : <span className="text-foreground font-semibold">{currentCourse?.title}</span>
                     </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 text-xs">
@@ -522,7 +559,7 @@ const CourseContent = () => {
                     completedLessons={completedLessonsData}
                     onToggleCompletion={(lessonId, isCompleted) => toggleCompletionMutation.mutate({ lessonId, isCompleted })}
                     isToggling={toggleCompletionMutation.isPending}
-                    mode={enrollmentData?.courses?.mode}
+                    mode={currentCourse?.mode}
                     isCinemaMode={isCinemaMode}
                   />
                 </div>

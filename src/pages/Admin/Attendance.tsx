@@ -28,7 +28,9 @@ import {
   CheckCheck,
   CreditCard,
   Scale,
-  Gavel
+  Gavel,
+  GraduationCap,
+  UserX
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -371,29 +373,59 @@ export default function Attendance() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-border bg-card/60 backdrop-blur-md">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-black">
-              <DollarSign className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Étudiants avec Dette</p>
-              <p className="text-2xl font-black italic text-amber-500">{stats.totalDebtCount}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {!isTeacher ? (
+          <>
+            <Card className="rounded-3xl border-border bg-card/60 backdrop-blur-md">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-black">
+                  <DollarSign className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Étudiants avec Dette</p>
+                  <p className="text-2xl font-black italic text-amber-500">{stats.totalDebtCount}</p>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="rounded-3xl border-border bg-card/60 backdrop-blur-md">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center font-black">
-              <Scale className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Litiges Ouverts</p>
-              <p className="text-2xl font-black italic text-purple-500">{stats.totalDisputeCount}</p>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="rounded-3xl border-border bg-card/60 backdrop-blur-md">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center font-black">
+                  <Scale className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Litiges Ouverts</p>
+                  <p className="text-2xl font-black italic text-purple-500">{stats.totalDisputeCount}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card className="rounded-3xl border-border bg-card/60 backdrop-blur-md">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-black">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Taux d'Assiduité</p>
+                  <p className="text-2xl font-black italic text-blue-500">{stats.rate}%</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border-border bg-card/60 backdrop-blur-md">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-black">
+                  <UserX className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Absents / Retards</p>
+                  <p className="text-2xl font-black italic text-rose-500">{stats.absentCount} abs. / {stats.lateCount} ret.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* SÉLECTEURS DE FORMATION ET CRÉNEAUX */}
@@ -410,7 +442,7 @@ export default function Attendance() {
             <SelectContent>
               {courses.map((c) => (
                 <SelectItem key={c.id} value={c.id} className="font-bold">
-                  {c.title} ({c.category || "Cursus"}) — {c.price}$
+                  {c.title} ({c.category || "Cursus"}){!isTeacher && c.price !== undefined ? ` — ${c.price}$` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -574,53 +606,67 @@ export default function Attendance() {
                       </div>
                     </div>
 
-                    {/* 2. VISION FINANCIÈRE & BOUTON COMPLÉTER DETTE */}
-                    <div className="flex items-center gap-3 bg-muted/40 p-2.5 rounded-2xl border border-border/80 min-w-[280px] justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {isDisputed ? (
-                            <Badge className="bg-purple-600 text-white font-bold text-[9px] uppercase px-2">
-                              En Litige
-                            </Badge>
-                          ) : !isDebt ? (
-                            <Badge className="bg-emerald-500 text-white font-bold text-[9px] uppercase px-2">
-                              Soldé
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[9px] font-black uppercase text-amber-500 border-amber-500/40 bg-amber-500/10">
-                              Dette : {remaining}$
-                            </Badge>
-                          )}
+                    {/* 2. VISION FINANCIÈRE OU SUIVI PÉDAGOGIQUE SELON LE RÔLE */}
+                    {!isTeacher ? (
+                      <div className="flex items-center gap-3 bg-muted/40 p-2.5 rounded-2xl border border-border/80 min-w-[280px] justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {isDisputed ? (
+                              <Badge className="bg-purple-600 text-white font-bold text-[9px] uppercase px-2">
+                                En Litige
+                              </Badge>
+                            ) : !isDebt ? (
+                              <Badge className="bg-emerald-500 text-white font-bold text-[9px] uppercase px-2">
+                                Soldé
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[9px] font-black uppercase text-amber-500 border-amber-500/40 bg-amber-500/10">
+                                Dette : {remaining}$
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Payé : <strong className="text-foreground">{paid}$</strong> sur <strong>{total}$</strong>
+                          </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Payé : <strong className="text-foreground">{paid}$</strong> sur <strong>{total}$</strong>
-                        </p>
-                      </div>
 
-                      {/* Bouton Encaisser direct si dette ou litige */}
-                      {(isDebt || isDisputed) && (
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setPaymentModalData({
-                              ...item,
-                              student_name: profile?.full_name,
-                              course_title: selectedCourseObj?.title,
-                              remaining_amount: remaining
-                            });
-                            setInstallmentAmount(remaining);
-                          }}
-                          className={`rounded-xl font-black text-[10px] uppercase tracking-wider h-8 px-3 ${
-                            isDisputed
-                              ? "bg-purple-600 hover:bg-purple-700 text-white"
-                              : "bg-amber-500 hover:bg-amber-600 text-black font-black"
-                          }`}
-                        >
-                          <DollarSign className="w-3.5 h-3.5 mr-1" />
-                          {isDisputed ? "Régulariser" : "Encaisser"}
-                        </Button>
-                      )}
-                    </div>
+                        {/* Bouton Encaisser direct si dette ou litige (Réservé Staff) */}
+                        {(isDebt || isDisputed) && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setPaymentModalData({
+                                ...item,
+                                student_name: profile?.full_name,
+                                course_title: selectedCourseObj?.title,
+                                remaining_amount: remaining
+                              });
+                              setInstallmentAmount(remaining);
+                            }}
+                            className={`rounded-xl font-black text-[10px] uppercase tracking-wider h-8 px-3 ${
+                              isDisputed
+                                ? "bg-purple-600 hover:bg-purple-700 text-white"
+                                : "bg-amber-500 hover:bg-amber-600 text-black font-black"
+                            }`}
+                          >
+                            <DollarSign className="w-3.5 h-3.5 mr-1" />
+                            {isDisputed ? "Régulariser" : "Encaisser"}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 bg-muted/30 p-2.5 rounded-2xl border border-border/60 min-w-[220px]">
+                        <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                          <GraduationCap className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-foreground">Dossier Académique</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {record ? `Pointé : ${record.status === 'present' ? 'Présent' : record.status === 'late' ? 'Retard' : 'Absent'}` : 'En attente d’appel'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* 3. Statut du pointage actuel */}
                     <div className="flex items-center gap-3">
@@ -729,7 +775,7 @@ export default function Attendance() {
       </Card>
 
       {/* MODAL ENCAISSEMENT DIRECT DEPUIS LA FEUILLE DE PRÉSENCE */}
-      <Dialog open={!!paymentModalData} onOpenChange={(o) => !o && setPaymentModalData(null)}>
+      <Dialog open={!isTeacher && !!paymentModalData} onOpenChange={(o) => !o && setPaymentModalData(null)}>
         <DialogContent className="rounded-3xl bg-card border-border max-w-lg shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold uppercase tracking-tight">

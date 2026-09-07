@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 import { 
@@ -130,6 +131,27 @@ const CourseDetail = () => {
       const { data, error } = await supabase.from('lessons').select('*').eq('course_id', courseId).order('order_index', { ascending: true });
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!courseId,
+  });
+
+  const { data: assignedTeachers = [] } = useQuery({
+    queryKey: ['courseAssignedTeachers', courseId],
+    queryFn: async () => {
+      if (!courseId) return [];
+      const { data, error } = await supabase
+        .from('course_teachers')
+        .select(`
+          teacher_id,
+          profiles:teacher_id (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('course_id', courseId);
+      if (error) throw error;
+      return (data || []).map((d: any) => d.profiles).filter(Boolean);
     },
     enabled: !!courseId,
   });
@@ -471,6 +493,49 @@ const CourseDetail = () => {
                   </AccordionItem>
                 ))}
               </Accordion>
+            </div>
+          </div>
+        </MotionSection>
+      )}
+
+      {/* --- SECTION FORMATEURS RÉFÉRENTS --- */}
+      {assignedTeachers && assignedTeachers.length > 0 && (
+        <MotionSection className="py-16 bg-muted/10 border-t border-border/40">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="space-y-8">
+              <div className="text-center space-y-2">
+                <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold uppercase text-[10px] tracking-wider px-3 py-1 rounded-full">
+                  Corps Enseignant & Mentorat
+                </Badge>
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+                  Vos Formateurs <span className="text-primary">Référents</span>
+                </h2>
+                <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+                  Des praticiens experts pour vous accompagner tout au long de votre montée en compétences.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {assignedTeachers.map((teacher: any) => (
+                  <Card key={teacher.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-xs flex items-center gap-4 hover:border-primary/30 transition-all">
+                    <Avatar className="w-14 h-14 border-2 border-primary/20 shadow-xs">
+                      <AvatarImage src={teacher.avatar_url || ""} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold text-base">
+                        {teacher.full_name?.charAt(0) || "F"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-base text-foreground leading-tight">
+                        {teacher.full_name || "Formateur Botes Academy"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <GraduationCap className="w-3.5 h-3.5 text-primary" />
+                        Formateur & Mentor Officiel
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </MotionSection>

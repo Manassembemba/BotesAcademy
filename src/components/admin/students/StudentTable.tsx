@@ -276,7 +276,7 @@ export const StudentTable = ({
                                                 <div className="flex items-center">Cursus <SortIcon column="average_progress" /></div>
                                             </TableHead>
                                             <TableHead className="h-11 text-[11px] font-semibold text-muted-foreground">Outils</TableHead>
-                                            <TableHead className="h-11 text-[11px] font-semibold text-muted-foreground">Statut</TableHead>
+                                            <TableHead className="h-11 text-[11px] font-semibold text-muted-foreground">{isTeacher ? "Assiduité" : "Statut"}</TableHead>
                                             <TableHead className="text-right pr-4 h-11 text-[11px] font-semibold text-muted-foreground">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -377,7 +377,13 @@ export const StudentTable = ({
                                                             )}
                                                         </TableCell>
                                                         <TableCell className="py-3.5">
-                                                            {getFinancialBadge(student.financial_status, student.enrolled_courses_count)}
+                                                            {!isTeacher ? (
+                                                                getFinancialBadge(student.financial_status, student.enrolled_courses_count)
+                                                            ) : (
+                                                                <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20">
+                                                                    {Math.round(student.average_progress || 0)}% assiduité
+                                                                </Badge>
+                                                            )}
                                                         </TableCell>
                                                         <TableCell className="text-right pr-4 py-3.5">
                                                             <div className="flex items-center justify-end gap-1">
@@ -481,7 +487,13 @@ export const StudentTable = ({
                                                 <p className="font-semibold text-sm truncate">{student.full_name}</p>
                                                 <p className="text-[11px] text-muted-foreground truncate">{student.email}</p>
                                             </div>
-                                            {getFinancialBadge(student.financial_status, student.enrolled_courses_count)}
+                                            {!isTeacher ? (
+                                                getFinancialBadge(student.financial_status, student.enrolled_courses_count)
+                                            ) : (
+                                                <Badge variant="outline" className="text-[10px] font-semibold bg-primary/5 text-primary border-primary/20">
+                                                    {Math.round(student.average_progress || 0)}%
+                                                </Badge>
+                                            )}
                                         </div>
 
                                         {/* Cursus info for mobile */}

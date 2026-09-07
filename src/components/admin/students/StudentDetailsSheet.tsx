@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, CreditCard, Clock, LayoutDashboard, FileText, Shield } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 // Sub-components
 import { ProfileTab } from "./details/ProfileTab";
@@ -68,6 +70,9 @@ export const StudentDetailsSheet = ({
     setManualPaymentAmount,
     setIsEnrollDialogOpen
 }: StudentDetailsSheetProps) => {
+    const { role } = useAuth();
+    const isTeacher = role === 'teacher';
+
     // Statut calculé dynamiquement
     const isBanned = selectedStudent?.banned_until && new Date(selectedStudent.banned_until) > new Date();
 
@@ -112,8 +117,14 @@ export const StudentDetailsSheet = ({
                             {/* KPI Summary Cards */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="bg-muted/40 p-3.5 rounded-2xl border border-border/50 text-center">
-                                    <div className="text-xl font-bold text-primary">${selectedStudent?.total_spent?.toLocaleString() || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">Montant total</div>
+                                    <div className="text-xl font-bold text-primary">
+                                        {isTeacher 
+                                            ? `${Math.round(selectedStudent?.average_progress || 0)}%` 
+                                            : `$${selectedStudent?.total_spent?.toLocaleString() || 0}`}
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                                        {isTeacher ? "Progression moyenne" : "Montant total"}
+                                    </div>
                                 </div>
                                 <div className="bg-muted/40 p-3.5 rounded-2xl border border-border/50 text-center">
                                     <div className="text-xl font-bold">{selectedStudent?.enrolled_courses_count || 0}</div>
@@ -124,15 +135,20 @@ export const StudentDetailsSheet = ({
 
                         {/* Navigation Tabs — avec labels texte pour l'accessibilité */}
                         <Tabs defaultValue="academic" className="w-full">
-                            <TabsList className="grid w-full grid-cols-6 h-10 bg-muted/50 p-1 rounded-xl border border-border/40">
+                            <TabsList className={cn(
+                                "grid w-full h-10 bg-muted/50 p-1 rounded-xl border border-border/40",
+                                isTeacher ? "grid-cols-4" : "grid-cols-6"
+                            )}>
                                 <TabsTrigger value="academic" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
                                     <User className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">Profil</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="finance" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
-                                    <CreditCard className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">Finance</span>
-                                </TabsTrigger>
+                                {!isTeacher && (
+                                    <TabsTrigger value="finance" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
+                                        <CreditCard className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Finance</span>
+                                    </TabsTrigger>
+                                )}
                                 <TabsTrigger value="attendance" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-background data-[state=active]:shadow-xs">
                                     <Clock className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">Présence</span>
@@ -145,10 +161,12 @@ export const StudentDetailsSheet = ({
                                     <FileText className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">Docs</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="security" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:shadow-xs">
-                                    <Shield className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">Sécu.</span>
-                                </TabsTrigger>
+                                {!isTeacher && (
+                                    <TabsTrigger value="security" className="rounded-lg flex-col gap-0.5 h-full px-0 text-[9px] font-semibold data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:shadow-xs">
+                                        <Shield className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Sécu.</span>
+                                    </TabsTrigger>
+                                )}
                             </TabsList>
 
                             <TabsContent value="academic" className="outline-none mt-4">
@@ -161,48 +179,50 @@ export const StudentDetailsSheet = ({
                                 />
                             </TabsContent>
 
-                            <TabsContent value="finance" className="outline-none mt-4">
-                                <FinanceTab 
-                                    isLoading={isLoadingCourses}
-                                    selectedStudent={selectedStudent}
-                                    studentCoursesDetails={studentCoursesDetails}
-                                    setIsEnrollDialogOpen={setIsEnrollDialogOpen}
-                                    setSelectedPurchase={setSelectedPurchase}
-                                    setIsInstallmentsOpen={setIsInstallmentsOpen}
-                                    setManualPaymentAmount={setManualPaymentAmount}
-                                    setIsManualPaymentOpen={setIsEnrollDialogOpen}
-                                    deleteMutation={deleteMutation}
-                                />
-                            </TabsContent>
+                            {!isTeacher && (
+                                <TabsContent value="finance" className="outline-none mt-4">
+                                    <FinanceTab 
+                                        isLoading={isLoadingCourses}
+                                        selectedStudent={selectedStudent}
+                                        studentCoursesDetails={studentCoursesDetails}
+                                        setIsEnrollDialogOpen={setIsEnrollDialogOpen}
+                                        setSelectedPurchase={setSelectedPurchase}
+                                        setIsInstallmentsOpen={setIsInstallmentsOpen}
+                                        setManualPaymentAmount={setManualPaymentAmount}
+                                        setIsManualPaymentOpen={setIsEnrollDialogOpen}
+                                        deleteMutation={deleteMutation}
+                                    />
+                                </TabsContent>
+                            )}
 
                             <TabsContent value="attendance" className="outline-none mt-4">
                                 <AttendanceTab studentId={selectedStudentId || ""} />
                             </TabsContent>
 
-                            <TabsContent value="resources" className="outline-none mt-4">
-                                <ResourcesTab 
-                                    studentStrategiesDetails={studentStrategiesDetails}
-                                    studentIndicatorsDetails={studentIndicatorsDetails}
-                                    allStrategies={allStrategies}
-                                    allIndicators={allIndicators}
-                                    enrollMutation={enrollMutation}
-                                    deleteMutation={deleteMutation}
-                                />
-                            </TabsContent>
+                            <ResourcesTab 
+                                studentStrategiesDetails={studentStrategiesDetails}
+                                studentIndicatorsDetails={studentIndicatorsDetails}
+                                allStrategies={allStrategies}
+                                allIndicators={allIndicators}
+                                enrollMutation={enrollMutation}
+                                deleteMutation={deleteMutation}
+                            />
 
                             <TabsContent value="documents" className="outline-none mt-4">
                                 <DocumentsTab studentId={selectedStudentId || ""} />
                             </TabsContent>
 
-                            <TabsContent value="security" className="outline-none mt-4">
-                                <SecurityTab 
-                                    editForm={editForm}
-                                    setEditForm={setEditForm}
-                                    userActionMutation={userActionMutation}
-                                    selectedStudentId={selectedStudentId}
-                                    selectedStudent={selectedStudent}
-                                />
-                            </TabsContent>
+                            {!isTeacher && (
+                                <TabsContent value="security" className="outline-none mt-4">
+                                    <SecurityTab 
+                                        editForm={editForm}
+                                        setEditForm={setEditForm}
+                                        userActionMutation={userActionMutation}
+                                        selectedStudentId={selectedStudentId}
+                                        selectedStudent={selectedStudent}
+                                    />
+                                </TabsContent>
+                            )}
                         </Tabs>
                     </div>
                 </ScrollArea>
