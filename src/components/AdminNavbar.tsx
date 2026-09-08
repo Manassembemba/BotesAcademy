@@ -50,9 +50,9 @@ const AdminNavbar = () => {
   const isAdmin = role === 'admin';
   const isTeacher = role === 'teacher';
 
-  // Fetch profile
+  // Fetch profile (synchronisé avec Navbar et Profile)
   const { data: profile } = useQuery({
-    queryKey: ['adminNavbarProfile', user?.id],
+    queryKey: ['userProfile', user?.id],
     queryFn: async () => {
       if (!user) return null;
       const { data } = await supabase
@@ -64,6 +64,7 @@ const AdminNavbar = () => {
     },
     enabled: !!user,
   });
+
 
   const handleSignOut = async () => {
     try {

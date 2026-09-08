@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateBadge } from "@/lib/pdfService";
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [fullName, setFullName] = useState("");
@@ -33,7 +33,6 @@ const Profile = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['userProfile', user?.id],
     queryFn: async () => {
-      console.log("Profile: Tentative de récupération du profil...");
       if (!user) return null;
       
       const { data, error } = await supabase
@@ -48,7 +47,7 @@ const Profile = () => {
     enabled: !!user,
   });
 
-  // Fetch completed courses for certificates
+  // Fetch completed courses for certificates (students only)
   const { data: completedCourses, isLoading: isLoadingCertificates } = useQuery({
     queryKey: ['completed-courses', user?.id],
     queryFn: async () => {
@@ -57,14 +56,37 @@ const Profile = () => {
       if (error) throw error;
       return (data as any[]).filter(c => Math.round(c.progress) >= 100);
     },
-    enabled: !!user,
+    enabled: !!user && (!role || role === 'student'),
+  });
+
+  // Fetch assigned courses for teachers
+  const { data: teacherAssignedCourses, isLoading: isLoadingTeacherCourses } = useQuery({
+    queryKey: ['teacher-assigned-courses', user?.id],
+    queryFn: async () => {
+      if (!user || role !== 'teacher') return [];
+      const { data, error } = await supabase
+        .from('course_teachers')
+        .select(`
+          course_id,
+          courses (
+            id,
+            title,
+            category,
+            level
+          )
+        `)
+        .eq('teacher_id', user.id);
+      if (error) throw error;
+      return (data || []).map((item: any) => item.courses).filter(Boolean);
+    },
+    enabled: !!user && role === 'teacher',
   });
 
   // Update form when profile loads
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
-      setGender(profile.gender || "");
+      setGender(profile.gender === "O" ? "Other" : (profile.gender || ""));
       setBirthDate(profile.birth_date || "");
       setAddress(profile.address || "");
       setPhone(profile.phone || "");
@@ -90,11 +112,13 @@ const Profile = () => {
     onSuccess: () => {
       toast.success("Dossier académique mis à jour !");
       queryClient.invalidateQueries({ queryKey: ['userProfile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['adminNavbarProfile', user?.id] });
     },
     onError: (error: any) => {
       toast.error(`Erreur: ${error.message}`);
     },
   });
+
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -102,6 +126,11 @@ const Profile = () => {
       if (!event.target.files || event.target.files.length === 0) return;
       
       const file = event.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("L'image ne doit pas dépasser 5 Mo");
+        return;
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user?.id}/${fileName}`;
@@ -126,8 +155,14 @@ const Profile = () => {
       toast.error("Le nom est obligatoire");
       return;
     }
+
+    if (phone && phone.trim().length > 0 && phone.trim().length < 6) {
+      toast.error("Veuillez saisir un numéro de téléphone valide");
+      return;
+    }
+
     updateProfileMutation.mutate({ 
-      full_name: fullName,
+      full_name: fullName.trim(),
       gender,
       birth_date: birthDate || null,
       address,
@@ -177,7 +212,26 @@ const Profile = () => {
                 </p>
                 <p className="text-[10px] text-muted-foreground mb-6 font-medium italic break-all px-2">{user?.email}</p>
                 <div className="flex items-center justify-center gap-2">
-                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 uppercase font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full shadow-sm">Étudiant Pro</Badge>
+                  {role === 'admin' && (
+                    <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/20 uppercase font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full shadow-sm">
+                      Administrateur
+                    </Badge>
+                  )}
+                  {role === 'teacher' && (
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 uppercase font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full shadow-sm">
+                      Formateur Référent
+                    </Badge>
+                  )}
+                  {role === 'receptionist' && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 uppercase font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full shadow-sm">
+                      Staff Réception
+                    </Badge>
+                  )}
+                  {(!role || role === 'student') && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 uppercase font-black text-[10px] tracking-widest px-4 py-1.5 rounded-full shadow-sm">
+                      Étudiant Pro
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -234,15 +288,16 @@ const Profile = () => {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Genre</Label>
                       <Select onValueChange={setGender} value={gender}>
                         <SelectTrigger className="h-14 border-2 border-border/50 rounded-2xl font-black italic px-6 shadow-small">
-                          <SelectValue placeholder="Séléctionner" />
+                          <SelectValue placeholder="Sélectionner" />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-none shadow-2xl p-2">
                           <SelectItem value="M" className="rounded-xl font-bold italic py-3">Masculin</SelectItem>
                           <SelectItem value="F" className="rounded-xl font-bold italic py-3">Féminin</SelectItem>
-                          <SelectItem value="O" className="rounded-xl font-bold italic py-3">Autre</SelectItem>
+                          <SelectItem value="Other" className="rounded-xl font-bold italic py-3">Autre</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+
 
                     <div className="space-y-3">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Date de naissance</Label>
@@ -335,56 +390,144 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Certificates Section */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-               <div className="p-3 bg-amber-500/10 rounded-2xl"><Award className="w-6 h-6 text-amber-600" /></div>
-               <div>
+          {/* Section basse contextuelle selon le rôle */}
+          {role === 'teacher' ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-emerald-500/10 rounded-2xl">
+                    <BookOpen className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Mes Cursus Assignés</h2>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">Formations sous votre responsabilité pédagogique</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => navigate('/admin/attendance')}
+                  variant="outline"
+                  className="rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-black text-xs uppercase tracking-wider"
+                >
+                  Faire l'appel
+                </Button>
+              </div>
+
+              {isLoadingTeacherCourses ? (
+                <div className="bento-grid !grid-cols-1 md:!grid-cols-2">
+                  <div className="h-40 bg-muted animate-pulse rounded-[2.5rem]" />
+                  <div className="h-40 bg-muted animate-pulse rounded-[2.5rem]" />
+                </div>
+              ) : teacherAssignedCourses && teacherAssignedCourses.length > 0 ? (
+                <div className="bento-grid !grid-cols-1 md:!grid-cols-2">
+                  {teacherAssignedCourses.map((course: any) => (
+                    <div key={course.id} className="bento-card p-6 bg-gradient-to-br from-emerald-500/10 to-primary/5 border border-emerald-500/20 shadow-xl flex items-center justify-between group hover:shadow-2xl transition-all">
+                      <div className="space-y-2">
+                        <Badge className="bg-emerald-600 text-white border-none text-[9px] font-black uppercase tracking-widest px-3 py-0.5">
+                          {course.category || "Pédagogie"}
+                        </Badge>
+                        <h3 className="text-lg font-black uppercase italic tracking-tighter leading-tight line-clamp-1">{course.title}</h3>
+                        <p className="text-[10px] font-medium text-muted-foreground">{course.level || "Tous niveaux"}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                        onClick={() => navigate(`/admin/students?course=${course.id}`)}
+                      >
+                        Voir élèves
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Card className="p-8 text-center border-dashed border-2 rounded-[2.5rem] bg-muted/10">
+                  <BookOpen className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
+                  <p className="text-muted-foreground font-medium text-sm mb-3">Aucun cursus n'est actuellement assigné à votre compte formateur.</p>
+                  <Button variant="outline" className="rounded-xl border-border text-xs font-bold" onClick={() => navigate('/admin/dashboard')}>
+                    Accéder au tableau de bord
+                  </Button>
+                </Card>
+              )}
+            </div>
+          ) : (role === 'admin' || role === 'receptionist') ? (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/10 rounded-2xl">
+                  <Shield className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Console Staff & Administration</h2>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">Raccourcis de gestion académique</p>
+                </div>
+              </div>
+
+              <div className="bento-grid !grid-cols-1 sm:!grid-cols-3">
+                <Card className="p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all cursor-pointer shadow-xs" onClick={() => navigate('/admin/dashboard')}>
+                  <h4 className="font-black text-sm uppercase tracking-tight mb-1">Tableau de bord</h4>
+                  <p className="text-xs text-muted-foreground">Vue d'ensemble et KPIs temps réel</p>
+                </Card>
+                <Card className="p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all cursor-pointer shadow-xs" onClick={() => navigate('/admin/students')}>
+                  <h4 className="font-black text-sm uppercase tracking-tight mb-1">Gestion Étudiants</h4>
+                  <p className="text-xs text-muted-foreground">Annuaire académique et dossiers</p>
+                </Card>
+                <Card className="p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all cursor-pointer shadow-xs" onClick={() => navigate('/admin/users')}>
+                  <h4 className="font-black text-sm uppercase tracking-tight mb-1">Utilisateurs & Rôles</h4>
+                  <p className="text-xs text-muted-foreground">Gestion des permissions et du staff</p>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            /* Certificates Section pour étudiants */
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-500/10 rounded-2xl"><Award className="w-6 h-6 text-amber-600" /></div>
+                <div>
                   <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">Mes Certificats</h2>
                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">Vos réussites académiques</p>
-               </div>
-            </div>
+                </div>
+              </div>
 
-             {isLoadingCertificates ? (
+              {isLoadingCertificates ? (
                 <div className="bento-grid !grid-cols-1 md:!grid-cols-2">
-                   <div className="h-40 bg-muted animate-pulse rounded-[2.5rem]" />
-                   <div className="h-40 bg-muted animate-pulse rounded-[2.5rem]" />
+                  <div className="h-40 bg-muted animate-pulse rounded-[2.5rem]" />
+                  <div className="h-40 bg-muted animate-pulse rounded-[2.5rem]" />
                 </div>
-             ) : completedCourses && completedCourses.length > 0 ? (
+              ) : completedCourses && completedCourses.length > 0 ? (
                 <div className="bento-grid !grid-cols-1 md:!grid-cols-2">
-                   {completedCourses.map((course) => (
-                      <div key={course.course_id} className="bento-card p-8 bg-gradient-to-br from-amber-500/10 to-primary/5 border-none shadow-xl flex items-center justify-between group hover:shadow-2xl transition-all">
-                        <div className="space-y-3">
-                           <Badge className="bg-amber-500 text-white border-none text-[9px] font-black uppercase tracking-widest px-4 py-1 shadow-glow-primary-sm">Excellence</Badge>
-                           <h3 className="text-xl font-black uppercase italic tracking-tighter leading-tight line-clamp-1">{course.course_title}</h3>
-                           <p className="text-[10px] font-black italic text-muted-foreground uppercase opacity-60 tracking-widest">{course.course_category}</p>
-                        </div>
-                        <Button 
-                           size="icon" 
-                           className="w-16 h-16 rounded-2xl bg-amber-500 text-white shadow-2xl hover:bg-amber-600 active:scale-95 transition-all shrink-0"
-                           onClick={() => {
-                              toast.success("Validation des acquis...");
-                              generateBadge({
-                                 studentName: fullName || user?.user_metadata.full_name || 'Étudiant',
-                                 courseTitle: course.course_title
-                              });
-                           }}
-                        >
-                           <Download className="w-7 h-7" />
-                        </Button>
+                  {completedCourses.map((course) => (
+                    <div key={course.course_id} className="bento-card p-8 bg-gradient-to-br from-amber-500/10 to-primary/5 border-none shadow-xl flex items-center justify-between group hover:shadow-2xl transition-all">
+                      <div className="space-y-3">
+                        <Badge className="bg-amber-500 text-white border-none text-[9px] font-black uppercase tracking-widest px-4 py-1 shadow-glow-primary-sm">Excellence</Badge>
+                        <h3 className="text-xl font-black uppercase italic tracking-tighter leading-tight line-clamp-1">{course.course_title}</h3>
+                        <p className="text-[10px] font-black italic text-muted-foreground uppercase opacity-60 tracking-widest">{course.course_category}</p>
                       </div>
-                   ))}
+                      <Button 
+                        size="icon" 
+                        className="w-16 h-16 rounded-2xl bg-amber-500 text-white shadow-2xl hover:bg-amber-600 active:scale-95 transition-all shrink-0"
+                        onClick={() => {
+                          toast.success("Validation des acquis...");
+                          generateBadge({
+                            studentName: fullName || user?.user_metadata.full_name || 'Étudiant',
+                            courseTitle: course.course_title
+                          });
+                        }}
+                      >
+                        <Download className="w-7 h-7" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-            ) : (
-               <Card className="p-12 text-center border-dashed border-2 rounded-[3rem] bg-muted/10 group">
+              ) : (
+                <Card className="p-12 text-center border-dashed border-2 rounded-[3rem] bg-muted/10 group">
                   <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-10 group-hover:opacity-20 transition-all" />
                   <p className="text-muted-foreground font-medium italic mb-4">Vous n'avez pas encore terminé de formation.</p>
                   <Button variant="outline" className="rounded-2xl border-primary/20 text-primary font-bold px-8" onClick={() => navigate('/formations')}>
-                     Continuer mes cours
+                    Continuer mes cours
                   </Button>
-               </Card>
-            )}
-          </div>
+                </Card>
+              )}
+            </div>
+          )}
+
         </motion.div>
       </div>
     </div>

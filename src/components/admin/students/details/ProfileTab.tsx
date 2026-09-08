@@ -57,9 +57,10 @@ export const ProfileTab = ({
               Genre
             </Label>
             <Select
-              value={academicForm.gender || ""}
+              value={academicForm.gender === "O" ? "Other" : (academicForm.gender || "")}
               onValueChange={(val) => setAcademicForm({ ...academicForm, gender: val })}
             >
+
               <SelectTrigger className="bg-card border-border rounded-xl h-11 font-bold text-xs">
                 <SelectValue placeholder="Genre" />
               </SelectTrigger>

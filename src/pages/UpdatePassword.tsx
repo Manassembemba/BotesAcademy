@@ -10,6 +10,8 @@ import { z } from "zod";
 import { TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 const passwordSchema = z.object({
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères").max(100, "Mot de passe trop long"),
   confirmPassword: z.string(),
@@ -20,6 +22,7 @@ const passwordSchema = z.object({
 
 const UpdatePassword = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -52,7 +55,11 @@ const UpdatePassword = () => {
       });
 
       toast.success("Votre mot de passe a été mis à jour avec succès !");
-      navigate("/auth");
+      if (user || userData?.user) {
+        navigate("/profile");
+      } else {
+        navigate("/auth");
+      }
 
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -63,6 +70,7 @@ const UpdatePassword = () => {
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
