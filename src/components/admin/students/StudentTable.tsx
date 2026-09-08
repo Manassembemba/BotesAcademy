@@ -52,6 +52,7 @@ interface StudentTableProps {
     setSelectedIds: (ids: string[]) => void;
     onOpenBulkEmail: () => void;
     exportAll: () => Promise<StudentData[]>;
+    teacherCourseIds?: string[];
 }
 
 export const StudentTable = ({
@@ -79,13 +80,15 @@ export const StudentTable = ({
     selectedIds,
     setSelectedIds,
     onOpenBulkEmail,
-    exportAll
+    exportAll,
+    teacherCourseIds = []
 }: StudentTableProps) => {
     const navigate = useNavigate();
     const { role } = useAuth();
     const isTeacher = role === 'teacher';
     const totalPages = Math.ceil(totalCount / pageSize);
     const [isExporting, setIsExporting] = useState(false);
+
 
     const toggleSelectAll = () => {
         if (selectedIds.length === students?.length) {
@@ -328,38 +331,52 @@ export const StudentTable = ({
                                                         </TableCell>
                                                         <TableCell className="py-3.5">
                                                             <div className="flex flex-col gap-1.5 max-w-[200px]">
-                                                                <div className="flex items-center justify-between text-[11px]">
-                                                                    <span className="text-muted-foreground">
-                                                                        {student.enrolled_courses_count || 0} formation{student.enrolled_courses_count !== 1 ? 's' : ''}
-                                                                    </span>
-                                                                    {(student.average_progress || 0) > 0 && (
-                                                                        <span className="font-semibold text-primary">{Math.round(student.average_progress)}%</span>
-                                                                    )}
-                                                                </div>
-                                                                {/* Barre masquée si 0% — du bruit visuel inutile */}
-                                                                {(student.average_progress || 0) > 0 && (
-                                                                    <Progress value={student.average_progress} className="h-1.5" />
-                                                                )}
-                                                                {/* Badges cours avec tooltip pour éviter la troncature */}
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {student.course_titles?.filter(Boolean).slice(0, 2).map((title, i) => (
-                                                                        <Badge
-                                                                            key={i}
-                                                                            variant="outline"
-                                                                            title={title}
-                                                                            className="text-[10px] font-medium max-w-[160px] truncate bg-primary/5 border-primary/15 text-primary/80 cursor-default"
-                                                                        >
-                                                                            {title}
-                                                                        </Badge>
-                                                                    ))}
-                                                                    {(student.course_titles?.filter(Boolean).length || 0) > 2 && (
-                                                                        <Badge variant="outline" className="text-[10px] font-medium bg-muted/50 text-muted-foreground border-border/40">
-                                                                            +{(student.course_titles?.filter(Boolean).length || 0) - 2}
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
+                                                                {(() => {
+                                                                    // Pour un formateur : n'afficher que ses cours
+                                                                    const visibleTitles = (isTeacher && teacherCourseIds.length > 0)
+                                                                        ? student.course_titles?.filter((_, i) =>
+                                                                            teacherCourseIds.includes(student.course_ids?.[i])
+                                                                          ).filter(Boolean) || []
+                                                                        : student.course_titles?.filter(Boolean) || [];
+
+                                                                    const visibleCount = visibleTitles.length;
+
+                                                                    return (
+                                                                        <>
+                                                                            <div className="flex items-center justify-between text-[11px]">
+                                                                                <span className="text-muted-foreground">
+                                                                                    {visibleCount} formation{visibleCount !== 1 ? 's' : ''}
+                                                                                </span>
+                                                                                {(student.average_progress || 0) > 0 && (
+                                                                                    <span className="font-semibold text-primary">{Math.round(student.average_progress)}%</span>
+                                                                                )}
+                                                                            </div>
+                                                                            {(student.average_progress || 0) > 0 && (
+                                                                                <Progress value={student.average_progress} className="h-1.5" />
+                                                                            )}
+                                                                            <div className="flex flex-wrap gap-1">
+                                                                                {visibleTitles.slice(0, 2).map((title, i) => (
+                                                                                    <Badge
+                                                                                        key={i}
+                                                                                        variant="outline"
+                                                                                        title={title}
+                                                                                        className="text-[10px] font-medium max-w-[160px] truncate bg-primary/5 border-primary/15 text-primary/80 cursor-default"
+                                                                                    >
+                                                                                        {title}
+                                                                                    </Badge>
+                                                                                ))}
+                                                                                {visibleCount > 2 && (
+                                                                                    <Badge variant="outline" className="text-[10px] font-medium bg-muted/50 text-muted-foreground border-border/40">
+                                                                                        +{visibleCount - 2}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </TableCell>
+
                                                         <TableCell className="py-3.5">
                                                             {/* Outils — masqué si aucun outil acheté */}
                                                             {((Number(student.purchased_strategies_count) || 0) + (Number(student.purchased_indicators_count) || 0)) > 0 ? (

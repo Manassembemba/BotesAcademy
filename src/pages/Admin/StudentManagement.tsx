@@ -53,6 +53,7 @@ const StudentManagement = () => {
         totalCount, 
         isLoading, 
         error, 
+        teacherCourseIds,
         exportAll,
         addStudentMutation, 
         userActionMutation,
@@ -66,6 +67,7 @@ const StudentManagement = () => {
         { courseId: courseFilter, status: statusFilter },
         sortConfig
     );
+
 
     const { data: financialStats } = useQuery({
         queryKey: ['admin-financial-dashboard'],
@@ -248,9 +250,9 @@ const StudentManagement = () => {
     const selectedStudent = students?.find(s => s.student_id === selectedStudentId);
 
     const { data: studentCoursesDetails, isLoading: isLoadingCourses } = useQuery({
-        queryKey: ['student-courses', selectedStudentId],
+        queryKey: ['student-courses', selectedStudentId, user?.id, role, teacherCourseIds],
         queryFn: async () => {
-            const { data, error } = await supabase
+            let q = supabase
                 .from('purchases')
                 .select(`
                     id, 
@@ -270,11 +272,19 @@ const StudentManagement = () => {
                     course_sessions (session_name)
                 `)
                 .eq('user_id', selectedStudentId);
+
+            if (isTeacher) {
+                if (!teacherCourseIds || teacherCourseIds.length === 0) return [];
+                q = q.in('course_id', teacherCourseIds);
+            }
+
+            const { data, error } = await q;
             if (error) throw error;
             return data;
         },
         enabled: !!selectedStudentId && isDetailsOpen
     });
+
 
     const { data: studentStrategiesDetails, isLoading: isLoadingStrategies } = useQuery({
         queryKey: ['student-strategies', selectedStudentId],
@@ -422,7 +432,9 @@ const StudentManagement = () => {
                     setSelectedIds={setSelectedIds}
                     onOpenBulkEmail={() => setIsBulkEmailOpen(true)}
                     exportAll={exportAll}
+                    teacherCourseIds={teacherCourseIds}
                 />
+
 
                 <StudentDetailsSheet
                     open={isDetailsOpen}
@@ -449,7 +461,9 @@ const StudentManagement = () => {
                     setIsInstallmentsOpen={setIsInstallmentsOpen}
                     setManualPaymentAmount={setManualPaymentAmount}
                     setIsEnrollDialogOpen={setIsEnrollDialogOpen}
+                    teacherCourseIds={teacherCourseIds}
                 />
+
 
                 <UnifiedPaymentDialog 
                     open={isEnrollDialogOpen}

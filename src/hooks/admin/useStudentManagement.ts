@@ -39,7 +39,23 @@ export const useStudentManagement = (
     const queryClient = useQueryClient();
     const isTeacher = role === 'teacher';
 
+    // Cours assignés au formateur (pour filtrer l'affichage)
+    const { data: teacherCourseIds = [] } = useQuery({
+        queryKey: ['teacher-course-ids', user?.id],
+        queryFn: async () => {
+            if (!isTeacher || !user?.id) return [];
+            const { data } = await supabase
+                .from('course_teachers')
+                .select('course_id')
+                .eq('teacher_id', user.id);
+            return data?.map((a: any) => a.course_id as string) || [];
+        },
+        enabled: isTeacher && !!user?.id,
+        staleTime: 60_000,
+    });
+
     // Fetch students with server-side filtering, sorting and pagination
+
     const { data: studentsData, isLoading, error } = useQuery({
         queryKey: ['admin-students', searchTerm, page, pageSize, filters, sortConfig, user?.id, role],
         queryFn: async () => {
@@ -271,6 +287,7 @@ export const useStudentManagement = (
         totalCount: studentsData?.totalCount || 0,
         isLoading,
         error,
+        teacherCourseIds,
         exportAll,
         addStudentMutation,
         userActionMutation,
@@ -278,4 +295,5 @@ export const useStudentManagement = (
         bulkEmailMutation,
         bulkStatusUpdateMutation
     };
+
 };

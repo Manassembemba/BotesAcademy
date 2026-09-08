@@ -42,6 +42,7 @@ interface StudentDetailsSheetProps {
     setIsInstallmentsOpen: (open: boolean) => void;
     setManualPaymentAmount: (amount: number) => void;
     setIsEnrollDialogOpen: (open: boolean) => void;
+    teacherCourseIds?: string[];
 }
 
 export const StudentDetailsSheet = ({
@@ -68,13 +69,19 @@ export const StudentDetailsSheet = ({
     setSelectedPurchase,
     setIsInstallmentsOpen,
     setManualPaymentAmount,
-    setIsEnrollDialogOpen
+    setIsEnrollDialogOpen,
+    teacherCourseIds = []
 }: StudentDetailsSheetProps) => {
     const { role } = useAuth();
     const isTeacher = role === 'teacher';
 
     // Statut calculé dynamiquement
     const isBanned = selectedStudent?.banned_until && new Date(selectedStudent.banned_until) > new Date();
+
+    // Nombre de cursus actifs pertinents (isolé pour le formateur)
+    const activeCoursesCount = isTeacher && teacherCourseIds.length > 0
+        ? (selectedStudent?.course_ids?.filter((id: string) => teacherCourseIds.includes(id)).length || 0)
+        : (selectedStudent?.enrolled_courses_count || 0);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -127,11 +134,12 @@ export const StudentDetailsSheet = ({
                                     </div>
                                 </div>
                                 <div className="bg-muted/40 p-3.5 rounded-2xl border border-border/50 text-center">
-                                    <div className="text-xl font-bold">{selectedStudent?.enrolled_courses_count || 0}</div>
+                                    <div className="text-xl font-bold">{activeCoursesCount}</div>
                                     <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">Cursus actifs</div>
                                 </div>
                             </div>
                         </SheetHeader>
+
 
                         {/* Navigation Tabs — avec labels texte pour l'accessibilité */}
                         <Tabs defaultValue="academic" className="w-full">
